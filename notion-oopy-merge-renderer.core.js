@@ -13,19 +13,11 @@
   let propertyMap = null;
 
   function log() {
-    if (POLICY.DEBUG) console.log('[merge-code-only]', ...arguments);
+    if (POLICY.DEBUG) console.log('[merge-mini]', ...arguments);
   }
 
   function normalizeKey(s) {
     return String(s || '').trim().replace(/\s+/g, '_');
-  }
-
-  function escapeHtml(s) {
-    return String(s ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 
   function getNextData() {
@@ -37,7 +29,7 @@
       parsedData = JSON.parse(el.textContent);
       return parsedData;
     } catch (e) {
-      console.error('[merge-code-only] __NEXT_DATA__ parse fail', e);
+      console.error('[merge-mini] __NEXT_DATA__ parse fail', e);
       return null;
     }
   }
@@ -47,168 +39,140 @@
     return data?.props?.pageProps?.recordMap || null;
   }
 
-  function getCurrentPage(runtime) {
-    const rm = runtime;
+  function getCurrentPage(rm) {
     if (!rm?.block) return null;
 
-    const pageBlockEntry = Object.values(rm.block).find(entry => {
-      const v = entry?.value;
-      return v?.type === 'page' && v?.parent_table === 'collection';
-    });
+    const path = location.pathname || '';
+    const directId = path.split('/').filter(Boolean).pop();
 
-    return pageBlockEntry?.value || null;
+    if (directId && rm.block[directId]?.value?.type === 'page') {
+      return rm.block[directId].value;
+    }
+
+    for (const key in rm.block) {
+      const value = rm.block[key]?.value;
+      if (value?.type === 'page' && value?.parent_table === 'collection') {
+        return value;
+      }
+    }
+
+    return null;
   }
 
-  function getSchema(runtime, page) {
-    return runtime?.collection?.[page?.parent_id]?.value?.schema || {};
+  function getSchema(rm, page) {
+    return rm?.collection?.[page?.parent_id]?.value?.schema || {};
   }
 
   function richTextToPlain(arr) {
     if (!Array.isArray(arr)) return '';
-    return arr.map(part => Array.isArray(part) ? String(part[0] || '') : '').join('').trim();
+    return arr
+      .map(function (part) {
+        return Array.isArray(part) ? String(part[0] || '') : '';
+      })
+      .join('')
+      .trim();
   }
 
-  function formatDateValue(dateObj) {
-    if (!dateObj?.start) return '';
-    const start = String(dateObj.start).replace(/-/g, '/');
-    const end = dateObj.end ? String(dateObj.end).replace(/-/g, '/') : '';
-    return end ? `${start} ~ ${end}` : start;
-  }
+  function formatDate(raw) {
+    if (!raw) return '';
 
-  function getBlockTitle(block) {
-    if (!block?.properties) return '';
-    if (block.properties.title) return richTextToPlain(block.properties.title);
-
-    for (const key in block.properties) {
-      const value = richTextToPlain(block.properties[key]);
-      if (value) return value;
-    }
-    return '';
-  }
-
-  function formatLegacyRelation(raw, rm) {
-    if (!Array.isArray(raw)) return '';
-    const names = [];
-
-    for (const item of raw) {
-      if (!(Array.isArray(item) && item[0] === '‣' && Array.isArray(item[1]))) continue;
-
-      for (const meta of item[1]) {
-        if (Array.isArray(meta) && meta[0] === 'p' && meta[1]) {
-          const block = rm?.block?.[meta[1]]?.value;
-          const title = getBlockTitle(block);
-          if (title) names.push(title);
-        }
-      }
+    if (raw.date && raw.date.start) {
+      const start = String(raw.date.start).replace(/-/g, '/');
+      const end = raw.date.end ? String(raw.date.end).replace(/-/g, '/') : '';
+      return end ? start + ' ~ ' + end : start;
     }
 
-    return names.join(', ');
-  }
-
-  function formatLegacyRollup(raw, rm) {
-    if (!Array.isArray(raw)) return '';
-    const result = [];
-
-    for (const item of raw) {
-      if (!Array.isArray(item)) continue;
-
-      if (typeof item[0] === 'string' && item[0] !== '‣' && item[0] !== ',') {
-        result.push(item[0]);
-        continue;
-      }
-
-      if (item[0] === '‣' && Array.isArray(item[1])) {
-        for (const meta of item[1]) {
-          if (!Array.isArray(meta)) continue;
-
-          const code = meta[0];
-          const payload = meta[1];
-
-          if (code === 'p' && payload) {
-            const block = rm?.block?.[payload]?.value;
-            const title = getBlockTitle(block);
-            if (title) result.push(title);
-          } else if (code === 'd' && payload?.start_date) {
-            result.push(String(payload.start_date).replace(/-/g, '/'));
-          } else if (typeof payload === 'string') {
-            result.push(payload);
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        if (Array.isArray(item) && item[0] === '‣' && Array.isArray(item[1])) {
+          for (const meta of item[1]) {
+            if (Array.isArray(meta) && meta[0] === 'd' && meta[1]?.start_date) {
+              const start = String(meta[1].start_date).replace(/-/g, '/');
+              const end = meta[1].end_date ? String(meta[1].end_date).replace(/-/g, '/') : '';
+              return end ? start + ' ~ ' + end : start;
+            }
           }
         }
       }
     }
 
-    return result.join(', ').replace(/\s+,/g, ',').trim();
+    return '';
   }
 
-  function formatUniqueId(raw) {
-    if (!raw || typeof raw !== 'object') return '';
-    const prefix = raw.prefix || '';
-    const number = raw.number != null ? String(raw.number) : '';
-    return `${prefix}${number}`.trim();
+  function formatSelect(raw) {
+    if (!raw) return '';
+    if (raw.select?.name) return raw.select.name;
+    if (raw.status?.name) return raw.status.name;
+    if (raw.name) return raw.name;
+    return richTextToPlain(raw);
   }
 
-  function formatFiles(raw) {
-    if (!Array.isArray(raw)) return '';
-    const files = [];
+  function formatMultiSelect(raw) {
+    if (!raw) return '';
 
-    for (const item of raw) {
-      if (!Array.isArray(item)) continue;
-      const name = item[0];
-      if (name) files.push(name);
+    if (Array.isArray(raw.multi_select)) {
+      return raw.multi_select
+        .map(function (item) { return item?.name || ''; })
+        .filter(Boolean)
+        .join(', ');
     }
 
-    return files.join(', ');
+    if (Array.isArray(raw)) {
+      return raw
+        .map(function (item) {
+          if (item?.name) return item.name;
+          if (Array.isArray(item)) return item[0] || '';
+          return '';
+        })
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    return '';
   }
 
-  function formatValueByType(raw, type, rm) {
-    switch (type) {
+  function formatValue(propValue, propType) {
+    if (propValue == null) return '';
+
+    switch (propType) {
       case 'title':
+        if (Array.isArray(propValue.title)) return richTextToPlain(propValue.title);
+        return richTextToPlain(propValue);
+
       case 'rich_text':
       case 'text':
-      case 'email':
-      case 'phone_number':
-      case 'url':
-        return richTextToPlain(raw);
+        if (Array.isArray(propValue.rich_text)) return richTextToPlain(propValue.rich_text);
+        return richTextToPlain(propValue);
 
       case 'number':
-        return raw == null ? '' : String(raw);
-
-      case 'checkbox':
-        return raw ? 'true' : 'false';
-
-      case 'date':
-        return formatLegacyRollup(raw, rm) || '';
+        return propValue.number != null ? String(propValue.number) : String(propValue ?? '');
 
       case 'select':
+        return formatSelect(propValue.select ? propValue : { select: propValue.select || propValue });
+
       case 'status':
-        return Array.isArray(raw) ? richTextToPlain(raw) : (raw?.name || '');
+        return formatSelect(propValue.status ? propValue : { status: propValue.status || propValue });
 
       case 'multi_select':
-        return Array.isArray(raw)
-          ? raw.map(part => Array.isArray(part) ? part[0] : '').filter(Boolean).join(', ')
-          : '';
+        return formatMultiSelect(propValue.multi_select ? propValue : { multi_select: propValue.multi_select || propValue });
 
-      case 'relation':
-        return formatLegacyRelation(raw, rm);
+      case 'date':
+        return formatDate(propValue.date ? propValue : propValue);
 
-      case 'rollup':
-      case 'formula':
-        return formatLegacyRollup(raw, rm) || richTextToPlain(raw);
+      case 'checkbox':
+        return propValue.checkbox != null ? String(propValue.checkbox) : String(!!propValue);
 
-      case 'people':
-        return Array.isArray(raw)
-          ? raw.map(part => Array.isArray(part) ? part[0] : '').filter(Boolean).join(', ')
-          : '';
+      case 'url':
+        return propValue.url != null ? String(propValue.url) : String(propValue);
 
-      case 'files':
-      case 'file':
-        return formatFiles(raw);
+      case 'email':
+        return propValue.email != null ? String(propValue.email) : String(propValue);
 
-      case 'unique_id':
-        return formatUniqueId(raw);
+      case 'phone_number':
+        return propValue.phone_number != null ? String(propValue.phone_number) : String(propValue);
 
       default:
-        return richTextToPlain(raw);
+        return '';
     }
   }
 
@@ -227,13 +191,32 @@
 
     for (const propId in props) {
       const schemaItem = schema[propId];
-      if (!schemaItem?.name) continue;
+      if (!schemaItem?.name || !schemaItem?.type) continue;
 
-      const key = schemaItem.name;
-      const value = formatValueByType(props[propId], schemaItem.type, rm);
+      const type = schemaItem.type;
+      const name = schemaItem.name;
 
-      map[key] = value;
-      map[normalizeKey(key)] = value;
+      if (![
+        'title',
+        'rich_text',
+        'text',
+        'number',
+        'select',
+        'multi_select',
+        'status',
+        'date',
+        'checkbox',
+        'url',
+        'email',
+        'phone_number'
+      ].includes(type)) {
+        continue;
+      }
+
+      const value = formatValue(props[propId], type);
+
+      map[name] = value;
+      map[normalizeKey(name)] = value;
     }
 
     map.page_title = document.title || '';
@@ -280,7 +263,7 @@
     try {
       return Array.from(document.querySelectorAll(POLICY.TARGET_SELECTOR));
     } catch (e) {
-      console.error('[merge-code-only] selector fail', e);
+      console.error('[merge-mini] selector fail', e);
       return [];
     }
   }
@@ -296,14 +279,13 @@
     const original = node.textContent || '';
     const replaced = replaceMergeTags(original, map);
 
+    node.setAttribute(POLICY.MARK_ATTR, 'true');
+
     if (replaced !== original) {
       node.textContent = replaced;
-      node.setAttribute(POLICY.MARK_ATTR, 'true');
-      log('replaced', { original, replaced });
       return true;
     }
 
-    node.setAttribute(POLICY.MARK_ATTR, 'true');
     return false;
   }
 
@@ -322,9 +304,9 @@
         if (processNode(node, map)) changed += 1;
       }
 
-      log('done', { changed, total: nodes.length, keys: Object.keys(map) });
+      log('done', { changed: changed, total: nodes.length, keys: Object.keys(map) });
     } catch (e) {
-      console.error('[merge-code-only] failed', e);
+      console.error('[merge-mini] failed', e);
     }
   }
 
