@@ -3,8 +3,8 @@
     OUTPUT_ID: '__notion_merge_render__',
     STYLE_ID: '__notion_merge_style__',
     HIDE_ATTR: 'data-merge-hidden',
-    RENDER_DELAY: 900,
-    OBSERVE_MS: 15000,
+    RENDER_DELAY: 600,
+    SECOND_PASS_DELAY: 1200,
     DEBUG: false,
 
     EMPTY_BEHAVIOR: 'keep',
@@ -13,9 +13,10 @@
   };
 
   const POLICY = Object.assign({}, DEFAULTS, window.MERGE_POLICY || {});
+  let hasRendered = false;
 
   function log() {
-    if (POLICY.DEBUG) console.log('[merge]', ...arguments);
+    if (POLICY.DEBUG) console.log('[merge-lite]', ...arguments);
   }
 
   function normalizeKey(s) {
@@ -65,7 +66,7 @@
     try {
       return JSON.parse(el.textContent);
     } catch (e) {
-      console.error('[merge] __NEXT_DATA__ parse fail', e);
+      console.error('[merge-lite] __NEXT_DATA__ parse fail', e);
       return null;
     }
   }
@@ -421,10 +422,10 @@
   function run() {
     try {
       const runtime = getRuntime();
-      if (!runtime) return;
+      if (!runtime) return false;
 
       const tokenBlocks = getTokenBlocks(runtime);
-      if (!tokenBlocks.length) return;
+      if (!tokenBlocks.length) return false;
 
       const map = buildMap(runtime);
 
@@ -433,26 +434,40 @@
       hideOriginalTokenBlocks(tokenBlocks);
 
       const ok = renderMergedOutput(tokenBlocks, map);
-      if (ok) log('rendered', { tokenBlocks, map });
+      if (ok) {
+        hasRendered = true;
+        log('rendered', { tokenBlocks, map });
+      }
+      return ok;
     } catch (e) {
-      console.error('[merge] failed', e);
+      console.error('[merge-lite] failed', e);
+      return false;
+    }
+  }
+
+  function schedule(fn, delay) {
+    const invoke = () => setTimeout(fn, delay);
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(invoke, { timeout: 1200 });
+    } else {
+      invoke();
     }
   }
 
   function boot() {
     run();
-    setTimeout(run, POLICY.RENDER_DELAY);
 
-    const observer = new MutationObserver(() => {
-      run();
-    });
+    schedule(() => {
+      if (!hasRendered) run();
+    }, POLICY.RENDER_DELAY);
 
-    observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => observer.disconnect(), POLICY.OBSERVE_MS);
+    setTimeout(() => {
+      if (!hasRendered) run();
+    }, POLICY.SECOND_PASS_DELAY);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
   } else {
     boot();
   }
