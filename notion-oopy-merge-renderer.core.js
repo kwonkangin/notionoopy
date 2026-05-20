@@ -1,383 +1,545 @@
-(function () {
-  'use strict';
+<script>
+(() => {
+  let observer = null;
+  let isMerging = false;
 
-  const CONFIG = {
-    debug: true,
-    maxRetries: 24,
-    retryDelay: 400,
-    observerDuration: 12000,
-    settleDelay: 120,
-    rootSelectors: [
-      '.notion-page-content',
-      '.notion-page-content-inner',
-      '[class*="notion-page"]',
-      'main',
-      'body'
-    ],
-    itemSelectors: [
-      '[data-merge-key]',
-      '[data-oopy-merge]',
-      '[data-merge-group]'
-    ]
+  const OBSERVE_OPTIONS = {
+    childList: true,
+    subtree: true,
+    characterData: true
   };
 
-  const STATE = {
-    started: false,
-    done: false,
-    retries: 0,
-    observer: null,
-    retryTimer: null,
-    settleTimer: null,
-    stopObserverTimer: null,
-    processing: false,
-    lastSignature: ''
-  };
+  function getNextData() {
+    const raw = document.getElementById('__NEXT_DATA__')?.textContent;
+    if (!raw) return null;
 
-  function log() {
-    if (!CONFIG.debug) return;
-    console.log('[oopy-merge]', ...arguments);
-  }
-
-  function getRoot() {
-    for (const selector of CONFIG.rootSelectors) {
-      const el = document.querySelector(selector);
-      if (el) return el;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
     }
-    return document.body || document.documentElement;
   }
 
-  function getMergeItems(root) {
-    return root.querySelectorAll(CONFIG.itemSelectors.join(','));
+  function getRecordMap() {
+    return getNextData()?.props?.pageProps?.recordMap || null;
   }
 
-  function getMergeKey(el) {
+  function getPageAndCollection(recordMap) {
+    const blocks = recordMap?.block || {};
+    const collections = recordMap?.collection || {};
+
+    const pageId = Object.keys(blocks).find(
+      id => blocks[id]?.value?.type === 'page'
+    );
+
+    const page = pageId ? blocks[pageId]?.value : null;
+    if (!page) return { page: null, collection: null, pageId: null };
+
+    const collectionId = page.parent_id;
+    const collection = collections[collectionId]?.value || null;
+
+    return { page, collection, pageId };
+  }
+
+  function flattenNotionText(value) {
+    if (!Array.isArray(value)) return '';
+
+    return value
+      .map(item => Array.isArray(item) ? (item[0] || '') : '')
+      .filter(Boolean)
+      .join('');
+  }
+
+  function joinDisplayValues(values) {
+    return values
+      .filter(Boolean)
+      .join(', ')
+      .replace(/\s*,\s*/g, ', ')
+      .trim();
+  }
+
+  function formatDatePart(dateString) {
+    if (!dateString) return '';
+    return String(dateString).replace(/-/g, '/');
+  }
+
+  function extractDateValue(rawValue) {
+    if (!Array.isArray(rawValue)) return '';
+
+    const allowedTypes = ['date', 'datetime', 'daterange', 'datetimerange'];
+
+    for (const item of rawValue) {
+      if (!Array.isArray(item)) continue;
+
+      const [, decorations] = item;
+      if (!Array.isArray(decorations)) continue;
+
+      for (const deco of decorations) {
+        if (!Array.isArray(deco)) continue;
+
+        const [type, payload] = deco;
+        if (type === 'd' && allowedTypes.includes(payload?.type)) {
+          const start = [
+            formatDatePart(payload.start_date),
+            payload.start_time
+          ].filter(Boolean).join(' ');
+
+          const end = [
+            formatDatePart(payload.end_date),
+            payload.end_time
+          ].filter(Boolean).join(' ');
+
+          if (start && end) return `${start} → ${end}`;
+          return start || end || '';
+        }
+      }
+    }
+
+    return '';
+  }
+
+  function getPageTitleById(pageId, recordMap) {
+    if (!pageId) return '';
+
+    const page = recordMap?.block?.[pageId]?.value;
+    if (!page?.properties) return '';
+
     return (
-      el.getAttribute('data-merge-key') ||
-      el.getAttribute('data-oopy-merge') ||
-      el.getAttribute('data-merge-group') ||
+      flattenNotionText(page.properties.title) ||
+      flattenNotionText(page.properties.Name) ||
       ''
-    ).trim();
-  }
-
-  function isReady(root) {
-    if (!root) return false;
-    return document.readyState === 'interactive' || document.readyState === 'complete';
-  }
-
-  function cleanup() {
-    if (STATE.observer) {
-      STATE.observer.disconnect();
-      STATE.observer = null;
-    }
-
-    if (STATE.retryTimer) {
-      clearTimeout(STATE.retryTimer);
-      STATE.retryTimer = null;
-    }
-
-    if (STATE.settleTimer) {
-      clearTimeout(STATE.settleTimer);
-      STATE.settleTimer = null;
-    }
-
-    if (STATE.stopObserverTimer) {
-      clearTimeout(STATE.stopObserverTimer);
-      STATE.stopObserverTimer = null;
-    }
-  }
-
-  function makeSignature(items) {
-    const parts = [];
-    items.forEach((el) => {
-      const key = getMergeKey(el);
-      if (!key) return;
-      parts.push(key + ':' + (el.textContent || '').trim().slice(0, 50));
-    });
-    return parts.join('|');
-  }
-
-  function markMerged(container, key) {
-    container.dataset.oopyMergeDone = 'true';
-    container.dataset.oopyMergeKey = key;
-  }
-
-  function isMerged(container, key) {
-    return (
-      container.dataset.oopyMergeDone === 'true' &&
-      container.dataset.oopyMergeKey === key
     );
   }
 
-  function createWrapper(key) {
-    const wrap = document.createElement('div');
-    wrap.className = 'oopy-merged-group';
-    wrap.dataset.oopyMergedGroup = key;
-    wrap.style.display = 'block';
-    wrap.style.width = '100%';
-    return wrap;
-  }
+  function extractRelationValue(rawValue, recordMap) {
+    if (!Array.isArray(rawValue)) return '';
 
-  function createSectionTitle(sourceEl, key) {
-    const title = document.createElement('div');
-    title.className = 'oopy-merged-title';
-    title.dataset.oopyMergedTitle = key;
-    title.textContent = sourceEl.getAttribute('data-merge-title') || key;
-    title.style.fontWeight = '700';
-    title.style.margin = '0 0 8px';
-    title.style.display = 'block';
-    return title;
-  }
+    const names = [];
 
-  function createBodyWrap() {
-    const body = document.createElement('div');
-    body.className = 'oopy-merged-body';
-    body.style.display = 'block';
-    body.style.width = '100%';
-    return body;
-  }
+    for (const item of rawValue) {
+      if (!Array.isArray(item)) continue;
 
-  function cloneChildrenForMerge(el) {
-    const frag = document.createDocumentFragment();
+      const decorations = item[1];
+      if (!Array.isArray(decorations)) continue;
 
-    Array.from(el.childNodes).forEach((node) => {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const cloned = node.cloneNode(true);
-        frag.appendChild(cloned);
-      } else if (node.nodeType === Node.TEXT_NODE) {
-        const text = node.textContent.trim();
-        if (text) frag.appendChild(document.createTextNode(text));
+      for (const deco of decorations) {
+        if (!Array.isArray(deco)) continue;
+
+        const [type, pageId] = deco;
+        if (type === 'p' && pageId) {
+          const title = getPageTitleById(pageId, recordMap);
+          names.push(title || pageId);
+        }
       }
-    });
+    }
 
-    return frag;
+    return joinDisplayValues(names);
   }
 
-  function mergeGroup(group, key) {
-    if (!group || group.length < 2) return false;
+  function extractPersonValue(rawValue, recordMap) {
+    if (!Array.isArray(rawValue)) return '';
 
-    const first = group[0];
-    const parent = first.parentElement;
-    if (!parent) return false;
+    const notionUser = recordMap?.notion_user || {};
+    const names = [];
 
-    if (isMerged(first, key)) {
-      log('already merged key =', key);
-      return false;
+    for (const item of rawValue) {
+      if (!Array.isArray(item)) continue;
+
+      const decorations = item[1];
+      if (!Array.isArray(decorations)) continue;
+
+      for (const deco of decorations) {
+        if (!Array.isArray(deco)) continue;
+
+        const [type, userId] = deco;
+        if (type === 'u' && userId) {
+          const user = notionUser[userId]?.value;
+          const name = user?.name || user?.full_name || user?.email || userId;
+          names.push(name);
+        }
+      }
     }
 
-    const wrapper = createWrapper(key);
-    const title = createSectionTitle(first, key);
-    const body = createBodyWrap();
-
-    wrapper.appendChild(title);
-    wrapper.appendChild(body);
-
-    group.forEach((item, index) => {
-      if (item.dataset.oopyMergeSourceHandled === 'true') return;
-
-      const block = document.createElement('div');
-      block.className = 'oopy-merged-item';
-      block.dataset.oopyMergedItem = key;
-      block.style.display = 'block';
-      block.style.margin = index === 0 ? '0' : '12px 0 0';
-
-      const content = cloneChildrenForMerge(item);
-      if (!content.childNodes.length) return;
-
-      block.appendChild(content);
-      body.appendChild(block);
-      item.dataset.oopyMergeSourceHandled = 'true';
-    });
-
-    if (!body.childNodes.length) return false;
-
-    first.innerHTML = '';
-    first.appendChild(wrapper);
-    markMerged(first, key);
-
-    for (let i = 1; i < group.length; i += 1) {
-      group[i].style.display = 'none';
-      group[i].dataset.oopyMergeHidden = 'true';
-    }
-
-    return true;
+    return joinDisplayValues(names);
   }
 
-  function renderMerge(root) {
-    const items = Array.from(getMergeItems(root)).filter((el) => {
-      const key = getMergeKey(el);
-      return !!key && el.dataset.oopyMergeHidden !== 'true';
-    });
+  function extractFileEntries(rawValue, recordMap) {
+    if (!Array.isArray(rawValue)) return [];
 
-    if (!items.length) {
-      log('merge targets not found');
-      return false;
+    const signedUrls = recordMap?.signed_urls || {};
+
+    return rawValue
+      .map(item => {
+        if (!Array.isArray(item)) return null;
+
+        const fileName = item[0] || '';
+        const decorations = item[1];
+        let href = '';
+
+        if (Array.isArray(decorations)) {
+          for (const deco of decorations) {
+            if (!Array.isArray(deco)) continue;
+
+            const [type, payload] = deco;
+
+            if ((type === 'a' || type === 'u' || type === 'p') && typeof payload === 'string') {
+              href = payload;
+            }
+          }
+        }
+
+        if (href && href.startsWith('attachment:')) {
+          const parts = href.split(':');
+          const possibleId = parts[1];
+          if (possibleId && signedUrls[possibleId]) {
+            href = signedUrls[possibleId];
+          }
+        }
+
+        return {
+          name: fileName,
+          href: href || ''
+        };
+      })
+      .filter(Boolean)
+      .filter(file => file.name);
+  }
+
+  function extractFileValue(rawValue, recordMap) {
+    const files = extractFileEntries(rawValue, recordMap);
+    return joinDisplayValues(files.map(file => file.name));
+  }
+
+  function normalizePropertyValue(rawValue, schemaType, recordMap) {
+    if (rawValue == null) return '';
+
+    if (schemaType === 'text' || schemaType === 'title') {
+      return flattenNotionText(rawValue);
     }
 
-    const signature = makeSignature(items);
-    if (signature && signature === STATE.lastSignature) {
-      log('same signature, skip');
-      return false;
+    if (schemaType === 'select') {
+      if (!Array.isArray(rawValue)) return '';
+      return joinDisplayValues(
+        rawValue.map(item => Array.isArray(item) ? (item[0] || '') : '')
+      );
     }
 
-    const groups = new Map();
+    if (schemaType === 'multi_select') {
+      if (!Array.isArray(rawValue)) return '';
 
-    items.forEach((el) => {
-      const key = getMergeKey(el);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(el);
+      const values = rawValue
+        .map(item => Array.isArray(item) ? (item[0] || '') : '')
+        .filter(Boolean)
+        .map(value => value.split(',').map(v => v.trim()).filter(Boolean).join(', '));
+
+      return joinDisplayValues(values);
+    }
+
+    if (schemaType === 'date') {
+      return extractDateValue(rawValue);
+    }
+
+    if (schemaType === 'relation') {
+      return extractRelationValue(rawValue, recordMap);
+    }
+
+    if (schemaType === 'person') {
+      return extractPersonValue(rawValue, recordMap);
+    }
+
+    if (schemaType === 'file') {
+      return extractFileValue(rawValue, recordMap);
+    }
+
+    if (schemaType === 'status') {
+      if (!Array.isArray(rawValue)) return '';
+      return joinDisplayValues(
+        rawValue.map(item => Array.isArray(item) ? (item[0] || '') : '')
+      );
+    }
+
+    if (schemaType === 'checkbox') {
+      if (Array.isArray(rawValue) && Array.isArray(rawValue[0])) {
+        return rawValue[0][0] === 'Yes' ? 'Yes' : (rawValue[0][0] || '');
+      }
+      return '';
+    }
+
+    if (schemaType === 'number') {
+      if (Array.isArray(rawValue) && Array.isArray(rawValue[0])) {
+        return rawValue[0][0] || '';
+      }
+      return '';
+    }
+
+    if (Array.isArray(rawValue)) {
+      return joinDisplayValues(
+        rawValue.map(item => Array.isArray(item) ? (item[0] || '') : '')
+      );
+    }
+
+    return String(rawValue || '');
+  }
+
+  function buildPropertyMap() {
+    const recordMap = getRecordMap();
+    if (!recordMap) return {};
+
+    const { page, collection } = getPageAndCollection(recordMap);
+    if (!page || !collection?.schema) return {};
+
+    const result = {};
+
+    for (const [propId, schema] of Object.entries(collection.schema)) {
+      const propName = (schema?.name || '').trim();
+      if (!propName) continue;
+
+      const schemaType = schema?.type || '';
+      const rawValue = page.properties?.[propId];
+      result[propName] = normalizePropertyValue(rawValue, schemaType, recordMap);
+    }
+
+    result.page_title = document.title.trim();
+
+    return result;
+  }
+
+  function buildFilePropertyMap() {
+    const recordMap = getRecordMap();
+    if (!recordMap) return {};
+
+    const { page, collection } = getPageAndCollection(recordMap);
+    if (!page || !collection?.schema) return {};
+
+    const result = {};
+
+    for (const [propId, schema] of Object.entries(collection.schema)) {
+      const propName = (schema?.name || '').trim();
+      if (!propName) continue;
+      if (schema?.type !== 'file') continue;
+
+      const rawValue = page.properties?.[propId];
+      result[propName] = extractFileEntries(rawValue, recordMap);
+    }
+
+    return result;
+  }
+
+  function shouldSkip(node) {
+    const el = node.parentElement;
+    if (!el) return true;
+
+    return ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(el.tagName);
+  }
+
+  function replaceTemplateTokens(text, propertyMap) {
+    return text.replace(/\{%\s*(.*?)\s*%\}/g, (match, key) => {
+      const normalizedKey = String(key || '').trim();
+      if (!normalizedKey) return match;
+
+      if (Object.prototype.hasOwnProperty.call(propertyMap, normalizedKey)) {
+        const value = propertyMap[normalizedKey];
+        return value == null || value === '' ? '' : String(value);
+      }
+
+      return match;
     });
+  }
 
-    let mergedCount = 0;
+  function replaceTextNode(node, propertyMap) {
+    if (!node || !node.nodeValue || shouldSkip(node)) return false;
+    if (!/\{%\s*.*?\s*%\}/.test(node.nodeValue)) return false;
 
-    groups.forEach((group, key) => {
-      if (group.length < 2) return;
-      const ok = mergeGroup(group, key);
-      if (ok) mergedCount += 1;
-    });
+    const nextValue = replaceTemplateTokens(node.nodeValue, propertyMap);
 
-    STATE.lastSignature = signature;
-
-    if (mergedCount > 0) {
-      log('merged group count =', mergedCount);
+    if (nextValue !== node.nodeValue) {
+      node.nodeValue = nextValue;
       return true;
     }
 
-    log('nothing merged');
     return false;
   }
 
-  function tryRender(source) {
-    if (STATE.processing) return false;
+  function scanTextNodes(root, propertyMap) {
+    if (!root) return 0;
 
-    const root = getRoot();
-    if (!isReady(root)) {
-      log('not ready from', source, 'readyState=', document.readyState);
-      return false;
-    }
-
-    STATE.processing = true;
-
-    try {
-      log('try render from', source);
-      const changed = renderMerge(root);
-
-      if (changed) {
-        STATE.done = true;
-        cleanup();
-        log('render complete from', source);
-        return true;
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          if (shouldSkip(node)) return NodeFilter.FILTER_REJECT;
+          if (/\{%\s*.*?\s*%\}/.test(node.nodeValue)) return NodeFilter.FILTER_ACCEPT;
+          return NodeFilter.FILTER_REJECT;
+        }
       }
-    } catch (err) {
-      console.error('[oopy-merge] render error:', err);
-    } finally {
-      STATE.processing = false;
+    );
+
+    let count = 0;
+    let current;
+
+    while ((current = walker.nextNode())) {
+      if (replaceTextNode(current, propertyMap)) count++;
     }
 
-    return false;
+    return count;
   }
 
-  function scheduleRetry() {
-    if (STATE.done) return;
-    if (STATE.retries >= CONFIG.maxRetries) {
-      log('max retries reached');
-      return;
+  function replaceFilePlaceholders(root, filePropertyMap) {
+    if (!root) return 0;
+
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          if (shouldSkip(node)) return NodeFilter.FILTER_REJECT;
+          if (/\{%\s*.*?\s*%\}/.test(node.nodeValue)) return NodeFilter.FILTER_ACCEPT;
+          return NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+
+    let count = 0;
+    let current;
+
+    while ((current = walker.nextNode())) {
+      const text = current.nodeValue;
+      const match = text.match(/^\s*\{%\s*(.*?)\s*%\}\s*$/);
+
+      if (!match) continue;
+
+      const propName = String(match[1] || '').trim();
+      const files = filePropertyMap[propName];
+
+      if (!Array.isArray(files) || files.length === 0) continue;
+      if (!current.parentNode) continue;
+
+      const parentEl = current.parentNode.nodeType === Node.ELEMENT_NODE ? current.parentNode : null;
+      if (parentEl && parentEl.dataset && parentEl.dataset.mergedFileToken === propName) continue;
+
+      const frag = document.createDocumentFragment();
+
+      files.forEach((file, index) => {
+        if (file.href) {
+          const a = document.createElement('a');
+          a.href = file.href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = `🔗 ${file.name}`;
+          frag.appendChild(a);
+        } else {
+          const span = document.createElement('span');
+          span.textContent = `🔗 ${file.name}`;
+          frag.appendChild(span);
+        }
+
+        if (index < files.length - 1) {
+          frag.appendChild(document.createTextNode(', '));
+        }
+      });
+
+      if (parentEl && parentEl.dataset) {
+        parentEl.dataset.mergedFileToken = propName;
+      }
+
+      current.parentNode.replaceChild(frag, current);
+      count++;
     }
 
-    STATE.retries += 1;
-
-    STATE.retryTimer = setTimeout(() => {
-      if (!tryRender('retry-' + STATE.retries)) {
-        scheduleRetry();
-      }
-    }, CONFIG.retryDelay);
+    return count;
   }
 
-  function scheduleSettledRender(source) {
-    if (STATE.done) return;
+  function hasRemainingTokens(root = document.body) {
+    const text = root?.innerText || '';
+    return /\{%\s*.*?\s*%\}/.test(text);
+  }
 
-    if (STATE.settleTimer) clearTimeout(STATE.settleTimer);
-
-    STATE.settleTimer = setTimeout(() => {
-      tryRender(source + '-settled');
-    }, CONFIG.settleDelay);
+  function stopObserver() {
+    if (observer) observer.disconnect();
   }
 
   function startObserver() {
-    if (STATE.observer || STATE.done) return;
-
-    STATE.observer = new MutationObserver(() => {
-      scheduleSettledRender('mutation');
-    });
-
-    STATE.observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true
-    });
-
-    STATE.stopObserverTimer = setTimeout(() => {
-      if (STATE.observer && !STATE.done) {
-        STATE.observer.disconnect();
-        STATE.observer = null;
-        log('observer stopped by timeout');
-      }
-    }, CONFIG.observerDuration);
-
-    log('observer started');
+    if (!observer || !document.body) return;
+    observer.observe(document.body, OBSERVE_OPTIONS);
   }
 
-  function injectStyle() {
-    if (document.getElementById('oopy-merge-style')) return;
+  function runMerge(root = document.body) {
+    if (isMerging) return;
 
-    const style = document.createElement('style');
-    style.id = 'oopy-merge-style';
-    style.textContent = `
-      .oopy-merged-group {
-        display: block;
-        width: 100%;
+    isMerging = true;
+    stopObserver();
+
+    try {
+      const propertyMap = buildPropertyMap();
+      const filePropertyMap = buildFilePropertyMap();
+
+      scanTextNodes(root, propertyMap);
+      replaceFilePlaceholders(root, filePropertyMap);
+    } finally {
+      isMerging = false;
+
+      if (hasRemainingTokens(document.body)) {
+        startObserver();
       }
-      .oopy-merged-title {
-        font-weight: 700;
-        margin-bottom: 8px;
-      }
-      .oopy-merged-body {
-        display: block;
-        width: 100%;
-      }
-      .oopy-merged-item {
-        display: block;
-        width: 100%;
-      }
-    `;
-    document.head.appendChild(style);
+    }
   }
 
-  function boot() {
-    if (STATE.started) return;
-    STATE.started = true;
+  function scheduleMerge(root = document.body) {
+    if (isMerging) return;
+    requestAnimationFrame(() => runMerge(root));
+  }
 
-    injectStyle();
-    log('boot start / readyState =', document.readyState);
+  function initObserver() {
+    observer = new MutationObserver((mutations) => {
+      if (isMerging) return;
 
-    if (tryRender('boot-immediate')) return;
+      let targetRoot = null;
 
-    startObserver();
-    scheduleRetry();
+      for (const mutation of mutations) {
+        if (mutation.type === 'characterData') {
+          const parent = mutation.target?.parentElement;
+          targetRoot = parent || document.body;
+          break;
+        }
+
+        if (mutation.type === 'childList') {
+          for (const added of mutation.addedNodes) {
+            if (added.nodeType === Node.ELEMENT_NODE) {
+              targetRoot = added;
+              break;
+            }
+
+            if (added.nodeType === Node.TEXT_NODE) {
+              targetRoot = added.parentElement || document.body;
+              break;
+            }
+          }
+        }
+
+        if (targetRoot) break;
+      }
+
+      if (!targetRoot) return;
+      scheduleMerge(targetRoot);
+    });
+
+    if (hasRemainingTokens(document.body)) {
+      startObserver();
+    }
+  }
+
+  function start() {
+    runMerge(document.body);
+    initObserver();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
+    document.addEventListener('DOMContentLoaded', start, { once: true });
   } else {
-    boot();
+    start();
   }
-
-  document.addEventListener('readystatechange', function () {
-    if (document.readyState === 'interactive' || document.readyState === 'complete') {
-      scheduleSettledRender('readystatechange');
-    }
-  });
-
-  window.addEventListener('load', function () {
-    tryRender('window-load');
-  }, { once: true });
-
 })();
+</script>
