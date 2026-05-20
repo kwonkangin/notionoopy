@@ -12,9 +12,10 @@
 
   const POLICY = Object.assign({}, DEFAULTS, window.MERGE_POLICY || {});
   let parsedData = null;
+  let hasRun = false;
 
   function log() {
-    if (POLICY.DEBUG) console.log('[merge-ultra]', ...arguments);
+    if (POLICY.DEBUG) console.log('[merge-ultra-after-paint]', ...arguments);
   }
 
   function normalizeKey(s) {
@@ -66,7 +67,7 @@
       parsedData = JSON.parse(el.textContent);
       return parsedData;
     } catch (e) {
-      console.error('[merge-ultra] __NEXT_DATA__ parse fail', e);
+      console.error('[merge-ultra-after-paint] __NEXT_DATA__ parse fail', e);
       return null;
     }
   }
@@ -379,6 +380,9 @@
   }
 
   function run() {
+    if (hasRun) return;
+    hasRun = true;
+
     try {
       const runtime = getRuntime();
       if (!runtime) return;
@@ -398,13 +402,27 @@
         keys: Object.keys(map)
       });
     } catch (e) {
-      console.error('[merge-ultra] failed', e);
+      console.error('[merge-ultra-after-paint] failed', e);
     }
   }
 
+  function runAfterPaint(callback) {
+    if ('requestAnimationFrame' in window) {
+      requestAnimationFrame(function () {
+        setTimeout(callback, 0);
+      });
+    } else {
+      setTimeout(callback, 0);
+    }
+  }
+
+  function boot() {
+    runAfterPaint(run);
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once: true });
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
   } else {
-    run();
+    boot();
   }
 })();
