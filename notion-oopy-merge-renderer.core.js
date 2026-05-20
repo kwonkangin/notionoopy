@@ -1,6 +1,6 @@
 (function () {
   const DEFAULTS = {
-    DEBUG: false,
+    DEBUG: true,
     TARGET_SELECTOR: 'code',
     MARK_ATTR: 'data-merge-processed',
     EMPTY_BEHAVIOR: 'keep',
@@ -13,7 +13,23 @@
   let propertyMap = null;
 
   function log() {
-    if (POLICY.DEBUG) console.log('[merge-mini]', ...arguments);
+    if (POLICY.DEBUG) console.log('[merge-profiler]', ...arguments);
+  }
+
+  function mark(label, value) {
+    if (!POLICY.DEBUG) return value;
+    console.log('[merge-profiler]', label, value);
+    return value;
+  }
+
+  function measure(label, fn) {
+    const t0 = performance.now();
+    const result = fn();
+    const t1 = performance.now();
+    if (POLICY.DEBUG) {
+      console.log('[merge-profiler]', label + ':', (t1 - t0).toFixed(2) + 'ms');
+    }
+    return result;
   }
 
   function normalizeKey(s) {
@@ -22,21 +38,31 @@
 
   function getNextData() {
     if (parsedData) return parsedData;
-    const el = document.getElementById('__NEXT_DATA__');
+
+    const el = measure('get __NEXT_DATA__ element', function () {
+      return document.getElementById('__NEXT_DATA__');
+    });
+
     if (!el) return null;
 
+    const textLength = mark('__NEXT_DATA__ length', el.textContent ? el.textContent.length : 0);
+
     try {
-      parsedData = JSON.parse(el.textContent);
+      parsedData = measure('JSON.parse(__NEXT_DATA__)', function () {
+        return JSON.parse(el.textContent);
+      });
       return parsedData;
     } catch (e) {
-      console.error('[merge-mini] __NEXT_DATA__ parse fail', e);
+      console.error('[merge-profiler] __NEXT_DATA__ parse fail', e);
       return null;
     }
   }
 
   function getRecordMap() {
-    const data = getNextData();
-    return data?.props?.pageProps?.recordMap || null;
+    return measure('get recordMap', function () {
+      const data = getNextData();
+      return data?.props?.pageProps?.recordMap || null;
+    });
   }
 
   function getCurrentPage(rm) {
@@ -46,21 +72,26 @@
     const directId = path.split('/').filter(Boolean).pop();
 
     if (directId && rm.block[directId]?.value?.type === 'page') {
+      mark('page detection', 'directId');
       return rm.block[directId].value;
     }
 
-    for (const key in rm.block) {
-      const value = rm.block[key]?.value;
-      if (value?.type === 'page' && value?.parent_table === 'collection') {
-        return value;
+    return measure('scan rm.block for current page', function () {
+      for (const key in rm.block) {
+        const value = rm.block[key]?.value;
+        if (value?.type === 'page' && value?.parent_table === 'collection') {
+          mark('page detection', 'scan rm.block');
+          return value;
+        }
       }
-    }
-
-    return null;
+      return null;
+    });
   }
 
   function getSchema(rm, page) {
-    return rm?.collection?.[page?.parent_id]?.value?.schema || {};
+    return measure('get schema', function () {
+      return rm?.collection?.[page?.parent_id]?.value?.schema || {};
+    });
   }
 
   function richTextToPlain(arr) {
@@ -179,49 +210,57 @@
   function buildPropertyMap() {
     if (propertyMap) return propertyMap;
 
-    const rm = getRecordMap();
-    if (!rm) return null;
+    return measure('build propertyMap total', function () {
+      const rm = getRecordMap();
+      if (!rm) return null;
 
-    const page = getCurrentPage(rm);
-    if (!page) return null;
+      mark('rm.block count', rm.block ? Object.keys(rm.block).length : 0);
+      mark('rm.collection count', rm.collection ? Object.keys(rm.collection).length : 0);
 
-    const schema = getSchema(rm, page);
-    const props = page.properties || {};
-    const map = {};
+      const page = getCurrentPage(rm);
+      if (!page) return null;
 
-    for (const propId in props) {
-      const schemaItem = schema[propId];
-      if (!schemaItem?.name || !schemaItem?.type) continue;
+      const schema = getSchema(rm, page);
+      const props = page.properties || {};
+      const map = {};
 
-      const type = schemaItem.type;
-      const name = schemaItem.name;
+      measure('iterate page.properties', function () {
+        for (const propId in props) {
+          const schemaItem = schema[propId];
+          if (!schemaItem?.name || !schemaItem?.type) continue;
 
-      if (![
-        'title',
-        'rich_text',
-        'text',
-        'number',
-        'select',
-        'multi_select',
-        'status',
-        'date',
-        'checkbox',
-        'url',
-        'email',
-        'phone_number'
-      ].includes(type)) {
-        continue;
-      }
+          const type = schemaItem.type;
+          const name = schemaItem.name;
 
-      const value = formatValue(props[propId], type);
+          if (![
+            'title',
+            'rich_text',
+            'text',
+            'number',
+            'select',
+            'multi_select',
+            'status',
+            'date',
+            'checkbox',
+            'url',
+            'email',
+            'phone_number'
+          ].includes(type)) {
+            continue;
+          }
 
-      map[name] = value;
-      map[normalizeKey(name)] = value;
-    }
+          const value = formatValue(props[propId], type);
+          map[name] = value;
+          map[normalizeKey(name)] = value;
+        }
+      });
 
-    map.page_title = document.title || '';
-    propertyMap = map;
-    return map;
+      map.page_title = document.title || '';
+      propertyMap = map;
+
+      mark('property keys', Object.keys(map));
+      return map;
+    });
   }
 
   function isEmptyValue(v) {
@@ -260,12 +299,14 @@
   }
 
   function findCodeNodes() {
-    try {
-      return Array.from(document.querySelectorAll(POLICY.TARGET_SELECTOR));
-    } catch (e) {
-      console.error('[merge-mini] selector fail', e);
-      return [];
-    }
+    return measure('querySelectorAll(' + POLICY.TARGET_SELECTOR + ')', function () {
+      try {
+        return Array.from(document.querySelectorAll(POLICY.TARGET_SELECTOR));
+      } catch (e) {
+        console.error('[merge-profiler] selector fail', e);
+        return [];
+      }
+    });
   }
 
   function shouldProcessNode(node) {
@@ -275,39 +316,53 @@
     return text.indexOf('{%') > -1 && text.indexOf('%}') > -1;
   }
 
-  function processNode(node, map) {
-    const original = node.textContent || '';
-    const replaced = replaceMergeTags(original, map);
-
-    node.setAttribute(POLICY.MARK_ATTR, 'true');
-
-    if (replaced !== original) {
-      node.textContent = replaced;
-      return true;
-    }
-
-    return false;
-  }
-
-  function run() {
-    try {
-      const map = buildPropertyMap();
-      if (!map) return;
-
-      const nodes = findCodeNodes();
-      if (!nodes.length) return;
-
+  function processNodes(nodes, map) {
+    return measure('process code nodes', function () {
       let changed = 0;
+      let matched = 0;
 
       for (const node of nodes) {
         if (!shouldProcessNode(node)) continue;
-        if (processNode(node, map)) changed += 1;
+        matched += 1;
+
+        const original = node.textContent || '';
+        const replaced = replaceMergeTags(original, map);
+        node.setAttribute(POLICY.MARK_ATTR, 'true');
+
+        if (replaced !== original) {
+          node.textContent = replaced;
+          changed += 1;
+        }
       }
 
-      log('done', { changed: changed, total: nodes.length, keys: Object.keys(map) });
-    } catch (e) {
-      console.error('[merge-mini] failed', e);
-    }
+      mark('matched code nodes', matched);
+      mark('changed code nodes', changed);
+      return changed;
+    });
+  }
+
+  function run() {
+    measure('run total', function () {
+      try {
+        const map = buildPropertyMap();
+        if (!map) {
+          mark('run aborted', 'no property map');
+          return;
+        }
+
+        const nodes = findCodeNodes();
+        mark('total code nodes', nodes.length);
+
+        if (!nodes.length) {
+          mark('run aborted', 'no code nodes');
+          return;
+        }
+
+        processNodes(nodes, map);
+      } catch (e) {
+        console.error('[merge-profiler] failed', e);
+      }
+    });
   }
 
   function runAfterPaint(callback) {
@@ -321,6 +376,7 @@
   }
 
   function boot() {
+    log('boot start');
     runAfterPaint(run);
   }
 
