@@ -1,5 +1,14 @@
 <script>
 (() => {
+  let observer = null;
+  let isMerging = false;
+
+  const OBSERVE_OPTIONS = {
+    childList: true,
+    subtree: true,
+    characterData: true
+  };
+
   function getNextData() {
     const raw = document.getElementById('__NEXT_DATA__')?.textContent;
     if (!raw) return null;
@@ -89,31 +98,38 @@
     return '';
   }
 
+  function getPageTitleById(pageId, recordMap) {
+    if (!pageId) return '';
+
+    const page = recordMap?.block?.[pageId]?.value;
+    if (!page?.properties) return '';
+
+    return (
+      flattenNotionText(page.properties.title) ||
+      flattenNotionText(page.properties.Name) ||
+      ''
+    );
+  }
+
   function extractRelationValue(rawValue, recordMap) {
     if (!Array.isArray(rawValue)) return '';
 
-    const blocks = recordMap?.block || {};
     const names = [];
 
     for (const item of rawValue) {
       if (!Array.isArray(item)) continue;
 
-      const relationId = item[0];
-      if (!relationId) continue;
+      const decorations = item[1];
+      if (!Array.isArray(decorations)) continue;
 
-      const relatedPage = blocks[relationId]?.value;
-      const title =
-        flattenNotionText(relatedPage?.properties?.title) ||
-        flattenNotionText(relatedPage?.properties?.Name);
+      for (const deco of decorations) {
+        if (!Array.isArray(deco)) continue;
 
-      if (title) {
-        names.push(title);
-      } else if (relatedPage?.properties) {
-        const firstTextLike = Object.values(relatedPage.properties).find(v => Array.isArray(v));
-        const fallbackTitle = flattenNotionText(firstTextLike);
-        names.push(fallbackTitle || relationId);
-      } else {
-        names.push(relationId);
+        const [type, pageId] = deco;
+        if (type === 'p' && pageId) {
+          const title = getPageTitleById(pageId, recordMap);
+          names.push(title || pageId);
+        }
       }
     }
 
@@ -129,12 +145,19 @@
     for (const item of rawValue) {
       if (!Array.isArray(item)) continue;
 
-      const userId = item[0];
-      if (!userId) continue;
+      const decorations = item[1];
+      if (!Array.isArray(decorations)) continue;
 
-      const user = notionUser[userId]?.value;
-      const name = user?.name || user?.full_name || user?.email || userId;
-      names.push(name);
+      for (const deco of decorations) {
+        if (!Array.isArray(deco)) continue;
+
+        const [type, userId] = deco;
+        if (type === 'u' && userId) {
+          const user = notionUser[userId]?.value;
+          const name = user?.name || user?.full_name || user?.email || userId;
+          names.push(name);
+        }
+      }
     }
 
     return joinDisplayValues(names);
@@ -159,11 +182,7 @@
 
             const [type, payload] = deco;
 
-            if (type === 'a' && typeof payload === 'string') {
-              href = payload;
-            }
-
-            if ((type === 'u' || type === 'p') && typeof payload === 'string') {
+            if ((type === 'a' || type === 'u' || type === 'p') && typeof payload === 'string') {
               href = payload;
             }
           }
@@ -398,6 +417,9 @@
       if (!Array.isArray(files) || files.length === 0) continue;
       if (!current.parentNode) continue;
 
+      const parentEl = current.parentNode.nodeType === Node.ELEMENT_NODE ? current.parentNode : null;
+      if (parentEl && parentEl.dataset && parentEl.dataset.mergedFileToken === propName) continue;
+
       const frag = document.createDocumentFragment();
 
       files.forEach((file, index) => {
@@ -419,6 +441,10 @@
         }
       });
 
+      if (parentEl && parentEl.dataset) {
+        parentEl.dataset.mergedFileToken = propName;
+      }
+
       current.parentNode.replaceChild(frag, current);
       count++;
     }
@@ -426,50 +452,92 @@
     return count;
   }
 
-  function runMerge(root = document.body) {
-    const propertyMap = buildPropertyMap();
-    const filePropertyMap = buildFilePropertyMap();
-
-    scanTextNodes(root, propertyMap);
-    replaceFilePlaceholders(root, filePropertyMap);
+  function hasRemainingTokens(root = document.body) {
+    const text = root?.innerText || '';
+    return /\{%\s*.*?\s*%\}/.test(text);
   }
 
-  function start() {
-    runMerge(document.body);
+  function stopObserver() {
+    if (observer) observer.disconnect();
+  }
 
-    const observer = new MutationObserver((mutations) => {
+  function startObserver() {
+    if (!observer || !document.body) return;
+    observer.observe(document.body, OBSERVE_OPTIONS);
+  }
+
+  function runMerge(root = document.body) {
+    if (isMerging) return;
+
+    isMerging = true;
+    stopObserver();
+
+    try {
+      const propertyMap = buildPropertyMap();
+      const filePropertyMap = buildFilePropertyMap();
+
+      scanTextNodes(root, propertyMap);
+      replaceFilePlaceholders(root, filePropertyMap);
+    } finally {
+      isMerging = false;
+
+      if (hasRemainingTokens(document.body)) {
+        startObserver();
+      }
+    }
+  }
+
+  function scheduleMerge(root = document.body) {
+    if (isMerging) return;
+    requestAnimationFrame(() => runMerge(root));
+  }
+
+  function initObserver() {
+    observer = new MutationObserver((mutations) => {
+      if (isMerging) return;
+
+      let targetRoot = null;
+
       for (const mutation of mutations) {
         if (mutation.type === 'characterData') {
-          runMerge(document.body);
+          const parent = mutation.target?.parentElement;
+          targetRoot = parent || document.body;
           break;
         }
 
         if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((added) => {
-            if (added.nodeType === Node.TEXT_NODE) {
-              runMerge(document.body);
-            } else if (added.nodeType === Node.ELEMENT_NODE) {
-              runMerge(added);
+          for (const added of mutation.addedNodes) {
+            if (added.nodeType === Node.ELEMENT_NODE) {
+              targetRoot = added;
+              break;
             }
-          });
+
+            if (added.nodeType === Node.TEXT_NODE) {
+              targetRoot = added.parentElement || document.body;
+              break;
+            }
+          }
         }
+
+        if (targetRoot) break;
       }
 
-      const remains = document.body?.innerText?.match(/\{%\s*.*?\s*%\}/g) || [];
-      if (remains.length === 0) {
-        observer.disconnect();
-      }
+      if (!targetRoot) return;
+      scheduleMerge(targetRoot);
     });
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
+    if (hasRemainingTokens(document.body)) {
+      startObserver();
+    }
+  }
+
+  function start() {
+    runMerge(document.body);
+    initObserver();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start);
+    document.addEventListener('DOMContentLoaded', start, { once: true });
   } else {
     start();
   }
