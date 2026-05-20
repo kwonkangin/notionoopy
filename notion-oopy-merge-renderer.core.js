@@ -98,38 +98,31 @@
     return '';
   }
 
-  function getPageTitleById(pageId, recordMap) {
-    if (!pageId) return '';
-
-    const page = recordMap?.block?.[pageId]?.value;
-    if (!page?.properties) return '';
-
-    return (
-      flattenNotionText(page.properties.title) ||
-      flattenNotionText(page.properties.Name) ||
-      ''
-    );
-  }
-
   function extractRelationValue(rawValue, recordMap) {
     if (!Array.isArray(rawValue)) return '';
 
+    const blocks = recordMap?.block || {};
     const names = [];
 
     for (const item of rawValue) {
       if (!Array.isArray(item)) continue;
 
-      const decorations = item[1];
-      if (!Array.isArray(decorations)) continue;
+      const relationId = item[0];
+      if (!relationId) continue;
 
-      for (const deco of decorations) {
-        if (!Array.isArray(deco)) continue;
+      const relatedPage = blocks[relationId]?.value;
+      const title =
+        flattenNotionText(relatedPage?.properties?.title) ||
+        flattenNotionText(relatedPage?.properties?.Name);
 
-        const [type, pageId] = deco;
-        if (type === 'p' && pageId) {
-          const title = getPageTitleById(pageId, recordMap);
-          names.push(title || pageId);
-        }
+      if (title) {
+        names.push(title);
+      } else if (relatedPage?.properties) {
+        const firstTextLike = Object.values(relatedPage.properties).find(v => Array.isArray(v));
+        const fallbackTitle = flattenNotionText(firstTextLike);
+        names.push(fallbackTitle || relationId);
+      } else {
+        names.push(relationId);
       }
     }
 
@@ -145,19 +138,13 @@
     for (const item of rawValue) {
       if (!Array.isArray(item)) continue;
 
-      const decorations = item[1];
-      if (!Array.isArray(decorations)) continue;
+      const userId = item[0];
+      if (!userId) continue;
 
-      for (const deco of decorations) {
-        if (!Array.isArray(deco)) continue;
+      const user = notionUser[userId]?.value;
+      const name = user?.name || user?.full_name || user?.email || userId;
 
-        const [type, userId] = deco;
-        if (type === 'u' && userId) {
-          const user = notionUser[userId]?.value;
-          const name = user?.name || user?.full_name || user?.email || userId;
-          names.push(name);
-        }
-      }
+      names.push(name);
     }
 
     return joinDisplayValues(names);
@@ -501,7 +488,11 @@
       for (const mutation of mutations) {
         if (mutation.type === 'characterData') {
           const parent = mutation.target?.parentElement;
-          targetRoot = parent || document.body;
+          if (parent) {
+            targetRoot = parent;
+            break;
+          }
+          targetRoot = document.body;
           break;
         }
 
