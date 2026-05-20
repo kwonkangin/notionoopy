@@ -3,8 +3,6 @@
     OUTPUT_ID: '__notion_merge_render__',
     STYLE_ID: '__notion_merge_style__',
     HIDE_ATTR: 'data-merge-hidden',
-    RENDER_DELAY: 600,
-    SECOND_PASS_DELAY: 1200,
     DEBUG: false,
 
     EMPTY_BEHAVIOR: 'keep',
@@ -13,10 +11,10 @@
   };
 
   const POLICY = Object.assign({}, DEFAULTS, window.MERGE_POLICY || {});
-  let hasRendered = false;
+  let parsedData = null;
 
   function log() {
-    if (POLICY.DEBUG) console.log('[merge-lite]', ...arguments);
+    if (POLICY.DEBUG) console.log('[merge-ultra]', ...arguments);
   }
 
   function normalizeKey(s) {
@@ -34,7 +32,6 @@
   function isEmptyValue(v) {
     if (v == null) return true;
     if (typeof v === 'string') return v.trim() === '';
-    if (Array.isArray(v)) return v.length === 0;
     if (typeof v === 'object' && 'value' in v) return isEmptyValue(v.value);
     return false;
   }
@@ -61,12 +58,15 @@
   }
 
   function getNextData() {
+    if (parsedData) return parsedData;
     const el = document.getElementById('__NEXT_DATA__');
     if (!el) return null;
+
     try {
-      return JSON.parse(el.textContent);
+      parsedData = JSON.parse(el.textContent);
+      return parsedData;
     } catch (e) {
-      console.error('[merge-lite] __NEXT_DATA__ parse fail', e);
+      console.error('[merge-ultra] __NEXT_DATA__ parse fail', e);
       return null;
     }
   }
@@ -76,21 +76,18 @@
     const rm = data?.props?.pageProps?.recordMap;
     if (!rm?.block) return null;
 
-    const pageId = location.pathname.split('/').filter(Boolean).pop();
-    const page = rm?.block?.[pageId]?.value;
+    const pathParts = location.pathname.split('/').filter(Boolean);
+    const pageId = pathParts[pathParts.length - 1];
+    const page = rm.block?.[pageId]?.value;
     if (!page) return null;
 
     const schema = rm?.collection?.[page?.parent_id]?.value?.schema || {};
-    return { data, rm, pageId, page, schema };
+    return { rm, page, pageId, schema };
   }
 
   function richTextToPlain(arr) {
     if (!Array.isArray(arr)) return '';
-    return arr
-      .map(part => Array.isArray(part) ? String(part[0] || '') : '')
-      .join('')
-      .replace(/\s+,/g, ',')
-      .trim();
+    return arr.map(part => Array.isArray(part) ? String(part[0] || '') : '').join('').trim();
   }
 
   function formatISODateString(iso) {
@@ -140,168 +137,134 @@
   function getBlockTitle(block) {
     if (!block?.properties) return '';
     if (block.properties.title) return richTextToPlain(block.properties.title);
-    for (const key of Object.keys(block.properties)) {
-      const t = richTextToPlain(block.properties[key]);
-      if (t) return t;
+
+    for (const key in block.properties) {
+      const v = richTextToPlain(block.properties[key]);
+      if (v) return v;
     }
     return '';
   }
 
   function formatRelation(raw, rm) {
     if (!Array.isArray(raw)) return '';
-    const ids = [];
+    const result = [];
 
-    raw.forEach(item => {
-      if (Array.isArray(item) && item[0] === '‣' && Array.isArray(item[1])) {
-        item[1].forEach(meta => {
-          if (Array.isArray(meta) && meta[0] === 'p' && meta[1]) {
-            ids.push(meta[1]);
-          }
-        });
+    for (const item of raw) {
+      if (!(Array.isArray(item) && item[0] === '‣' && Array.isArray(item[1]))) continue;
+
+      for (const meta of item[1]) {
+        if (Array.isArray(meta) && meta[0] === 'p' && meta[1]) {
+          const block = rm?.block?.[meta[1]]?.value;
+          const title = getBlockTitle(block);
+          if (title) result.push(title);
+        }
       }
-    });
+    }
 
-    return ids.map(id => {
-      const block = rm?.block?.[id]?.value;
-      return getBlockTitle(block) || '';
-    }).filter(Boolean).join(', ');
+    return result.join(', ');
   }
 
   function formatRollup(raw, rm) {
     if (!Array.isArray(raw)) return '';
-    const out = [];
+    const result = [];
 
-    raw.forEach(item => {
-      if (!Array.isArray(item)) return;
+    for (const item of raw) {
+      if (!Array.isArray(item)) continue;
 
       if (typeof item[0] === 'string' && item[0] !== '‣' && item[0] !== ',') {
-        out.push(item[0]);
-        return;
+        result.push(item[0]);
+        continue;
       }
 
       if (item[0] === '‣' && Array.isArray(item[1])) {
-        item[1].forEach(meta => {
-          if (!Array.isArray(meta)) return;
+        for (const meta of item[1]) {
+          if (!Array.isArray(meta)) continue;
           const code = meta[0];
           const payload = meta[1];
 
           if (code === 'd' && payload?.start_date) {
-            const start = formatISODateString(
+            result.push(formatISODateString(
               payload.start_time ? `${payload.start_date}T${payload.start_time}` : payload.start_date
-            );
-            out.push(start);
+            ));
           } else if (code === 'p' && payload) {
             const block = rm?.block?.[payload]?.value;
             const title = getBlockTitle(block);
-            if (title) out.push(title);
+            if (title) result.push(title);
           } else if (typeof payload === 'string') {
-            out.push(payload);
+            result.push(payload);
           }
-        });
-      }
-    });
-
-    return out.join(', ').replace(/\s+,/g, ',').trim();
-  }
-
-  function extractFiles(raw) {
-    if (!Array.isArray(raw)) return [];
-    const files = [];
-    raw.forEach(item => {
-      if (!Array.isArray(item)) return;
-      const label = item[0];
-      const meta = item[1];
-      if (!Array.isArray(meta)) return;
-
-      meta.forEach(m => {
-        if (!Array.isArray(m)) return;
-        const type = m[0];
-        const src = m[1];
-        if ((type === 'a' || type === 'u') && src) {
-          files.push({ name: label, src });
         }
-      });
-    });
-    return files;
-  }
-
-  function formatFile(raw) {
-    const files = extractFiles(raw);
-    if (!files.length) return { type: 'text', value: '' };
-
-    return {
-      type: 'text',
-      value: files.map(f => f.name || '').filter(Boolean).join(', ')
-    };
-  }
-
-  function formatUniqueId(raw) {
-    if (raw && typeof raw === 'object') {
-      const prefix = raw.prefix || '';
-      const number = raw.number != null ? String(raw.number) : '';
-      return { type: 'text', value: `${prefix}${number}`.trim() };
+      }
     }
-    return { type: 'text', value: '' };
+
+    return result.join(', ').replace(/\s+,/g, ',').trim();
   }
 
   function formatValue(raw, type, rm) {
-    if (type === 'date') return { type: 'text', value: formatLegacyDate(raw) };
-    if (type === 'relation') return { type: 'text', value: formatRelation(raw, rm) };
-    if (type === 'rollup') return { type: 'text', value: formatRollup(raw, rm) };
-    if (type === 'file' || type === 'files') return formatFile(raw);
-    if (type === 'unique_id') return formatUniqueId(raw);
+    if (type === 'date') return { value: formatLegacyDate(raw) };
+    if (type === 'relation') return { value: formatRelation(raw, rm) };
+    if (type === 'rollup') return { value: formatRollup(raw, rm) };
 
     if (type === 'multi_select') {
       return {
-        type: 'text',
         value: Array.isArray(raw)
           ? raw.map(part => Array.isArray(part) ? part[0] : '').filter(Boolean).join(', ')
           : ''
       };
     }
 
-    if (type === 'checkbox') return { type: 'text', value: raw ? 'true' : 'false' };
-    if (type === 'number') return { type: 'text', value: raw == null ? '' : String(raw) };
+    if (type === 'checkbox') return { value: raw ? 'true' : 'false' };
+    if (type === 'number') return { value: raw == null ? '' : String(raw) };
 
-    return { type: 'text', value: richTextToPlain(raw) };
+    return { value: richTextToPlain(raw) };
   }
 
   function buildMap(runtime) {
-    const { rm, schema, page } = runtime;
+    const { page, schema, rm } = runtime;
     const props = page?.properties || {};
     const map = {};
 
-    for (const [propId, raw] of Object.entries(props)) {
+    for (const propId in props) {
       const s = schema[propId];
       if (!s?.name) continue;
 
-      const fv = formatValue(raw, s.type, rm);
+      const fv = formatValue(props[propId], s.type, rm);
       map[s.name] = fv;
       map[normalizeKey(s.name)] = fv;
     }
 
-    map.page_title = { type: 'text', value: document.title || '' };
+    map.page_title = { value: document.title || '' };
     return map;
   }
 
-  function getChildBlocks(runtime) {
-    const { rm, pageId } = runtime;
-    return Object.values(rm.block)
-      .map(x => x.value)
-      .filter(Boolean)
-      .filter(v => v.parent_id === pageId);
+  function getPageChildBlocks(runtime) {
+    const { page, rm } = runtime;
+    const contentIds = page?.content || [];
+    if (!Array.isArray(contentIds) || !contentIds.length) return [];
+
+    const blocks = [];
+    for (const id of contentIds) {
+      const block = rm?.block?.[id]?.value;
+      if (block) blocks.push(block);
+    }
+    return blocks;
   }
 
   function getTokenBlocks(runtime) {
-    return getChildBlocks(runtime)
-      .map(block => {
-        const title = block?.properties?.title;
-        const text = Array.isArray(title)
-          ? title.map(part => Array.isArray(part) ? part[0] : '').join('')
-          : '';
-        return { id: block.id, type: block.type, text };
-      })
-      .filter(block => block.text && block.text.includes('{%'));
+    const blocks = getPageChildBlocks(runtime);
+    const results = [];
+
+    for (const block of blocks) {
+      const text = richTextToPlain(block?.properties?.title);
+      if (!text || text.indexOf('{%') === -1) continue;
+      results.push({
+        id: block.id,
+        type: block.type,
+        text
+      });
+    }
+
+    return results;
   }
 
   function resolveTokenValue(key, rawToken, map) {
@@ -314,7 +277,7 @@
 
   function replaceTokens(str, map) {
     return esc(str)
-      .replace(/\{%\s*([^%]+?)\s*%\}/g, (match, keyRaw) => {
+      .replace(/\{%\s*([^%]+?)\s*%\}/g, function (match, keyRaw) {
         const key = keyRaw.trim();
         return resolveTokenValue(key, match, map);
       })
@@ -388,16 +351,16 @@
     document.head.appendChild(style);
   }
 
-  function hideOriginalTokenBlocks(tokenBlocks) {
-    tokenBlocks.forEach(block => {
-      const el = document.querySelector(`[data-block-id="${block.id}"]`);
-      if (el) el.setAttribute(POLICY.HIDE_ATTR, 'true');
-    });
-  }
-
   function removeOldRender() {
     const old = document.getElementById(POLICY.OUTPUT_ID);
     if (old) old.remove();
+  }
+
+  function hideOriginalTokenBlocks(tokenBlocks) {
+    for (const block of tokenBlocks) {
+      const el = document.querySelector(`[data-block-id="${block.id}"]`);
+      if (el) el.setAttribute(POLICY.HIDE_ATTR, 'true');
+    }
   }
 
   function renderMergedOutput(tokenBlocks, map) {
@@ -409,11 +372,7 @@
 
     const section = document.createElement('section');
     section.id = POLICY.OUTPUT_ID;
-    section.innerHTML = `
-      <div class="merge-wrap">
-        ${tokenBlocks.map(block => renderBlock(block, map)).join('')}
-      </div>
-    `;
+    section.innerHTML = `<div class="merge-wrap">${tokenBlocks.map(block => renderBlock(block, map)).join('')}</div>`;
 
     firstTokenEl.parentNode.insertBefore(section, firstTokenEl);
     return true;
@@ -422,53 +381,30 @@
   function run() {
     try {
       const runtime = getRuntime();
-      if (!runtime) return false;
+      if (!runtime) return;
 
       const tokenBlocks = getTokenBlocks(runtime);
-      if (!tokenBlocks.length) return false;
+      if (!tokenBlocks.length) return;
 
       const map = buildMap(runtime);
 
       ensureStyle();
       removeOldRender();
       hideOriginalTokenBlocks(tokenBlocks);
+      renderMergedOutput(tokenBlocks, map);
 
-      const ok = renderMergedOutput(tokenBlocks, map);
-      if (ok) {
-        hasRendered = true;
-        log('rendered', { tokenBlocks, map });
-      }
-      return ok;
+      log('rendered', {
+        tokenCount: tokenBlocks.length,
+        keys: Object.keys(map)
+      });
     } catch (e) {
-      console.error('[merge-lite] failed', e);
-      return false;
+      console.error('[merge-ultra] failed', e);
     }
-  }
-
-  function schedule(fn, delay) {
-    const invoke = () => setTimeout(fn, delay);
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(invoke, { timeout: 1200 });
-    } else {
-      invoke();
-    }
-  }
-
-  function boot() {
-    run();
-
-    schedule(() => {
-      if (!hasRendered) run();
-    }, POLICY.RENDER_DELAY);
-
-    setTimeout(() => {
-      if (!hasRendered) run();
-    }, POLICY.SECOND_PASS_DELAY);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
+    document.addEventListener('DOMContentLoaded', run, { once: true });
   } else {
-    boot();
+    run();
   }
 })();
