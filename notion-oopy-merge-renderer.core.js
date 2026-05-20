@@ -1,4 +1,7 @@
 <script>
+console.log('external loaded e73931c');
+alert('external loaded e73931c');
+  
 (() => {
   let observer = null;
   let isMerging = false;
