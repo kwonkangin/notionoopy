@@ -1,388 +1,477 @@
-(function () {
-  const DEFAULTS = {
-    DEBUG: true,
-    TARGET_SELECTOR: 'code',
-    MARK_ATTR: 'data-merge-processed',
-    EMPTY_BEHAVIOR: 'keep',
-    EMPTY_FALLBACK_TEXT: '미입력',
-    EMPTY_BY_KEY: {}
-  };
-
-  const POLICY = Object.assign({}, DEFAULTS, window.MERGE_POLICY || {});
-  let parsedData = null;
-  let propertyMap = null;
-
-  function log() {
-    if (POLICY.DEBUG) console.log('[merge-profiler]', ...arguments);
-  }
-
-  function mark(label, value) {
-    if (!POLICY.DEBUG) return value;
-    console.log('[merge-profiler]', label, value);
-    return value;
-  }
-
-  function measure(label, fn) {
-    const t0 = performance.now();
-    const result = fn();
-    const t1 = performance.now();
-    if (POLICY.DEBUG) {
-      console.log('[merge-profiler]', label + ':', (t1 - t0).toFixed(2) + 'ms');
-    }
-    return result;
-  }
-
-  function normalizeKey(s) {
-    return String(s || '').trim().replace(/\s+/g, '_');
-  }
-
+<script>
+(() => {
   function getNextData() {
-    if (parsedData) return parsedData;
-
-    const el = measure('get __NEXT_DATA__ element', function () {
-      return document.getElementById('__NEXT_DATA__');
-    });
-
-    if (!el) return null;
-
-    const textLength = mark('__NEXT_DATA__ length', el.textContent ? el.textContent.length : 0);
+    const raw = document.getElementById('__NEXT_DATA__')?.textContent;
+    if (!raw) return null;
 
     try {
-      parsedData = measure('JSON.parse(__NEXT_DATA__)', function () {
-        return JSON.parse(el.textContent);
-      });
-      return parsedData;
-    } catch (e) {
-      console.error('[merge-profiler] __NEXT_DATA__ parse fail', e);
+      return JSON.parse(raw);
+    } catch {
       return null;
     }
   }
 
   function getRecordMap() {
-    return measure('get recordMap', function () {
-      const data = getNextData();
-      return data?.props?.pageProps?.recordMap || null;
-    });
+    return getNextData()?.props?.pageProps?.recordMap || null;
   }
 
-  function getCurrentPage(rm) {
-    if (!rm?.block) return null;
+  function getPageAndCollection(recordMap) {
+    const blocks = recordMap?.block || {};
+    const collections = recordMap?.collection || {};
 
-    const path = location.pathname || '';
-    const directId = path.split('/').filter(Boolean).pop();
+    const pageId = Object.keys(blocks).find(
+      id => blocks[id]?.value?.type === 'page'
+    );
 
-    if (directId && rm.block[directId]?.value?.type === 'page') {
-      mark('page detection', 'directId');
-      return rm.block[directId].value;
-    }
+    const page = pageId ? blocks[pageId]?.value : null;
+    if (!page) return { page: null, collection: null, pageId: null };
 
-    return measure('scan rm.block for current page', function () {
-      for (const key in rm.block) {
-        const value = rm.block[key]?.value;
-        if (value?.type === 'page' && value?.parent_table === 'collection') {
-          mark('page detection', 'scan rm.block');
-          return value;
-        }
-      }
-      return null;
-    });
+    const collectionId = page.parent_id;
+    const collection = collections[collectionId]?.value || null;
+
+    return { page, collection, pageId };
   }
 
-  function getSchema(rm, page) {
-    return measure('get schema', function () {
-      return rm?.collection?.[page?.parent_id]?.value?.schema || {};
-    });
+  function flattenNotionText(value) {
+    if (!Array.isArray(value)) return '';
+
+    return value
+      .map(item => Array.isArray(item) ? (item[0] || '') : '')
+      .filter(Boolean)
+      .join('');
   }
 
-  function richTextToPlain(arr) {
-    if (!Array.isArray(arr)) return '';
-    return arr
-      .map(function (part) {
-        return Array.isArray(part) ? String(part[0] || '') : '';
-      })
-      .join('')
+  function joinDisplayValues(values) {
+    return values
+      .filter(Boolean)
+      .join(', ')
+      .replace(/\s*,\s*/g, ', ')
       .trim();
   }
 
-  function formatDate(raw) {
-    if (!raw) return '';
+  function formatDatePart(dateString) {
+    if (!dateString) return '';
+    return String(dateString).replace(/-/g, '/');
+  }
 
-    if (raw.date && raw.date.start) {
-      const start = String(raw.date.start).replace(/-/g, '/');
-      const end = raw.date.end ? String(raw.date.end).replace(/-/g, '/') : '';
-      return end ? start + ' ~ ' + end : start;
+  function extractDateValue(rawValue) {
+    if (!Array.isArray(rawValue)) return '';
+
+    const allowedTypes = ['date', 'datetime', 'daterange', 'datetimerange'];
+
+    for (const item of rawValue) {
+      if (!Array.isArray(item)) continue;
+
+      const [, decorations] = item;
+      if (!Array.isArray(decorations)) continue;
+
+      for (const deco of decorations) {
+        if (!Array.isArray(deco)) continue;
+
+        const [type, payload] = deco;
+        if (type === 'd' && allowedTypes.includes(payload?.type)) {
+          const start = [
+            formatDatePart(payload.start_date),
+            payload.start_time
+          ].filter(Boolean).join(' ');
+
+          const end = [
+            formatDatePart(payload.end_date),
+            payload.end_time
+          ].filter(Boolean).join(' ');
+
+          if (start && end) return `${start} → ${end}`;
+          return start || end || '';
+        }
+      }
     }
 
-    if (Array.isArray(raw)) {
-      for (const item of raw) {
-        if (Array.isArray(item) && item[0] === '‣' && Array.isArray(item[1])) {
-          for (const meta of item[1]) {
-            if (Array.isArray(meta) && meta[0] === 'd' && meta[1]?.start_date) {
-              const start = String(meta[1].start_date).replace(/-/g, '/');
-              const end = meta[1].end_date ? String(meta[1].end_date).replace(/-/g, '/') : '';
-              return end ? start + ' ~ ' + end : start;
+    return '';
+  }
+
+  function extractRelationValue(rawValue, recordMap) {
+    if (!Array.isArray(rawValue)) return '';
+
+    const blocks = recordMap?.block || {};
+    const names = [];
+
+    for (const item of rawValue) {
+      if (!Array.isArray(item)) continue;
+
+      const relationId = item[0];
+      if (!relationId) continue;
+
+      const relatedPage = blocks[relationId]?.value;
+      const title =
+        flattenNotionText(relatedPage?.properties?.title) ||
+        flattenNotionText(relatedPage?.properties?.Name);
+
+      if (title) {
+        names.push(title);
+      } else if (relatedPage?.properties) {
+        const firstTextLike = Object.values(relatedPage.properties).find(v => Array.isArray(v));
+        const fallbackTitle = flattenNotionText(firstTextLike);
+        names.push(fallbackTitle || relationId);
+      } else {
+        names.push(relationId);
+      }
+    }
+
+    return joinDisplayValues(names);
+  }
+
+  function extractPersonValue(rawValue, recordMap) {
+    if (!Array.isArray(rawValue)) return '';
+
+    const notionUser = recordMap?.notion_user || {};
+    const names = [];
+
+    for (const item of rawValue) {
+      if (!Array.isArray(item)) continue;
+
+      const userId = item[0];
+      if (!userId) continue;
+
+      const user = notionUser[userId]?.value;
+      const name = user?.name || user?.full_name || user?.email || userId;
+      names.push(name);
+    }
+
+    return joinDisplayValues(names);
+  }
+
+  function extractFileEntries(rawValue, recordMap) {
+    if (!Array.isArray(rawValue)) return [];
+
+    const signedUrls = recordMap?.signed_urls || {};
+
+    return rawValue
+      .map(item => {
+        if (!Array.isArray(item)) return null;
+
+        const fileName = item[0] || '';
+        const decorations = item[1];
+        let href = '';
+
+        if (Array.isArray(decorations)) {
+          for (const deco of decorations) {
+            if (!Array.isArray(deco)) continue;
+
+            const [type, payload] = deco;
+
+            if (type === 'a' && typeof payload === 'string') {
+              href = payload;
+            }
+
+            if ((type === 'u' || type === 'p') && typeof payload === 'string') {
+              href = payload;
             }
           }
         }
+
+        if (href && href.startsWith('attachment:')) {
+          const parts = href.split(':');
+          const possibleId = parts[1];
+          if (possibleId && signedUrls[possibleId]) {
+            href = signedUrls[possibleId];
+          }
+        }
+
+        return {
+          name: fileName,
+          href: href || ''
+        };
+      })
+      .filter(Boolean)
+      .filter(file => file.name);
+  }
+
+  function extractFileValue(rawValue, recordMap) {
+    const files = extractFileEntries(rawValue, recordMap);
+    return joinDisplayValues(files.map(file => file.name));
+  }
+
+  function normalizePropertyValue(rawValue, schemaType, recordMap) {
+    if (rawValue == null) return '';
+
+    if (schemaType === 'text' || schemaType === 'title') {
+      return flattenNotionText(rawValue);
+    }
+
+    if (schemaType === 'select') {
+      if (!Array.isArray(rawValue)) return '';
+      return joinDisplayValues(
+        rawValue.map(item => Array.isArray(item) ? (item[0] || '') : '')
+      );
+    }
+
+    if (schemaType === 'multi_select') {
+      if (!Array.isArray(rawValue)) return '';
+
+      const values = rawValue
+        .map(item => Array.isArray(item) ? (item[0] || '') : '')
+        .filter(Boolean)
+        .map(value => value.split(',').map(v => v.trim()).filter(Boolean).join(', '));
+
+      return joinDisplayValues(values);
+    }
+
+    if (schemaType === 'date') {
+      return extractDateValue(rawValue);
+    }
+
+    if (schemaType === 'relation') {
+      return extractRelationValue(rawValue, recordMap);
+    }
+
+    if (schemaType === 'person') {
+      return extractPersonValue(rawValue, recordMap);
+    }
+
+    if (schemaType === 'file') {
+      return extractFileValue(rawValue, recordMap);
+    }
+
+    if (schemaType === 'status') {
+      if (!Array.isArray(rawValue)) return '';
+      return joinDisplayValues(
+        rawValue.map(item => Array.isArray(item) ? (item[0] || '') : '')
+      );
+    }
+
+    if (schemaType === 'checkbox') {
+      if (Array.isArray(rawValue) && Array.isArray(rawValue[0])) {
+        return rawValue[0][0] === 'Yes' ? 'Yes' : (rawValue[0][0] || '');
       }
+      return '';
     }
 
-    return '';
-  }
-
-  function formatSelect(raw) {
-    if (!raw) return '';
-    if (raw.select?.name) return raw.select.name;
-    if (raw.status?.name) return raw.status.name;
-    if (raw.name) return raw.name;
-    return richTextToPlain(raw);
-  }
-
-  function formatMultiSelect(raw) {
-    if (!raw) return '';
-
-    if (Array.isArray(raw.multi_select)) {
-      return raw.multi_select
-        .map(function (item) { return item?.name || ''; })
-        .filter(Boolean)
-        .join(', ');
+    if (schemaType === 'number') {
+      if (Array.isArray(rawValue) && Array.isArray(rawValue[0])) {
+        return rawValue[0][0] || '';
+      }
+      return '';
     }
 
-    if (Array.isArray(raw)) {
-      return raw
-        .map(function (item) {
-          if (item?.name) return item.name;
-          if (Array.isArray(item)) return item[0] || '';
-          return '';
-        })
-        .filter(Boolean)
-        .join(', ');
+    if (Array.isArray(rawValue)) {
+      return joinDisplayValues(
+        rawValue.map(item => Array.isArray(item) ? (item[0] || '') : '')
+      );
     }
 
-    return '';
-  }
-
-  function formatValue(propValue, propType) {
-    if (propValue == null) return '';
-
-    switch (propType) {
-      case 'title':
-        if (Array.isArray(propValue.title)) return richTextToPlain(propValue.title);
-        return richTextToPlain(propValue);
-
-      case 'rich_text':
-      case 'text':
-        if (Array.isArray(propValue.rich_text)) return richTextToPlain(propValue.rich_text);
-        return richTextToPlain(propValue);
-
-      case 'number':
-        return propValue.number != null ? String(propValue.number) : String(propValue ?? '');
-
-      case 'select':
-        return formatSelect(propValue.select ? propValue : { select: propValue.select || propValue });
-
-      case 'status':
-        return formatSelect(propValue.status ? propValue : { status: propValue.status || propValue });
-
-      case 'multi_select':
-        return formatMultiSelect(propValue.multi_select ? propValue : { multi_select: propValue.multi_select || propValue });
-
-      case 'date':
-        return formatDate(propValue.date ? propValue : propValue);
-
-      case 'checkbox':
-        return propValue.checkbox != null ? String(propValue.checkbox) : String(!!propValue);
-
-      case 'url':
-        return propValue.url != null ? String(propValue.url) : String(propValue);
-
-      case 'email':
-        return propValue.email != null ? String(propValue.email) : String(propValue);
-
-      case 'phone_number':
-        return propValue.phone_number != null ? String(propValue.phone_number) : String(propValue);
-
-      default:
-        return '';
-    }
+    return String(rawValue || '');
   }
 
   function buildPropertyMap() {
-    if (propertyMap) return propertyMap;
+    const recordMap = getRecordMap();
+    if (!recordMap) return {};
 
-    return measure('build propertyMap total', function () {
-      const rm = getRecordMap();
-      if (!rm) return null;
+    const { page, collection } = getPageAndCollection(recordMap);
+    if (!page || !collection?.schema) return {};
 
-      mark('rm.block count', rm.block ? Object.keys(rm.block).length : 0);
-      mark('rm.collection count', rm.collection ? Object.keys(rm.collection).length : 0);
+    const result = {};
 
-      const page = getCurrentPage(rm);
-      if (!page) return null;
+    for (const [propId, schema] of Object.entries(collection.schema)) {
+      const propName = (schema?.name || '').trim();
+      if (!propName) continue;
 
-      const schema = getSchema(rm, page);
-      const props = page.properties || {};
-      const map = {};
+      const schemaType = schema?.type || '';
+      const rawValue = page.properties?.[propId];
+      result[propName] = normalizePropertyValue(rawValue, schemaType, recordMap);
+    }
 
-      measure('iterate page.properties', function () {
-        for (const propId in props) {
-          const schemaItem = schema[propId];
-          if (!schemaItem?.name || !schemaItem?.type) continue;
+    result.page_title = document.title.trim();
 
-          const type = schemaItem.type;
-          const name = schemaItem.name;
+    return result;
+  }
 
-          if (![
-            'title',
-            'rich_text',
-            'text',
-            'number',
-            'select',
-            'multi_select',
-            'status',
-            'date',
-            'checkbox',
-            'url',
-            'email',
-            'phone_number'
-          ].includes(type)) {
-            continue;
-          }
+  function buildFilePropertyMap() {
+    const recordMap = getRecordMap();
+    if (!recordMap) return {};
 
-          const value = formatValue(props[propId], type);
-          map[name] = value;
-          map[normalizeKey(name)] = value;
+    const { page, collection } = getPageAndCollection(recordMap);
+    if (!page || !collection?.schema) return {};
+
+    const result = {};
+
+    for (const [propId, schema] of Object.entries(collection.schema)) {
+      const propName = (schema?.name || '').trim();
+      if (!propName) continue;
+      if (schema?.type !== 'file') continue;
+
+      const rawValue = page.properties?.[propId];
+      result[propName] = extractFileEntries(rawValue, recordMap);
+    }
+
+    return result;
+  }
+
+  function shouldSkip(node) {
+    const el = node.parentElement;
+    if (!el) return true;
+
+    return ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(el.tagName);
+  }
+
+  function replaceTemplateTokens(text, propertyMap) {
+    return text.replace(/\{%\s*(.*?)\s*%\}/g, (match, key) => {
+      const normalizedKey = String(key || '').trim();
+      if (!normalizedKey) return match;
+
+      if (Object.prototype.hasOwnProperty.call(propertyMap, normalizedKey)) {
+        const value = propertyMap[normalizedKey];
+        return value == null || value === '' ? '' : String(value);
+      }
+
+      return match;
+    });
+  }
+
+  function replaceTextNode(node, propertyMap) {
+    if (!node || !node.nodeValue || shouldSkip(node)) return false;
+    if (!/\{%\s*.*?\s*%\}/.test(node.nodeValue)) return false;
+
+    const nextValue = replaceTemplateTokens(node.nodeValue, propertyMap);
+
+    if (nextValue !== node.nodeValue) {
+      node.nodeValue = nextValue;
+      return true;
+    }
+
+    return false;
+  }
+
+  function scanTextNodes(root, propertyMap) {
+    if (!root) return 0;
+
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          if (shouldSkip(node)) return NodeFilter.FILTER_REJECT;
+          if (/\{%\s*.*?\s*%\}/.test(node.nodeValue)) return NodeFilter.FILTER_ACCEPT;
+          return NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+
+    let count = 0;
+    let current;
+
+    while ((current = walker.nextNode())) {
+      if (replaceTextNode(current, propertyMap)) count++;
+    }
+
+    return count;
+  }
+
+  function replaceFilePlaceholders(root, filePropertyMap) {
+    if (!root) return 0;
+
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          if (shouldSkip(node)) return NodeFilter.FILTER_REJECT;
+          if (/\{%\s*.*?\s*%\}/.test(node.nodeValue)) return NodeFilter.FILTER_ACCEPT;
+          return NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+
+    let count = 0;
+    let current;
+
+    while ((current = walker.nextNode())) {
+      const text = current.nodeValue;
+      const match = text.match(/^\s*\{%\s*(.*?)\s*%\}\s*$/);
+
+      if (!match) continue;
+
+      const propName = String(match[1] || '').trim();
+      const files = filePropertyMap[propName];
+
+      if (!Array.isArray(files) || files.length === 0) continue;
+      if (!current.parentNode) continue;
+
+      const frag = document.createDocumentFragment();
+
+      files.forEach((file, index) => {
+        if (file.href) {
+          const a = document.createElement('a');
+          a.href = file.href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = `🔗 ${file.name}`;
+          frag.appendChild(a);
+        } else {
+          const span = document.createElement('span');
+          span.textContent = `🔗 ${file.name}`;
+          frag.appendChild(span);
+        }
+
+        if (index < files.length - 1) {
+          frag.appendChild(document.createTextNode(', '));
         }
       });
 
-      map.page_title = document.title || '';
-      propertyMap = map;
-
-      mark('property keys', Object.keys(map));
-      return map;
-    });
-  }
-
-  function isEmptyValue(v) {
-    return v == null || String(v).trim() === '';
-  }
-
-  function getFallback(rawToken, key) {
-    if (POLICY.EMPTY_BEHAVIOR === 'empty') return '';
-    if (POLICY.EMPTY_BEHAVIOR === 'fallback') {
-      return POLICY.EMPTY_FALLBACK_TEXT || '';
+      current.parentNode.replaceChild(frag, current);
+      count++;
     }
-    if (POLICY.EMPTY_BEHAVIOR === 'per_key') {
-      if (Object.prototype.hasOwnProperty.call(POLICY.EMPTY_BY_KEY, key)) {
-        return POLICY.EMPTY_BY_KEY[key];
-      }
-      const nk = normalizeKey(key);
-      if (Object.prototype.hasOwnProperty.call(POLICY.EMPTY_BY_KEY, nk)) {
-        return POLICY.EMPTY_BY_KEY[nk];
-      }
-      return POLICY.EMPTY_FALLBACK_TEXT || '';
-    }
-    return rawToken;
+
+    return count;
   }
 
-  function replaceMergeTags(text, map) {
-    return String(text).replace(/\{%\s*([^%]+?)\s*%\}/g, function (match, keyRaw) {
-      const key = keyRaw.trim();
-      const value = map[key] ?? map[normalizeKey(key)];
+  function runMerge(root = document.body) {
+    const propertyMap = buildPropertyMap();
+    const filePropertyMap = buildFilePropertyMap();
 
-      if (isEmptyValue(value)) {
-        return getFallback(match, key);
-      }
-
-      return String(value);
-    });
+    scanTextNodes(root, propertyMap);
+    replaceFilePlaceholders(root, filePropertyMap);
   }
 
-  function findCodeNodes() {
-    return measure('querySelectorAll(' + POLICY.TARGET_SELECTOR + ')', function () {
-      try {
-        return Array.from(document.querySelectorAll(POLICY.TARGET_SELECTOR));
-      } catch (e) {
-        console.error('[merge-profiler] selector fail', e);
-        return [];
-      }
-    });
-  }
+  function start() {
+    runMerge(document.body);
 
-  function shouldProcessNode(node) {
-    if (!node) return false;
-    if (node.getAttribute(POLICY.MARK_ATTR) === 'true') return false;
-    const text = node.textContent || '';
-    return text.indexOf('{%') > -1 && text.indexOf('%}') > -1;
-  }
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'characterData') {
+          runMerge(document.body);
+          break;
+        }
 
-  function processNodes(nodes, map) {
-    return measure('process code nodes', function () {
-      let changed = 0;
-      let matched = 0;
-
-      for (const node of nodes) {
-        if (!shouldProcessNode(node)) continue;
-        matched += 1;
-
-        const original = node.textContent || '';
-        const replaced = replaceMergeTags(original, map);
-        node.setAttribute(POLICY.MARK_ATTR, 'true');
-
-        if (replaced !== original) {
-          node.textContent = replaced;
-          changed += 1;
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((added) => {
+            if (added.nodeType === Node.TEXT_NODE) {
+              runMerge(document.body);
+            } else if (added.nodeType === Node.ELEMENT_NODE) {
+              runMerge(added);
+            }
+          });
         }
       }
 
-      mark('matched code nodes', matched);
-      mark('changed code nodes', changed);
-      return changed;
-    });
-  }
-
-  function run() {
-    measure('run total', function () {
-      try {
-        const map = buildPropertyMap();
-        if (!map) {
-          mark('run aborted', 'no property map');
-          return;
-        }
-
-        const nodes = findCodeNodes();
-        mark('total code nodes', nodes.length);
-
-        if (!nodes.length) {
-          mark('run aborted', 'no code nodes');
-          return;
-        }
-
-        processNodes(nodes, map);
-      } catch (e) {
-        console.error('[merge-profiler] failed', e);
+      const remains = document.body?.innerText?.match(/\{%\s*.*?\s*%\}/g) || [];
+      if (remains.length === 0) {
+        observer.disconnect();
       }
     });
-  }
 
-  function runAfterPaint(callback) {
-    if ('requestAnimationFrame' in window) {
-      requestAnimationFrame(function () {
-        setTimeout(callback, 0);
-      });
-    } else {
-      setTimeout(callback, 0);
-    }
-  }
-
-  function boot() {
-    log('boot start');
-    runAfterPaint(run);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    boot();
+    start();
   }
 })();
+</script>
