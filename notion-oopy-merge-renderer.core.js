@@ -1,3 +1,369 @@
-(()=>{function t(){const t=document.getElementById("__NEXT_DATA__")?.textContent;if(!t)return null;try{return JSON.parse(t)}catch{return null}}function e(){return t()?.props?.pageProps?.recordMap||null}function n(t){const e=t?.block||{},n=t?.collection||{},r=Object.keys(e).find(t=>"page"===e[t]?.value?.type),o=r?e[r]?.value:null;if(!o)return{page:null,collection:null,pageId:null};const i=n[o.parent_id]?.value||null;return{page:o,collection:i,pageId:r}}function r(t){return Array.isArray(t)?t.map(t=>Array.isArray(t)?t[0]||"":"").filter(Boolean).join(""):""}function o(t){return t.filter(Boolean).join(", ").replace(/\\s*,\\s*/g,", ").trim()}function i(t){if(!Array.isArray(t))return"";const e=["date","datetime","daterange","datetimerange"];for(const n of t){if(!Array.isArray(n))continue;const[,t]=n;if(!Array.isArray(t))continue;for(const n of t){if(!Array.isArray(n))continue;const[t,r]=n;if("d"===t&&e.includes(r?.type)){const t=[r.start_date,r.start_time].filter(Boolean).join(" "),e=[r.end_date,r.end_time].filter(Boolean).join(" ");return t&&e?`${t} → ${e}`:t||e||""}}}return""}function a(t,e){if(!Array.isArray(t))return"";const n=e?.block||{},i=[];for(const e of t){if(!Array.isArray(e))continue;const t=e[0];if(!t)continue;const a=n[t]?.value,c=r(a?.properties?.title);i.push(c||t)}return o(i)}function c(t,e){if(!Array.isArray(t))return"";const n=e?.notion_user||{},r=[];for(const e of t){if(!Array.isArray(e))continue;const t=e[0];if(!t)continue;const o=n[t]?.value;r.push(o?.name||o?.email||t)}return o(r)}function l(t){return Array.isArray(t)?o(t.map(t=>Array.isArray(t)?t[0]||"":"").filter(Boolean)):""}function s(t){if(!Array.isArray(t))return[];const e=[];for(const n of t){if(!Array.isArray(n))continue;const t=n[0]||"";let r=t;const o=n[1];if(Array.isArray(o))for(const t of o)if(Array.isArray(t)){const[e,n]=t;"a"===e&&"string"==typeof n&&(r=n)}r&&e.push({text:t||r,href:r})}return e}function u(t,e,n){if(null==t)return"";if("text"===e||"title"===e)return r(t);if("select"===e)return Array.isArray(t)?o(t.map(t=>Array.isArray(t)?t[0]||"":"")):"";if("multi_select"===e)return Array.isArray(t)?o(t.map(t=>Array.isArray(t)?t[0]||"":"").filter(Boolean).map(t=>t.split(",").map(t=>t.trim()).filter(Boolean).join(", "))):"";if("date"===e)return i(t);if("relation"===e)return a(t,n);if("person"===e)return c(t,n);if("file"===e)return l(t);if("status"===e)return Array.isArray(t)?o(t.map(t=>Array.isArray(t)?t[0]||"":"")):"";if("checkbox"===e)return Array.isArray(t)&&Array.isArray(t[0])?"Yes"===t[0][0]?"Yes":t[0][0]||"":"";
-if("number"===e)return Array.isArray(t)&&Array.isArray(t[0])?t[0][0]||"":"";
-if("url"===e){const e=s(t);return e.map(t=>t.href).join(", ")}return Array.isArray(t)?o(t.map(t=>Array.isArray(t)?t[0]||"":"")):String(t||"")}function d(){const t=e();if(!t)return{propertyMap:{},urlMap:{}};const{page:r,collection:o}=n(t);if(!r||!o?.schema)return{propertyMap:{},urlMap:{}};const i={},a={};for(const[n,c]of Object.entries(o.schema)){const o=(c?.name||"").trim();if(!o)continue;const l=c?.type||"",d=r.properties?.[n];if("url"===l){const t=s(d);t.length>0?(a[o]=t,i[o]=t.map(t=>t.href).join(", ")):i[o]=""}else i[o]=u(d,l,t)}return i.page_title=document.title.trim(),{propertyMap:i,urlMap:a}}function p(){if(document.getElementById("oopy-inline-link-style"))return;const t=document.createElement("style");t.id="oopy-inline-link-style",t.textContent=".oopy-inline-link,.oopy-inline-link:visited,.oopy-inline-link:hover,.oopy-inline-link:active,.oopy-inline-link:focus{color:inherit;text-decoration:none}",document.head.appendChild(t)}function f(t){const e=t.parentElement;return!e||["SCRIPT","STYLE","NOSCRIPT","TEXTAREA"].includes(e.tagName)}function y(t){const e=t.match(/^\\s*\\{%\\s*(.*?)\\s*%\\}\\s*$/);return e?e[1].trim():null}function m(t,e){return t.replace(/\\{%\\s*(.*?)\\s*%\\}/g,(t,n)=>{const r=String(n||"").trim();if(!r)return t;if(Object.prototype.hasOwnProperty.call(e,r)){const t=e[r];return null==t||""===t?"":String(t)}return t})}function h(t,e){const n=t.parentElement;if(!n||"true"===n.dataset.oopyUrlReplaced)return!1;const r=document.createDocumentFragment();return e.forEach((t,e)=>{e>0&&r.appendChild(document.createTextNode(", "));const n=document.createElement("a");n.href=t.href,n.textContent=t.text,n.target="_blank",n.rel="noopener noreferrer",n.className="oopy-inline-link",n.style.wordBreak="break-all",n.style.color="inherit",n.style.textDecoration="none",r.appendChild(n)}),n.replaceChild(r,t),n.dataset.oopyUrlReplaced="true",!0}function g(t,e,n){if(!t||!t.nodeValue||f(t)||!/\\{%\\s*.*?\\s*%\\}/.test(t.nodeValue))return!1;const r=y(t.nodeValue);if(r&&n[r])return h(t,n[r]);const o=m(t.nodeValue,e);return o!==t.nodeValue&&(t.nodeValue=o,!0)}function v(t,e,n){if(!t)return 0;const r=document.createTreeWalker(t,NodeFilter.SHOW_TEXT,{acceptNode:t=>t.nodeValue&&t.nodeValue.trim()&&!f(t)&&/\\{%\\s*.*?\\s*%\\}/.test(t.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}),o=[];let i;for(;i=r.nextNode();)o.push(i);let a=0;for(const t of o)g(t,e,n)&&a++;return a}function b(){p();const{propertyMap:t,urlMap:e}=d(),n=new MutationObserver(r=>{const{propertyMap:o,urlMap:i}=d();for(const t of r)"characterData"===t.type&&g(t.target,o,i),"childList"===t.type&&t.addedNodes.forEach(t=>{3===t.nodeType?g(t,o,i):1===t.nodeType&&v(t,o,i)});(document.body?.innerText?.match(/\\{%\\s*.*?\\s*%\\}/g)||[]).length===0&&n.disconnect()});v(document.body,t,e),n.observe(document.body,{childList:!0,subtree:!0,characterData:!0})}"loading"===document.readyState?document.addEventListener("DOMContentLoaded",b,{once:!0}):b()})();
+(() => {
+  function getNextData() {
+    const raw = document.getElementById("__NEXT_DATA__")?.textContent;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  function getRecordMap() {
+    return getNextData()?.props?.pageProps?.recordMap || null;
+  }
+
+  function getPageAndCollection(recordMap) {
+    const blocks = recordMap?.block || {};
+    const collections = recordMap?.collection || {};
+    const pageId = Object.keys(blocks).find(
+      id => blocks[id]?.value?.type === "page"
+    );
+    const page = pageId ? blocks[pageId]?.value : null;
+
+    if (!page) {
+      return { page: null, collection: null, pageId: null };
+    }
+
+    const collection = collections[page.parent_id]?.value || null;
+    return { page, collection, pageId };
+  }
+
+  function flattenNotionText(value) {
+    return Array.isArray(value)
+      ? value
+          .map(item => Array.isArray(item) ? (item[0] || "") : "")
+          .filter(Boolean)
+          .join("")
+      : "";
+  }
+
+  function joinDisplayValues(values) {
+    return values
+      .filter(Boolean)
+      .join(", ")
+      .replace(/\s*,\s*/g, ", ")
+      .trim();
+  }
+
+  function extractDateValue(value) {
+    if (!Array.isArray(value)) return "";
+    const allowedTypes = ["date", "datetime", "daterange", "datetimerange"];
+
+    for (const item of value) {
+      if (!Array.isArray(item)) continue;
+      const [, decorations] = item;
+      if (!Array.isArray(decorations)) continue;
+
+      for (const deco of decorations) {
+        if (!Array.isArray(deco)) continue;
+        const [type, payload] = deco;
+
+        if (type === "d" && allowedTypes.includes(payload?.type)) {
+          const start = [payload.start_date, payload.start_time].filter(Boolean).join(" ");
+          const end = [payload.end_date, payload.end_time].filter(Boolean).join(" ");
+          return start && end ? `${start} → ${end}` : (start || end || "");
+        }
+      }
+    }
+
+    return "";
+  }
+
+  function extractRelationValue(value, recordMap) {
+    if (!Array.isArray(value)) return "";
+    const blocks = recordMap?.block || {};
+    const names = [];
+
+    for (const item of value) {
+      if (!Array.isArray(item)) continue;
+      const id = item[0];
+      if (!id) continue;
+
+      const relatedPage = blocks[id]?.value;
+      const title = flattenNotionText(relatedPage?.properties?.title);
+      names.push(title || id);
+    }
+
+    return joinDisplayValues(names);
+  }
+
+  function extractPersonValue(value, recordMap) {
+    if (!Array.isArray(value)) return "";
+    const notionUser = recordMap?.notion_user || {};
+    const names = [];
+
+    for (const item of value) {
+      if (!Array.isArray(item)) continue;
+      const id = item[0];
+      if (!id) continue;
+
+      const user = notionUser[id]?.value;
+      names.push(user?.name || user?.email || id);
+    }
+
+    return joinDisplayValues(names);
+  }
+
+  function extractFileValue(value) {
+    return Array.isArray(value)
+      ? joinDisplayValues(
+          value
+            .map(item => Array.isArray(item) ? (item[0] || "") : "")
+            .filter(Boolean)
+        )
+      : "";
+  }
+
+  function extractUrlValues(value) {
+    if (!Array.isArray(value)) return [];
+    const urls = [];
+
+    for (const item of value) {
+      if (!Array.isArray(item)) continue;
+
+      const text = item[0] || "";
+      let href = text;
+      const decorations = item[1];
+
+      if (Array.isArray(decorations)) {
+        for (const deco of decorations) {
+          if (!Array.isArray(deco)) continue;
+          const [type, payload] = deco;
+          if (type === "a" && typeof payload === "string") {
+            href = payload;
+          }
+        }
+      }
+
+      if (href) urls.push({ text: text || href, href });
+    }
+
+    return urls;
+  }
+
+  function normalizePropertyValue(value, type, recordMap) {
+    if (value == null) return "";
+
+    if (type === "text" || type === "title") return flattenNotionText(value);
+    if (type === "select") {
+      return Array.isArray(value)
+        ? joinDisplayValues(value.map(item => Array.isArray(item) ? (item[0] || "") : ""))
+        : "";
+    }
+    if (type === "multi_select") {
+      return Array.isArray(value)
+        ? joinDisplayValues(
+            value
+              .map(item => Array.isArray(item) ? (item[0] || "") : "")
+              .filter(Boolean)
+              .map(v => v.split(",").map(x => x.trim()).filter(Boolean).join(", "))
+          )
+        : "";
+    }
+    if (type === "date") return extractDateValue(value);
+    if (type === "relation") return extractRelationValue(value, recordMap);
+    if (type === "person") return extractPersonValue(value, recordMap);
+    if (type === "file") return extractFileValue(value);
+    if (type === "status") {
+      return Array.isArray(value)
+        ? joinDisplayValues(value.map(item => Array.isArray(item) ? (item[0] || "") : ""))
+        : "";
+    }
+    if (type === "checkbox") {
+      return Array.isArray(value) && Array.isArray(value[0])
+        ? (value[0][0] === "Yes" ? "Yes" : (value[0][0] || ""))
+        : "";
+    }
+    if (type === "number") {
+      return Array.isArray(value) && Array.isArray(value[0])
+        ? (value[0][0] || "")
+        : "";
+    }
+    if (type === "url") {
+      const urls = extractUrlValues(value);
+      return urls.map(item => item.href).join(", ");
+    }
+
+    return Array.isArray(value)
+      ? joinDisplayValues(value.map(item => Array.isArray(item) ? (item[0] || "") : ""))
+      : String(value || "");
+  }
+
+  function buildMaps() {
+    const recordMap = getRecordMap();
+    if (!recordMap) return { propertyMap: {}, urlMap: {} };
+
+    const { page, collection } = getPageAndCollection(recordMap);
+    if (!page || !collection?.schema) return { propertyMap: {}, urlMap: {} };
+
+    const propertyMap = {};
+    const urlMap = {};
+
+    for (const [propId, schema] of Object.entries(collection.schema)) {
+      const propName = (schema?.name || "").trim();
+      if (!propName) continue;
+
+      const schemaType = schema?.type || "";
+      const rawValue = page.properties?.[propId];
+
+      if (schemaType === "url") {
+        const urls = extractUrlValues(rawValue);
+        if (urls.length > 0) {
+          urlMap[propName] = urls;
+          propertyMap[propName] = urls.map(item => item.href).join(", ");
+        } else {
+          propertyMap[propName] = "";
+        }
+      } else {
+        propertyMap[propName] = normalizePropertyValue(rawValue, schemaType, recordMap);
+      }
+    }
+
+    propertyMap.page_title = document.title.trim();
+    return { propertyMap, urlMap };
+  }
+
+  function injectLinkStyle() {
+    if (document.getElementById("oopy-inline-link-style")) return;
+
+    const style = document.createElement("style");
+    style.id = "oopy-inline-link-style";
+    style.textContent = ".oopy-inline-link,.oopy-inline-link:visited,.oopy-inline-link:hover,.oopy-inline-link:active,.oopy-inline-link:focus{color:inherit;text-decoration:none}";
+    document.head.appendChild(style);
+  }
+
+  function shouldSkip(node) {
+    const el = node.parentElement;
+    return !el || ["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA"].includes(el.tagName);
+  }
+
+  function extractSingleToken(text) {
+    const match = text.match(/^\s*\{%\s*(.*?)\s*%\}\s*$/);
+    return match ? match[1].trim() : null;
+  }
+
+  function replaceTemplateTokens(text, propertyMap) {
+    return text.replace(/\{%\s*(.*?)\s*%\}/g, (match, key) => {
+      const normalizedKey = String(key || "").trim();
+      if (!normalizedKey) return match;
+
+      if (Object.prototype.hasOwnProperty.call(propertyMap, normalizedKey)) {
+        const value = propertyMap[normalizedKey];
+        return value == null || value === "" ? "" : String(value);
+      }
+
+      return match;
+    });
+  }
+
+  function replaceAsLink(node, urls) {
+    const parent = node.parentElement;
+    if (!parent || parent.dataset.oopyUrlReplaced === "true") return false;
+
+    const frag = document.createDocumentFragment();
+
+    urls.forEach((item, index) => {
+      if (index > 0) frag.appendChild(document.createTextNode(", "));
+
+      const a = document.createElement("a");
+      a.href = item.href;
+      a.textContent = item.text;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "oopy-inline-link";
+      a.style.wordBreak = "break-all";
+      a.style.color = "inherit";
+      a.style.textDecoration = "none";
+      frag.appendChild(a);
+    });
+
+    parent.replaceChild(frag, node);
+    parent.dataset.oopyUrlReplaced = "true";
+    return true;
+  }
+
+  function replaceTextNode(node, propertyMap, urlMap) {
+    if (!node || !node.nodeValue || shouldSkip(node) || !/\{%\s*.*?\s*%\}/.test(node.nodeValue)) {
+      return false;
+    }
+
+    const singleKey = extractSingleToken(node.nodeValue);
+    if (singleKey && urlMap[singleKey]) {
+      return replaceAsLink(node, urlMap[singleKey]);
+    }
+
+    const nextValue = replaceTemplateTokens(node.nodeValue, propertyMap);
+    if (nextValue !== node.nodeValue) {
+      node.nodeValue = nextValue;
+      return true;
+    }
+
+    return false;
+  }
+
+  function scan(root, propertyMap, urlMap) {
+    if (!root) return 0;
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return node.nodeValue &&
+          node.nodeValue.trim() &&
+          !shouldSkip(node) &&
+          /\{%\s*.*?\s*%\}/.test(node.nodeValue)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    });
+
+    const nodes = [];
+    let current;
+    while ((current = walker.nextNode())) nodes.push(current);
+
+    let count = 0;
+    for (const node of nodes) {
+      if (replaceTextNode(node, propertyMap, urlMap)) count++;
+    }
+
+    return count;
+  }
+
+  function getSafeRoot() {
+    return (
+      document.querySelector(".notion-page-content") ||
+      document.querySelector("[class*='notion-page-content']") ||
+      document.querySelector("[class*='notion-page']") ||
+      document.querySelector("main") ||
+      document.body
+    );
+  }
+
+  function runOnce() {
+    injectLinkStyle();
+    const root = getSafeRoot();
+    const { propertyMap, urlMap } = buildMaps();
+    scan(root, propertyMap, urlMap);
+  }
+
+  function boot() {
+    const start = () => {
+      setTimeout(() => {
+        if (window.requestIdleCallback) {
+          requestIdleCallback(() => {
+            runOnce();
+          }, { timeout: 2000 });
+        } else {
+          runOnce();
+        }
+      }, 3000);
+    };
+
+    if (document.readyState === "complete") {
+      start();
+    } else {
+      window.addEventListener("load", start, { once: true });
+    }
+  }
+
+  boot();
+})();
