@@ -27,6 +27,7 @@ window.GA_CONFIG = {
 */
 
 
+
 (function () {
   'use strict';
 
@@ -45,10 +46,21 @@ window.GA_CONFIG = {
     ]
   };
 
+  function txt(el) {
+    try { return el ? el.textContent.trim() : ''; } catch (e) { return ''; }
+  }
+
+  function normalize(s) {
+    return (s || '').replace(/\s+/g, '').replace(/[()]/g, '').toLowerCase();
+  }
+
+  function qsa(root, selectors) {
+    try { return Array.from(root.querySelectorAll(selectors.join(','))); } catch (e) { return []; }
+  }
+
   function mergeConfig(base, custom) {
     var out = JSON.parse(JSON.stringify(base || {}));
     custom = custom || {};
-
     Object.keys(custom).forEach(function (k) {
       if (
         custom[k] &&
@@ -63,51 +75,109 @@ window.GA_CONFIG = {
         out[k] = custom[k];
       }
     });
-
     return out;
   }
 
-  function txt(el) {
-    try { return el ? el.textContent.trim() : ''; } catch (e) { return ''; }
+  function pickFirst(el, selectors) {
+    if (!el) return null;
+    for (var i = 0; i < selectors.length; i++) {
+      try {
+        var found = el.closest(selectors[i]);
+        if (found) return found;
+      } catch (e) {}
+    }
+    return null;
   }
 
-  function normalize(s) {
-    return (s || '').replace(/\s+/g, '').replace(/[()]/g, '').toLowerCase();
-  }
-
-  function qsa(root, selectors) {
+  function readCssVar(el, name, fallback) {
     try {
-      return Array.from(root.querySelectorAll(selectors.join(',')));
+      if (!el) return fallback;
+      var v = getComputedStyle(el).getPropertyValue(name);
+      v = (v || '').trim();
+      return v || fallback;
     } catch (e) {
-      return [];
+      return fallback;
     }
   }
 
-  var CONFIG = null;
-  var RUN_LOCK = false;
+  function cssBool(v, fallback) {
+    if (v == null || v === '') return fallback;
+    return String(v).toLowerCase() !== 'false' && String(v) !== '0';
+  }
 
   function loadConfig() {
-    var custom = window.GA_CONFIG || null;
-    CONFIG = mergeConfig(DEFAULT_CONFIG, custom || {});
+    var custom = window.GA_CONFIG || {};
+    var config = mergeConfig(DEFAULT_CONFIG, custom);
+
+    var root = document.querySelector(config.gallery.cardSelector);
+    if (!root) return config;
+
+    var cssHost = root;
+
+    var gridDesktop = readCssVar(cssHost, '--ga-grid-columns-desktop', config.gallery.gridColumnsDesktop || 'repeat(3, minmax(0, 1fr))');
+    var gridTablet = readCssVar(cssHost, '--ga-grid-columns-tablet', config.gallery.gridColumnsTablet || 'repeat(2, minmax(0, 1fr))');
+    var gridMobile = readCssVar(cssHost, '--ga-grid-columns-mobile', config.gallery.gridColumnsMobile || 'repeat(1, minmax(0, 1fr))');
+
+    config.gallery.gridColumnsDesktop = gridDesktop;
+    config.gallery.gridColumnsTablet = gridTablet;
+    config.gallery.gridColumnsMobile = gridMobile;
+
+    config.gallery.cardBg = readCssVar(cssHost, '--ga-card-bg', 'rgba(255,255,255,0)');
+    config.gallery.cardBgHover = readCssVar(cssHost, '--ga-card-bg-hover', 'rgba(249,248,246,0)');
+    config.gallery.cardBorderColor = readCssVar(cssHost, '--ga-card-border-color', 'rgba(15,15,15,0.06)');
+    config.gallery.cardBorderWidth = readCssVar(cssHost, '--ga-card-border-width', '0px');
+    config.gallery.cardRadius = readCssVar(cssHost, '--ga-card-radius', '0px');
+    config.gallery.cardShadow = readCssVar(cssHost, '--ga-card-shadow', 'none');
+    config.gallery.cardShadowHover = readCssVar(cssHost, '--ga-card-shadow-hover', 'none');
+
+    config.gallery.thumbRatio = readCssVar(cssHost, '--ga-thumb-ratio', '3 / 4');
+    config.gallery.thumbPadding = readCssVar(cssHost, '--ga-thumb-padding', '0px');
+    config.gallery.thumbRadius = readCssVar(cssHost, '--ga-thumb-radius', '0px');
+    config.gallery.thumbFit = readCssVar(cssHost, '--ga-thumb-fit', 'cover');
+    config.gallery.thumbBg = readCssVar(cssHost, '--ga-thumb-bg', '#f0efed');
+
+    config.gallery.tagBg = readCssVar(cssHost, '--ga-tag-bg', 'rgba(255,255,255,0.92)');
+    config.gallery.tagColor = readCssVar(cssHost, '--ga-tag-color', '#37352f');
+    config.gallery.tagSize = readCssVar(cssHost, '--ga-tag-size', '12px');
+    config.gallery.tagRadius = readCssVar(cssHost, '--ga-tag-radius', '8px');
+    config.gallery.tagPadding = readCssVar(cssHost, '--ga-tag-padding', '5px 10px');
+
+    config.gallery.contentPadding = readCssVar(cssHost, '--ga-content-padding', '10px 12px 14px');
+    config.gallery.titleSize = readCssVar(cssHost, '--ga-title-size', '15px');
+    config.gallery.titleWeight = readCssVar(cssHost, '--ga-title-weight', '600');
+    config.gallery.titleColor = readCssVar(cssHost, '--ga-title-color', '#2f2f2b');
+    config.gallery.titleLines = readCssVar(cssHost, '--ga-title-lines', '2');
+
+    config.gallery.descSize = readCssVar(cssHost, '--ga-desc-size', '12px');
+    config.gallery.descColor = readCssVar(cssHost, '--ga-desc-color', 'rgba(55,53,47,0.62)');
+    config.gallery.descLines = readCssVar(cssHost, '--ga-desc-lines', '1');
+
+    config.gallery.metaSize = readCssVar(cssHost, '--ga-meta-size', '12px');
+    config.gallery.metaColor = readCssVar(cssHost, '--ga-meta-color', 'rgba(55,53,47,0.65)');
+    config.gallery.extraSize = readCssVar(cssHost, '--ga-extra-size', '11px');
+    config.gallery.extraColor = readCssVar(cssHost, '--ga-extra-color', 'rgba(55,53,47,0.5)');
+    config.gallery.extraGap = readCssVar(cssHost, '--ga-extra-gap', '5px');
+    config.gallery.avatarSize = readCssVar(cssHost, '--ga-avatar-size', '18px');
+
+    return config;
   }
+
+  var CONFIG = loadConfig();
+  var RUNNING = false;
 
   function getCardRoot(card) {
     try {
       return card.querySelector(':scope > a > div[role="button"]') ||
-             card.querySelector(':scope > a > div');
+             card.querySelector(':scope > a > div') ||
+             card.querySelector('a > div[role="button"]') ||
+             card.querySelector('a > div');
     } catch (e) {
       return null;
     }
   }
 
   function getGalleryRoot(card) {
-    try {
-      for (var i = 0; i < CONFIG.gallery.galleryRootSelectors.length; i++) {
-        var found = card.closest(CONFIG.gallery.galleryRootSelectors[i]);
-        if (found) return found;
-      }
-    } catch (e) {}
-    return null;
+    return pickFirst(card, CONFIG.gallery.galleryRootSelectors);
   }
 
   function getGalleryTitle(root) {
@@ -285,10 +355,7 @@ window.GA_CONFIG = {
         break;
       }
 
-      if (!propArea && children.length > 1) {
-        propArea = children[children.length - 1];
-      }
-
+      if (!propArea && children.length > 1) propArea = children[children.length - 1];
       if (!propArea) return [];
 
       var items = Array.from(propArea.children).filter(function (item) {
@@ -371,6 +438,15 @@ window.GA_CONFIG = {
     } catch (e) {}
 
     return r;
+  }
+
+  function applyGridColumns() {
+    try {
+      var grid = document.querySelector('.css-aggqen');
+      if (!grid) return;
+
+      grid.style.setProperty('grid-template-columns', CONFIG.gallery.gridColumnsDesktop, 'important');
+    } catch (e) {}
   }
 
   function buildCard(card) {
@@ -511,9 +587,8 @@ window.GA_CONFIG = {
   function run() {
     try {
       loadConfig();
-      if (!window.GA_CONFIG) return;
-
       installTabTracker();
+      applyGridColumns();
 
       document.querySelectorAll(CONFIG.gallery.cardSelector).forEach(function (card) {
         try {
