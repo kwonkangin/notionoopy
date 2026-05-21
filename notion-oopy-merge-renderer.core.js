@@ -338,13 +338,17 @@
     );
   }
 
-  function runOnce() {
-    injectLinkStyle();
-    const root = getSafeRoot();
-    const { propertyMap, urlMap } = buildMaps();
-    scan(root, propertyMap, urlMap);
-  }
+function runOnce() {
+  injectLinkStyle();
+  const { propertyMap, urlMap } = buildMaps();
 
+  const root = getSafeRoot();
+  scan(root, propertyMap, urlMap);
+
+  document.querySelectorAll('.notion-table_of_contents-block').forEach(tocBlock => {
+    scan(tocBlock, propertyMap, urlMap);
+  });
+}
   function boot() {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', runOnce, { once: true });
