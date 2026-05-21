@@ -346,22 +346,28 @@
   }
 
   function boot() {
-    const start = () => {
-      setTimeout(() => {
-        if (window.requestIdleCallback) {
-          requestIdleCallback(() => {
-            runOnce();
-          }, { timeout: 2000 });
-        } else {
-          runOnce();
-        }
-      }, 3000);
+    let done = false;
+
+    const run = () => {
+      if (done) return;
+      done = true;
+      runOnce();
     };
 
-    if (document.readyState === "complete") {
-      start();
+    const startSoon = () => {
+      if (window.requestAnimationFrame) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(run);
+        });
+      } else {
+        setTimeout(run, 120);
+      }
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", startSoon, { once: true });
     } else {
-      window.addEventListener("load", start, { once: true });
+      startSoon();
     }
   }
 
