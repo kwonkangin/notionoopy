@@ -224,12 +224,32 @@
     return { propertyMap, urlMap };
   }
 
-  function injectLinkStyle() {
-    if (document.getElementById("oopy-inline-link-style")) return;
+  function injectStyles() {
+    if (document.getElementById("oopy-inline-style")) return;
 
     const style = document.createElement("style");
-    style.id = "oopy-inline-link-style";
-    style.textContent = ".oopy-inline-link,.oopy-inline-link:visited,.oopy-inline-link:hover,.oopy-inline-link:active,.oopy-inline-link:focus{color:inherit;text-decoration:none}";
+    style.id = "oopy-inline-style";
+    style.textContent = `
+      .oopy-inline-link,
+      .oopy-inline-link:visited,
+      .oopy-inline-link:hover,
+      .oopy-inline-link:active,
+      .oopy-inline-link:focus {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      [data-oopy-pending="true"] {
+        opacity: 0 !important;
+        visibility: hidden !important;
+      }
+
+      [data-oopy-ready="true"] {
+        visibility: visible !important;
+        opacity: 1 !important;
+        transition: opacity 220ms ease, visibility 0ms linear 0ms;
+      }
+    `;
     document.head.appendChild(style);
   }
 
@@ -273,8 +293,6 @@
       a.rel = "noopener noreferrer";
       a.className = "oopy-inline-link";
       a.style.wordBreak = "break-all";
-      a.style.color = "inherit";
-      a.style.textDecoration = "none";
       frag.appendChild(a);
     });
 
@@ -338,36 +356,62 @@
     );
   }
 
+  function hasTokens(root) {
+    return /\{%\s*.*?\s*%\}/.test(root?.innerText || "");
+  }
+
+  function hideRoot(root) {
+    if (!root) return;
+    root.setAttribute("data-oopy-pending", "true");
+    root.removeAttribute("data-oopy-ready");
+  }
+
+  function revealRoot(root) {
+    if (!root) return;
+    root.removeAttribute("data-oopy-pending");
+
+    requestAnimationFrame(() => {
+      root.setAttribute("data-oopy-ready", "true");
+    });
+  }
+
   function runOnce() {
-    injectLinkStyle();
+    injectStyles();
+
     const root = getSafeRoot();
+    if (!root) return;
+
     const { propertyMap, urlMap } = buildMaps();
+    const shouldHide = hasTokens(root);
+
+    if (shouldHide) {
+      hideRoot(root);
+    }
+
     scan(root, propertyMap, urlMap);
+
+    if (shouldHide) {
+      revealRoot(root);
+    }
   }
 
   function boot() {
-    let done = false;
-
-    const run = () => {
-      if (done) return;
-      done = true;
-      runOnce();
-    };
-
-    const startSoon = () => {
+    const start = () => {
       if (window.requestAnimationFrame) {
         requestAnimationFrame(() => {
-          requestAnimationFrame(run);
+          requestAnimationFrame(() => {
+            runOnce();
+          });
         });
       } else {
-        setTimeout(run, 120);
+        setTimeout(runOnce, 60);
       }
     };
 
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", startSoon, { once: true });
+      document.addEventListener("DOMContentLoaded", start, { once: true });
     } else {
-      startSoon();
+      start();
     }
   }
 
