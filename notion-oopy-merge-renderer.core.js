@@ -1,522 +1,368 @@
 (() => {
-  let observer = null;
-  let isMerging = false;
-  let isScheduled = false;
-  let started = false;
-  let mergeTimer = null;
-  let idleId = null;
-  let lastMutationAt = Date.now();
-
-  const OBSERVE_OPTIONS = {
-    childList: true,
-    subtree: true,
-    characterData: true
-  };
-
-  const HYDRATION_SETTLE_MS = 1200;
-  const POST_LOAD_DELAY_MS = 800;
-  const MAX_WAIT_AFTER_START_MS = 8000;
-
-  function log(...args) {
-    console.log('[notion-oopy-merge]', ...args);
-  }
-
-  function now() {
-    return Date.now();
-  }
-
   function getNextData() {
-    const raw = document.getElementById('__NEXT_DATA__')?.textContent;
+    const raw = document.getElementById("__NEXT_DATA__")?.textContent;
     if (!raw) return null;
-
     try {
       return JSON.parse(raw);
-    } catch (e) {
-      console.error('[notion-oopy-merge] __NEXT_DATA__ parse error:', e);
+    } catch {
       return null;
     }
   }
 
-  function getPageProps() {
-    const nextData = getNextData();
-    return nextData?.props?.pageProps || nextData?.props?.initialProps?.pageProps || null;
-  }
-
   function getRecordMap() {
-    const pageProps = getPageProps();
-    return pageProps?.recordMap || pageProps?.pageData?.recordMap || pageProps?.result?.recordMap || null;
+    return getNextData()?.props?.pageProps?.recordMap || null;
   }
 
-  function getNotionUserMap(recordMap) {
-    return recordMap?.notion_user || recordMap?.notionUser || {};
+  function getPageAndCollection(recordMap) {
+    const blocks = recordMap?.block || {};
+    const collections = recordMap?.collection || {};
+    const pageId = Object.keys(blocks).find(
+      id => blocks[id]?.value?.type === "page"
+    );
+    const page = pageId ? blocks[pageId]?.value : null;
+
+    if (!page) {
+      return { page: null, collection: null, pageId: null };
+    }
+
+    const collection = collections[page.parent_id]?.value || null;
+    return { page, collection, pageId };
   }
 
   function flattenNotionText(value) {
-    if (!Array.isArray(value)) return '';
-
-    const parts = [];
-
-    for (const item of value) {
-      if (!Array.isArray(item)) continue;
-      const text = item[0];
-      if (typeof text === 'string' && text) parts.push(text);
-    }
-
-    return parts.join('').trim();
+    return Array.isArray(value)
+      ? value
+          .map(item => Array.isArray(item) ? (item[0] || "") : "")
+          .filter(Boolean)
+          .join("")
+      : "";
   }
 
   function joinDisplayValues(values) {
     return values
-      .map(v => (typeof v === 'string' ? v.trim() : ''))
       .filter(Boolean)
-      .filter((v, i, arr) => arr.indexOf(v) === i)
-      .join(', ');
+      .join(", ")
+      .replace(/\s*,\s*/g, ", ")
+      .trim();
   }
 
-  function getPageTitleById(pageId, recordMap) {
-    if (!pageId) return '';
+  function extractDateValue(value) {
+    if (!Array.isArray(value)) return "";
+    const allowedTypes = ["date", "datetime", "daterange", "datetimerange"];
 
-    const page = recordMap?.block?.[pageId]?.value;
-    if (!page?.properties) return '';
-
-    return (
-      flattenNotionText(page.properties.title) ||
-      flattenNotionText(page.properties.Name) ||
-      ''
-    );
-  }
-
-  function extractRelationValue(rawValue, recordMap) {
-    if (!Array.isArray(rawValue)) return '';
-
-    const names = [];
-
-    for (const item of rawValue) {
+    for (const item of value) {
       if (!Array.isArray(item)) continue;
-
-      const directId = item[0];
-      if (typeof directId === 'string' && directId) {
-        const directTitle = getPageTitleById(directId, recordMap);
-        names.push(directTitle || directId);
-      }
-
-      const decorations = item[1];
+      const [, decorations] = item;
       if (!Array.isArray(decorations)) continue;
 
       for (const deco of decorations) {
         if (!Array.isArray(deco)) continue;
-        const [type, pageId] = deco;
+        const [type, payload] = deco;
 
-        if (type === 'p' && pageId) {
-          const title = getPageTitleById(pageId, recordMap);
-          names.push(title || pageId);
+        if (type === "d" && allowedTypes.includes(payload?.type)) {
+          const start = [payload.start_date, payload.start_time].filter(Boolean).join(" ");
+          const end = [payload.end_date, payload.end_time].filter(Boolean).join(" ");
+          return start && end ? `${start} → ${end}` : (start || end || "");
         }
       }
+    }
+
+    return "";
+  }
+
+  function extractRelationValue(value, recordMap) {
+    if (!Array.isArray(value)) return "";
+    const blocks = recordMap?.block || {};
+    const names = [];
+
+    for (const item of value) {
+      if (!Array.isArray(item)) continue;
+      const id = item[0];
+      if (!id) continue;
+
+      const relatedPage = blocks[id]?.value;
+      const title = flattenNotionText(relatedPage?.properties?.title);
+      names.push(title || id);
     }
 
     return joinDisplayValues(names);
   }
 
-  function extractPeopleValue(rawValue, notionUser) {
-    if (!Array.isArray(rawValue)) return '';
-
+  function extractPersonValue(value, recordMap) {
+    if (!Array.isArray(value)) return "";
+    const notionUser = recordMap?.notion_user || {};
     const names = [];
 
-    for (const item of rawValue) {
+    for (const item of value) {
       if (!Array.isArray(item)) continue;
+      const id = item[0];
+      if (!id) continue;
 
-      const directId = item[0];
-      if (typeof directId === 'string' && directId) {
-        const user = notionUser[directId]?.value;
-        names.push(user?.name || user?.full_name || user?.email || directId);
-      }
-
-      const decorations = item[1];
-      if (!Array.isArray(decorations)) continue;
-
-      for (const deco of decorations) {
-        if (!Array.isArray(deco)) continue;
-        const [type, userId] = deco;
-
-        if (type === 'u' && userId) {
-          const user = notionUser[userId]?.value;
-          names.push(user?.name || user?.full_name || user?.email || userId);
-        }
-      }
+      const user = notionUser[id]?.value;
+      names.push(user?.name || user?.email || id);
     }
 
     return joinDisplayValues(names);
   }
 
-  function extractLinkValue(rawValue) {
-    if (!Array.isArray(rawValue)) return '';
+  function extractFileValue(value) {
+    return Array.isArray(value)
+      ? joinDisplayValues(
+          value
+            .map(item => Array.isArray(item) ? (item[0] || "") : "")
+            .filter(Boolean)
+        )
+      : "";
+  }
 
-    const parts = [];
+  function extractUrlValues(value) {
+    if (!Array.isArray(value)) return [];
+    const urls = [];
 
-    for (const item of rawValue) {
+    for (const item of value) {
       if (!Array.isArray(item)) continue;
 
-      const text = item[0] || '';
-      let href = '';
-
+      const text = item[0] || "";
+      let href = text;
       const decorations = item[1];
+
       if (Array.isArray(decorations)) {
         for (const deco of decorations) {
           if (!Array.isArray(deco)) continue;
           const [type, payload] = deco;
-
-          if ((type === 'a' || type === 'u' || type === 'p') && typeof payload === 'string') {
+          if (type === "a" && typeof payload === "string") {
             href = payload;
           }
         }
       }
 
-      if (href && text) parts.push(`${text} (${href})`);
-      else if (text) parts.push(text);
-      else if (href) parts.push(href);
+      if (href) urls.push({ text: text || href, href });
     }
 
-    return parts.join('').trim();
+    return urls;
   }
 
-  function normalizePropertyValue(propName, propValue, recordMap, notionUser) {
-    if (!Array.isArray(propValue) || propValue.length === 0) return '';
+  function normalizePropertyValue(value, type, recordMap) {
+    if (value == null) return "";
 
-    const type = propValue[0];
-    const rawValue = propValue[1];
-
-    if (type === 'title' || type === 'text') return flattenNotionText(rawValue);
-    if (type === 'relation') return extractRelationValue(rawValue, recordMap);
-    if (type === 'person' || type === 'people' || type === 'created_by' || type === 'last_edited_by') {
-      return extractPeopleValue(rawValue, notionUser);
+    if (type === "text" || type === "title") return flattenNotionText(value);
+    if (type === "select") {
+      return Array.isArray(value)
+        ? joinDisplayValues(value.map(item => Array.isArray(item) ? (item[0] || "") : ""))
+        : "";
     }
-    if (type === 'url' || type === 'email' || type === 'phone_number') {
-      return flattenNotionText(rawValue) || String(rawValue || '');
+    if (type === "multi_select") {
+      return Array.isArray(value)
+        ? joinDisplayValues(
+            value
+              .map(item => Array.isArray(item) ? (item[0] || "") : "")
+              .filter(Boolean)
+              .map(v => v.split(",").map(x => x.trim()).filter(Boolean).join(", "))
+          )
+        : "";
     }
-    if (type === 'checkbox') return rawValue ? 'Yes' : 'No';
-    if (type === 'date') {
-      if (Array.isArray(rawValue) && rawValue[0]?.[1]?.start_date) return rawValue[0][1].start_date;
-      return '';
+    if (type === "date") return extractDateValue(value);
+    if (type === "relation") return extractRelationValue(value, recordMap);
+    if (type === "person") return extractPersonValue(value, recordMap);
+    if (type === "file") return extractFileValue(value);
+    if (type === "status") {
+      return Array.isArray(value)
+        ? joinDisplayValues(value.map(item => Array.isArray(item) ? (item[0] || "") : ""))
+        : "";
     }
-    if (type === 'select' || type === 'multi_select') return flattenNotionText(rawValue);
-    if (type === 'created_time' || type === 'last_edited_time') return String(rawValue || '');
+    if (type === "checkbox") {
+      return Array.isArray(value) && Array.isArray(value[0])
+        ? (value[0][0] === "Yes" ? "Yes" : (value[0][0] || ""))
+        : "";
+    }
+    if (type === "number") {
+      return Array.isArray(value) && Array.isArray(value[0])
+        ? (value[0][0] || "")
+        : "";
+    }
+    if (type === "url") {
+      const urls = extractUrlValues(value);
+      return urls.map(item => item.href).join(", ");
+    }
 
-    const linkLike = extractLinkValue(rawValue);
-    if (linkLike) return linkLike;
-
-    const textLike = flattenNotionText(rawValue);
-    if (textLike) return textLike;
-
-    return String(rawValue || '');
+    return Array.isArray(value)
+      ? joinDisplayValues(value.map(item => Array.isArray(item) ? (item[0] || "") : ""))
+      : String(value || "");
   }
 
-  function buildPropertyMap() {
+  function buildMaps() {
     const recordMap = getRecordMap();
-    if (!recordMap?.block) return {};
+    if (!recordMap) return { propertyMap: {}, urlMap: {} };
 
-    const notionUser = getNotionUserMap(recordMap);
+    const { page, collection } = getPageAndCollection(recordMap);
+    if (!page || !collection?.schema) return { propertyMap: {}, urlMap: {} };
+
     const propertyMap = {};
-    const blocks = Object.values(recordMap.block);
+    const urlMap = {};
 
-    for (const blockWrapper of blocks) {
-      const block = blockWrapper?.value;
-      const props = block?.properties;
-      if (!props) continue;
-
-      for (const [propName, propValue] of Object.entries(props)) {
-        const normalized = normalizePropertyValue(propName, propValue, recordMap, notionUser);
-        if (!normalized) continue;
-        if (!propertyMap[propName]) propertyMap[propName] = normalized;
-      }
-    }
-
-    return propertyMap;
-  }
-
-  function buildFilePropertyMap() {
-    const recordMap = getRecordMap();
-    if (!recordMap?.block) return {};
-
-    const fileMap = {};
-    const blocks = Object.values(recordMap.block);
-
-    for (const blockWrapper of blocks) {
-      const block = blockWrapper?.value;
-      const props = block?.properties;
-      if (!props) continue;
-
-      for (const [propName, propValue] of Object.entries(props)) {
-        if (!Array.isArray(propValue) || propValue[0] !== 'file') continue;
-
-        const rawValue = propValue[1];
-        if (!Array.isArray(rawValue)) continue;
-
-        const files = [];
-
-        for (const item of rawValue) {
-          if (!Array.isArray(item)) continue;
-          const url = item[0];
-          if (typeof url === 'string' && url) files.push(url);
-        }
-
-        if (files.length && !fileMap[propName]) {
-          fileMap[propName] = files;
-        }
-      }
-    }
-
-    return fileMap;
-  }
-
-  function replaceTokensInText(text, propertyMap) {
-    if (!text || !text.includes('{%')) return text;
-
-    return text.replace(/\{%\s*(.*?)\s*%\}/g, (match, propName) => {
-      const key = String(propName || '').trim();
-      if (!key) return match;
-      return propertyMap[key] ?? match;
-    });
-  }
-
-  function scanTextNodes(root, propertyMap) {
-    if (!root) return 0;
-
-    let count = 0;
-
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        if (!node.nodeValue || !node.nodeValue.includes('{%')) {
-          return NodeFilter.FILTER_REJECT;
-        }
-
-        const parent = node.parentElement;
-        if (!parent) return NodeFilter.FILTER_REJECT;
-        if (parent.closest('script, style, noscript')) return NodeFilter.FILTER_REJECT;
-
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    });
-
-    const nodes = [];
-    let current;
-    while ((current = walker.nextNode())) nodes.push(current);
-
-    for (const textNode of nodes) {
-      const before = textNode.nodeValue;
-      const after = replaceTokensInText(before, propertyMap);
-
-      if (before !== after) {
-        textNode.nodeValue = after;
-        count++;
-      }
-    }
-
-    return count;
-  }
-
-  function replaceFilePlaceholders(root, filePropertyMap) {
-    if (!root) return 0;
-
-    let count = 0;
-
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        const text = node.nodeValue || '';
-        if (!/\{%\s*.*?\s*%\}/.test(text)) return NodeFilter.FILTER_REJECT;
-
-        const parent = node.parentElement;
-        if (!parent) return NodeFilter.FILTER_REJECT;
-        if (parent.closest('script, style, noscript')) return NodeFilter.FILTER_REJECT;
-
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    });
-
-    const nodes = [];
-    let current;
-    while ((current = walker.nextNode())) nodes.push(current);
-
-    for (const textNode of nodes) {
-      const text = textNode.nodeValue || '';
-      const match = text.match(/^\s*\{%\s*(.*?)\s*%\}\s*$/);
-      if (!match) continue;
-
-      const propName = match[1]?.trim();
+    for (const [propId, schema] of Object.entries(collection.schema)) {
+      const propName = (schema?.name || "").trim();
       if (!propName) continue;
 
-      const files = filePropertyMap[propName];
-      if (!Array.isArray(files) || files.length === 0) continue;
-      if (!textNode.parentNode) continue;
+      const schemaType = schema?.type || "";
+      const rawValue = page.properties?.[propId];
 
-      const parentEl = textNode.parentNode.nodeType === Node.ELEMENT_NODE ? textNode.parentNode : null;
-      if (parentEl?.dataset?.mergedFileToken === propName) continue;
+      if (schemaType === "url") {
+        const urls = extractUrlValues(rawValue);
+        if (urls.length > 0) {
+          urlMap[propName] = urls;
+          propertyMap[propName] = urls.map(item => item.href).join(", ");
+        } else {
+          propertyMap[propName] = "";
+        }
+      } else {
+        propertyMap[propName] = normalizePropertyValue(rawValue, schemaType, recordMap);
+      }
+    }
 
-      const frag = document.createDocumentFragment();
+    propertyMap.page_title = document.title.trim();
+    return { propertyMap, urlMap };
+  }
 
-      files.forEach((file, index) => {
-        const a = document.createElement('a');
-        a.href = file;
-        a.textContent = files.length === 1 ? '파일 보기' : `파일 보기 ${index + 1}`;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.style.display = 'inline-block';
-        a.style.marginRight = '8px';
-        frag.appendChild(a);
-      });
+  function injectLinkStyle() {
+    if (document.getElementById("oopy-inline-link-style")) return;
 
-      if (parentEl?.dataset) {
-        parentEl.dataset.mergedFileToken = propName;
+    const style = document.createElement("style");
+    style.id = "oopy-inline-link-style";
+    style.textContent = ".oopy-inline-link,.oopy-inline-link:visited,.oopy-inline-link:hover,.oopy-inline-link:active,.oopy-inline-link:focus{color:inherit;text-decoration:none}";
+    document.head.appendChild(style);
+  }
+
+  function shouldSkip(node) {
+    const el = node.parentElement;
+    return !el || ["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA"].includes(el.tagName);
+  }
+
+  function extractSingleToken(text) {
+    const match = text.match(/^\s*\{%\s*(.*?)\s*%\}\s*$/);
+    return match ? match[1].trim() : null;
+  }
+
+  function replaceTemplateTokens(text, propertyMap) {
+    return text.replace(/\{%\s*(.*?)\s*%\}/g, (match, key) => {
+      const normalizedKey = String(key || "").trim();
+      if (!normalizedKey) return match;
+
+      if (Object.prototype.hasOwnProperty.call(propertyMap, normalizedKey)) {
+        const value = propertyMap[normalizedKey];
+        return value == null || value === "" ? "" : String(value);
       }
 
-      textNode.parentNode.replaceChild(frag, textNode);
-      count++;
+      return match;
+    });
+  }
+
+  function replaceAsLink(node, urls) {
+    const parent = node.parentElement;
+    if (!parent || parent.dataset.oopyUrlReplaced === "true") return false;
+
+    const frag = document.createDocumentFragment();
+
+    urls.forEach((item, index) => {
+      if (index > 0) frag.appendChild(document.createTextNode(", "));
+
+      const a = document.createElement("a");
+      a.href = item.href;
+      a.textContent = item.text;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "oopy-inline-link";
+      a.style.wordBreak = "break-all";
+      a.style.color = "inherit";
+      a.style.textDecoration = "none";
+      frag.appendChild(a);
+    });
+
+    parent.replaceChild(frag, node);
+    parent.dataset.oopyUrlReplaced = "true";
+    return true;
+  }
+
+  function replaceTextNode(node, propertyMap, urlMap) {
+    if (!node || !node.nodeValue || shouldSkip(node) || !/\{%\s*.*?\s*%\}/.test(node.nodeValue)) {
+      return false;
+    }
+
+    const singleKey = extractSingleToken(node.nodeValue);
+    if (singleKey && urlMap[singleKey]) {
+      return replaceAsLink(node, urlMap[singleKey]);
+    }
+
+    const nextValue = replaceTemplateTokens(node.nodeValue, propertyMap);
+    if (nextValue !== node.nodeValue) {
+      node.nodeValue = nextValue;
+      return true;
+    }
+
+    return false;
+  }
+
+  function scan(root, propertyMap, urlMap) {
+    if (!root) return 0;
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return node.nodeValue &&
+          node.nodeValue.trim() &&
+          !shouldSkip(node) &&
+          /\{%\s*.*?\s*%\}/.test(node.nodeValue)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    });
+
+    const nodes = [];
+    let current;
+    while ((current = walker.nextNode())) nodes.push(current);
+
+    let count = 0;
+    for (const node of nodes) {
+      if (replaceTextNode(node, propertyMap, urlMap)) count++;
     }
 
     return count;
   }
 
-  function hasRemainingTokens(root = document.body) {
-    const text = root?.innerText || '';
-    return /\{%\s*.*?\s*%\}/.test(text);
+  function getSafeRoot() {
+    return (
+      document.querySelector(".notion-page-content") ||
+      document.querySelector("[class*='notion-page-content']") ||
+      document.querySelector("[class*='notion-page']") ||
+      document.querySelector("main") ||
+      document.body
+    );
   }
 
-  function stopObserver() {
-    if (observer) observer.disconnect();
-  }
-
-  function startObserver() {
-    if (!observer || !document.body) return;
-    observer.observe(document.body, OBSERVE_OPTIONS);
-  }
-
-  function safeMerge(root = document.body) {
-    if (isMerging) return;
-
-    isMerging = true;
-    stopObserver();
-
-    try {
-      const propertyMap = buildPropertyMap();
-      const filePropertyMap = buildFilePropertyMap();
-
-      scanTextNodes(root, propertyMap);
-      replaceFilePlaceholders(root, filePropertyMap);
-    } catch (e) {
-      console.error('[notion-oopy-merge] merge error:', e);
-    } finally {
-      isMerging = false;
-
-      if (hasRemainingTokens(document.body)) {
-        startObserver();
-      } else {
-        stopObserver();
-        log('all tokens merged, observer stopped');
-      }
-    }
-  }
-
-  function reallyRunMerge(root = document.body, reason = 'unknown') {
-    if (isMerging) return;
-    log('run merge:', reason);
-    safeMerge(root);
-  }
-
-  function scheduleMerge(root = document.body, reason = 'scheduled') {
-    if (isScheduled) return;
-
-    isScheduled = true;
-
-    if (mergeTimer) clearTimeout(mergeTimer);
-
-    mergeTimer = setTimeout(() => {
-      isScheduled = false;
-      const quietFor = now() - lastMutationAt;
-
-      if (quietFor < HYDRATION_SETTLE_MS) {
-        scheduleMerge(root, 'rescheduled-after-mutation');
-        return;
-      }
-
-      if (typeof window.requestIdleCallback === 'function') {
-        idleId = window.requestIdleCallback(() => {
-          reallyRunMerge(root, reason + ':idle');
-        }, { timeout: 1500 });
-      } else {
-        requestAnimationFrame(() => {
-          reallyRunMerge(root, reason + ':raf');
-        });
-      }
-    }, HYDRATION_SETTLE_MS);
-  }
-
-  function initObserver() {
-    if (observer) return;
-
-    observer = new MutationObserver((mutations) => {
-      if (isMerging) return;
-
-      lastMutationAt = now();
-
-      let targetRoot = document.body;
-
-      for (const mutation of mutations) {
-        if (mutation.type === 'characterData') {
-          targetRoot = mutation.target?.parentElement || document.body;
-          break;
-        }
-
-        if (mutation.type === 'childList') {
-          for (const added of mutation.addedNodes) {
-            if (added.nodeType === Node.ELEMENT_NODE) {
-              targetRoot = added;
-              break;
-            }
-            if (added.nodeType === Node.TEXT_NODE) {
-              targetRoot = added.parentElement || document.body;
-              break;
-            }
-          }
-        }
-      }
-
-      if (!hasRemainingTokens(document.body)) {
-        stopObserver();
-        return;
-      }
-
-      scheduleMerge(targetRoot, 'mutation');
-    });
-
-    if (hasRemainingTokens(document.body)) {
-      startObserver();
-    }
-  }
-
-  function startWhenStable() {
-    if (started) return;
-    started = true;
-
-    lastMutationAt = now();
-    initObserver();
-
-    setTimeout(() => {
-      scheduleMerge(document.body, 'post-load-delay');
-    }, POST_LOAD_DELAY_MS);
-
-    setTimeout(() => {
-      reallyRunMerge(document.body, 'max-wait-fallback');
-    }, MAX_WAIT_AFTER_START_MS);
+  function runOnce() {
+    injectLinkStyle();
+    const root = getSafeRoot();
+    const { propertyMap, urlMap } = buildMaps();
+    scan(root, propertyMap, urlMap);
   }
 
   function boot() {
-    if (document.readyState === 'complete') {
-      startWhenStable();
-      return;
-    }
+    const start = () => {
+      setTimeout(() => {
+        if (window.requestIdleCallback) {
+          requestIdleCallback(() => {
+            runOnce();
+          }, { timeout: 2000 });
+        } else {
+          runOnce();
+        }
+      }, 3000);
+    };
 
-    window.addEventListener('load', () => {
-      startWhenStable();
-    }, { once: true });
+    if (document.readyState === "complete") {
+      start();
+    } else {
+      window.addEventListener("load", start, { once: true });
+    }
   }
 
   boot();
