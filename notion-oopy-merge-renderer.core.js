@@ -1,4 +1,3 @@
-<script>
 (() => {
   let observer = null;
   let isMerging = false;
@@ -522,4 +521,3 @@
 
   boot();
 })();
-</script>
