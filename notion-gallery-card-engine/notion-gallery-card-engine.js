@@ -1,4 +1,14 @@
 /*
+이제 우피/노션에서는 꼭 이 순서로 넣으세요.
+
+window.GA_CONFIG 먼저 선언.
+
+그 다음 엔진 스크립트 삽입.
+
+rules에서 tab: 규칙을 위에 두고 all은 맨 마지막으로 두기.
+
+카드가 아직도 깜빡이면 setTimeout 간격을 조금 더 늘리기.
+
 <script>
 window.GA_CONFIG = {
   tab: {
@@ -6,11 +16,11 @@ window.GA_CONFIG = {
     keywords: ['전체보기', '디자인', '기장', '넥라인']
   },
   rules: [
-    { match: 'all', tagMode: 'auto' },
     { match: 'tab:전체보기', tagMode: 'none' },
     { match: 'tab:디자인', tagMode: 'index', tagIndex: 0 },
     { match: 'tab:기장', tagMode: 'none' },
-    { match: 'tab:넥라인', tagMode: 'index', tagIndex: 0 }
+    { match: 'tab:넥라인', tagMode: 'index', tagIndex: 0 },
+    { match: 'all', tagMode: 'auto' }
   ]
 };
 </script>
@@ -178,6 +188,158 @@ window.GA_CONFIG = {
 
       var groups = {};
       var active = '';
+      var topScore = -1;<script>
+(function () {
+  'use strict';
+
+  var DEFAULT_CONFIG = {
+    tab: {
+      selectors: ['span.css-ymcnjv', '.css-1jvn19f', '.css-14pj9fz'],
+      keywords: []
+    },
+    gallery: {
+      cardSelector: '.notion-collection-item',
+      galleryRootSelectors: ['.notion-collection_view-block', '.notion-gallery-view'],
+      titleSelectors: ['.notion-collection-view-title', 'h1', 'h2', 'h3', '[data-content-editable-leaf="true"]']
+    },
+    rules: [
+      { match: 'all', tagMode: 'auto' }
+    ]
+  };
+
+  function mergeConfig(base, custom) {
+    var out = JSON.parse(JSON.stringify(base || {}));
+    custom = custom || {};
+
+    Object.keys(custom).forEach(function (k) {
+      if (
+        custom[k] &&
+        typeof custom[k] === 'object' &&
+        !Array.isArray(custom[k]) &&
+        out[k] &&
+        typeof out[k] === 'object' &&
+        !Array.isArray(out[k])
+      ) {
+        out[k] = mergeConfig(out[k], custom[k]);
+      } else {
+        out[k] = custom[k];
+      }
+    });
+
+    return out;
+  }
+
+  function txt(el) {
+    try { return el ? el.textContent.trim() : ''; } catch (e) { return ''; }
+  }
+
+  function normalize(s) {
+    return (s || '').replace(/\s+/g, '').replace(/[()]/g, '').toLowerCase();
+  }
+
+  function qsa(root, selectors) {
+    try {
+      return Array.from(root.querySelectorAll(selectors.join(',')));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  var CONFIG = null;
+  var RUN_LOCK = false;
+
+  function loadConfig() {
+    var custom = window.GA_CONFIG || null;
+    CONFIG = mergeConfig(DEFAULT_CONFIG, custom || {});
+  }
+
+  function getCardRoot(card) {
+    try {
+      return card.querySelector(':scope > a > div[role="button"]') ||
+             card.querySelector(':scope > a > div');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getGalleryRoot(card) {
+    try {
+      for (var i = 0; i < CONFIG.gallery.galleryRootSelectors.length; i++) {
+        var found = card.closest(CONFIG.gallery.galleryRootSelectors[i]);
+        if (found) return found;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function getGalleryTitle(root) {
+    try {
+      if (!root) return '';
+      var nodes = qsa(root, CONFIG.gallery.titleSelectors);
+      for (var i = 0; i < nodes.length; i++) {
+        var t = txt(nodes[i]);
+        if (t) return t;
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function installTabTracker() {
+    try {
+      if (window._GA_TAB_TRACKER_INSTALLED) return;
+      window._GA_LAST_CLICKED_TAB = window._GA_LAST_CLICKED_TAB || null;
+
+      document.addEventListener('click', function (e) {
+        var el = e.target;
+        while (el && el !== document.body) {
+          try {
+            var text = txt(el);
+            if (!text) {
+              el = el.parentElement;
+              continue;
+            }
+
+            var matched = CONFIG.tab.selectors.some(function (sel) {
+              try { return el.matches(sel); } catch (e) { return false; }
+            });
+
+            if (matched) {
+              if (!CONFIG.tab.keywords.length || CONFIG.tab.keywords.indexOf(text) > -1) {
+                window._GA_LAST_CLICKED_TAB = text;
+                break;
+              }
+            }
+          } catch (err) {}
+          el = el.parentElement;
+        }
+      }, true);
+
+      window._GA_TAB_TRACKER_INSTALLED = true;
+    } catch (e) {}
+  }
+
+  function getActiveTabName() {
+    try {
+      if (window._GA_LAST_CLICKED_TAB) return window._GA_LAST_CLICKED_TAB;
+
+      var candidates = qsa(document, CONFIG.tab.selectors).map(function (el) {
+        var text = txt(el);
+        if (!text) return null;
+        if (CONFIG.tab.keywords.length && CONFIG.tab.keywords.indexOf(text) === -1) return null;
+
+        var cs = getComputedStyle(el);
+        return {
+          text: text,
+          fw: parseInt(cs.fontWeight, 10) || 0,
+          color: cs.color,
+          op: parseFloat(cs.opacity) || 1
+        };
+      }).filter(Boolean);
+
+      if (!candidates.length) return '';
+
+      var groups = {};
+      var active = '';
       var topScore = -1;
 
       candidates.forEach(function (c) {
@@ -206,7 +368,7 @@ window.GA_CONFIG = {
     var title = getGalleryTitle(root);
     var activeTab = getActiveTabName();
     var rules = CONFIG.rules || [];
-    var fallback = { match: 'all', tagMode: 'auto' };
+    var fallback = null;
 
     for (var i = 0; i < rules.length; i++) {
       var rule = rules[i];
@@ -226,7 +388,7 @@ window.GA_CONFIG = {
       }
     }
 
-    return fallback;
+    return fallback || { tagMode: 'auto' };
   }
 
   function getImgInfo(card) {
@@ -375,10 +537,15 @@ window.GA_CONFIG = {
 
   function buildCard(card) {
     try {
-      if (!card || card.dataset.gaBuilt) return;
+      if (!card || card.dataset.gaBuilt === '1') return;
 
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return;
+
+      if (cardRoot.querySelector('.ga-card-shell')) {
+        card.dataset.gaBuilt = '1';
+        return;
+      }
 
       var rule = getGalleryConfig(card);
       var imgInfo = getImgInfo(card);
@@ -503,31 +670,14 @@ window.GA_CONFIG = {
     }
   }
 
-  function restoreBuiltCards() {
-    document.querySelectorAll(CONFIG.gallery.cardSelector).forEach(function (card) {
-      if (card.dataset.gaBuilt !== '1') return;
-
-      var shell = card.querySelector('.ga-card-shell');
-      if (shell) shell.remove();
-
-      var root = getCardRoot(card);
-      if (!root) return;
-
-      Array.from(root.children).forEach(function (ch) {
-        try { ch.style.removeProperty('display'); } catch (e) {}
-      });
-
-      delete card.dataset.gaBuilt;
-    });
-  }
-
   function run() {
     try {
-      installTabTracker();
-      restoreBuiltCards();
+      loadConfig();
+      if (!window.GA_CONFIG) return;
 
-      var cards = document.querySelectorAll(CONFIG.gallery.cardSelector);
-      cards.forEach(function (card) {
+      installTabTracker();
+
+      document.querySelectorAll(CONFIG.gallery.cardSelector).forEach(function (card) {
         try {
           if (!card.dataset.gaBuilt) buildCard(card);
         } catch (e) {}
@@ -535,9 +685,9 @@ window.GA_CONFIG = {
     } catch (e) {}
   }
 
-  setTimeout(run, 300);
-  setTimeout(run, 700);
-  setTimeout(run, 1400);
+  setTimeout(run, 200);
+  setTimeout(run, 800);
+  setTimeout(run, 1600);
 
   try {
     var observer = new MutationObserver(function (mutations) {
@@ -553,7 +703,7 @@ window.GA_CONFIG = {
         });
       });
 
-      if (hasNew) setTimeout(run, 150);
+      if (hasNew) setTimeout(run, 120);
     });
 
     observer.observe(document.body, {
