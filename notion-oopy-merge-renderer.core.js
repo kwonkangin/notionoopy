@@ -346,24 +346,12 @@
   }
 
   function boot() {
-    const start = () => {
-      setTimeout(() => {
-        if (window.requestIdleCallback) {
-          requestIdleCallback(() => {
-            runOnce();
-          }, { timeout: 2000 });
-        } else {
-          runOnce();
-        }
-      }, 3000);
-    };
-
-    if (document.readyState === "complete") {
-      start();
-    } else {
-      window.addEventListener("load", start, { once: true });
-    }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runOnce, { once: true });
+  } else {
+    runOnce();
   }
+}
 
   boot();
 })();
