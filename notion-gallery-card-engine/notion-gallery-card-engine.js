@@ -46,9 +46,9 @@
   function findPropertyValueByName(cardRoot, propName) {
   if (!cardRoot || !propName) return null;
   var target = normalize(propName);
-  var all = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
-  for (var i = 0; i < all.length; i++) {
-    var el = all[i];
+  var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
+  for (var i = 0; i < nodes.length; i++) {
+    var el = nodes[i];
     var text = (el.textContent || '').trim();
     if (!text) continue;
     var n = normalize(text);
@@ -177,11 +177,6 @@
     return null;
   }
 
-  function getTitle(cardRoot) {
-    try { var spans = cardRoot.querySelectorAll('span'); for (var i = 0; i < spans.length; i++) { var t = txt(spans[i]); if (t && t.length > 1) return t; } } catch (e) {}
-    return '';
-  }
-
   function getProps(card) {
   try {
     var cardRoot = getCardRoot(card);
@@ -208,45 +203,39 @@
 }
 
   function classify(props, rule, cardRoot) {
-    var r = { tag: null, person: null, date: null, desc: null, extras: [] };
-    var tagMode = (rule && rule.tagMode) || 'auto';
-    var tagIndex = (rule && typeof rule.tagIndex === 'number') ? rule.tagIndex : -1;
-
-    function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
-    function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
-
-    try {
-      var tagValue = getRuleTagValue(cardRoot, rule);
-
-      if (tagValue) {
-        r.tag = { text: tagValue };
-      } else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
-        r.tag = props[tagIndex];
-      } else if (tagMode === 'auto') {
-        r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
-      } else if (tagMode === 'none') {
-        r.tag = null;
+  var r = { tag: null, person: null, date: null, desc: null, extras: [] };
+  var tagMode = (rule && rule.tagMode) || 'auto';
+  var tagIndex = (rule && typeof rule.tagIndex === 'number') ? rule.tagIndex : -1;
+  function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
+  function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
+  try {
+    var tagValue = getRuleTagValue(cardRoot, rule);
+    if (tagValue) {
+      r.tag = { text: tagValue };
+    } else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
+      r.tag = props[tagIndex];
+    } else if (tagMode === 'auto') {
+      r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
+    } else if (tagMode === 'none') {
+      r.tag = null;
+    }
+    props.forEach(function (p, idx) {
+      if (!p || !p.text || p === r.tag) return;
+      if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
+      if (!r.person && (p.hasImg || looksLikePerson(p.text))) { r.person = p; return; }
+      if (!r.desc && idx === 0 && !p.btn) { r.desc = p; return; }
+      r.extras.push(p);
+    });
+    if (!r.desc) {
+      for (var i = 0; i < props.length; i++) {
+        var p = props[i];
+        if (p && p !== r.tag && p.text && !p.btn && p !== r.date && p !== r.person) { r.desc = p; break; }
       }
-
-      props.forEach(function (p, idx) {
-        if (!p || !p.text || p === r.tag) return;
-        if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
-        if (!r.person && (p.hasImg || looksLikePerson(p.text))) { r.person = p; return; }
-        if (!r.desc && idx === 0 && !p.btn) { r.desc = p; return; }
-        r.extras.push(p);
-      });
-
-      if (!r.desc) {
-        for (var i = 0; i < props.length; i++) {
-          var p = props[i];
-          if (p && p !== r.tag && p.text && !p.btn && p !== r.date && p !== r.person) { r.desc = p; break; }
-        }
-      }
-
-      r.extras = props.filter(function (x) { return x && x !== r.tag && x !== r.date && x !== r.person && x !== r.desc; });
-    } catch (e) {}
-    return r;
-  }
+    }
+    r.extras = props.filter(function (x) { return x && x !== r.tag && x !== r.date && x !== r.person && x !== r.desc; });
+  } catch (e) {}
+  return r;
+}
 
   function applyGridColumns() { try { var grid = document.querySelector('.css-aggqen'); if (!grid) return; grid.style.setProperty('grid-template-columns', CONFIG.layout.grid.desktop, 'important'); } catch (e) {} }
 
