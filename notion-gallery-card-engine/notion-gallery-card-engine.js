@@ -42,6 +42,41 @@
     return null;
   }
   function readCssVar(el, name, fallback) { try { var v = getComputedStyle(el).getPropertyValue(name); v = (v || '').trim(); return v || fallback; } catch (e) { return fallback; } }
+
+  function findPropertyValueByName(cardRoot, propName) {
+    if (!cardRoot || !propName) return null;
+    var target = normalize(propName);
+    var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      var text = (el.textContent || '').trim();
+      if (!text) continue;
+      if (normalize(text) === target) {
+        var sib = el.nextElementSibling;
+        if (sib && sib.textContent && sib.textContent.trim()) return sib.textContent.trim();
+        var parent = el.parentElement;
+        if (parent) {
+          var kids = Array.from(parent.children);
+          var idx = kids.indexOf(el);
+          for (var j = idx + 1; j < kids.length; j++) {
+            var t = (kids[j].textContent || '').trim();
+            if (t) return t;
+          }
+        }
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function getRuleTagValue(cardRoot, rule) {
+    if (!rule) return null;
+    if (rule.tagSource === 'property' && rule.tagPropertyName) {
+      return findPropertyValueByName(cardRoot, rule.tagPropertyName);
+    }
+    return null;
+  }
+
   function loadConfig() {
     var custom = window.GA_CONFIG || {};
     var config = mergeConfig(DEFAULT_CONFIG, custom);
@@ -55,11 +90,13 @@
   }
   var CONFIG = loadConfig();
   var RUNNING = false;
+
   function getCardRoot(card) {
     try { return card.querySelector(':scope > a > div[role="button"]') || card.querySelector(':scope > a > div') || card.querySelector('a > div[role="button"]') || card.querySelector('a > div'); } catch (e) { return null; }
   }
   function getGalleryRoot(card) { return pickFirst(card, CONFIG.gallery.galleryRootSelectors); }
   function getGalleryTitle(root) { try { var nodes = qsa(root, CONFIG.gallery.titleSelectors); for (var i = 0; i < nodes.length; i++) { var t = txt(nodes[i]); if (t) return t; } } catch (e) {} return ''; }
+
   function installTabTracker() {
     try {
       if (window._GA_TAB_TRACKER_INSTALLED) return;
@@ -84,6 +121,7 @@
       window._GA_TAB_TRACKER_INSTALLED = true;
     } catch (e) {}
   }
+
   function getActiveTabName() {
     try {
       if (window._GA_LAST_CLICKED_TAB) return window._GA_LAST_CLICKED_TAB;
@@ -106,6 +144,7 @@
       return active;
     } catch (e) { return ''; }
   }
+
   function getGalleryConfig(card) {
     var root = getGalleryRoot(card);
     var title = getGalleryTitle(root);
@@ -120,6 +159,7 @@
     }
     return fallback || { tagMode: 'auto' };
   }
+
   function getImgInfo(card) {
     try {
       var imgs = card.querySelectorAll('img[src]');
@@ -138,10 +178,12 @@
     } catch (e) {}
     return null;
   }
+
   function getTitle(cardRoot) {
     try { var spans = cardRoot.querySelectorAll('span'); for (var i = 0; i < spans.length; i++) { var t = txt(spans[i]); if (t && t.length > 1) return t; } } catch (e) {}
     return '';
   }
+
   function getProps(card) {
     try {
       var cardRoot = getCardRoot(card);
@@ -164,24 +206,28 @@
       return items.map(function (item, idx) { return { el: item, idx: idx, text: txt(item), btn: item.querySelector('[role="button"]'), hasImg: !!item.querySelector('img:not([src^="data:"])') }; });
     } catch (e) { return []; }
   }
-  function classify(props, rule) {
+
+  function classify(props, rule, cardRoot) {
     var r = { tag: null, person: null, date: null, desc: null, extras: [] };
     var tagMode = (rule && rule.tagMode) || 'auto';
     var tagIndex = (rule && typeof rule.tagIndex === 'number') ? rule.tagIndex : -1;
+
     function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
     function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
+
     try {
       var tagValue = getRuleTagValue(cardRoot, rule);
 
-if (tagValue) {
-  r.tag = { text: tagValue };
-} else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
-  r.tag = props[tagIndex];
-} else if (tagMode === 'auto') {
-  r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
-} else if (tagMode === 'none') {
-  r.tag = null;
-}
+      if (tagValue) {
+        r.tag = { text: tagValue };
+      } else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
+        r.tag = props[tagIndex];
+      } else if (tagMode === 'auto') {
+        r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
+      } else if (tagMode === 'none') {
+        r.tag = null;
+      }
+
       props.forEach(function (p, idx) {
         if (!p || !p.text || p === r.tag) return;
         if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
@@ -189,17 +235,21 @@ if (tagValue) {
         if (!r.desc && idx === 0 && !p.btn) { r.desc = p; return; }
         r.extras.push(p);
       });
+
       if (!r.desc) {
         for (var i = 0; i < props.length; i++) {
           var p = props[i];
           if (p && p !== r.tag && p.text && !p.btn && p !== r.date && p !== r.person) { r.desc = p; break; }
         }
       }
+
       r.extras = props.filter(function (x) { return x && x !== r.tag && x !== r.date && x !== r.person && x !== r.desc; });
     } catch (e) {}
     return r;
   }
+
   function applyGridColumns() { try { var grid = document.querySelector('.css-aggqen'); if (!grid) return; grid.style.setProperty('grid-template-columns', CONFIG.layout.grid.desktop, 'important'); } catch (e) {} }
+
   function buildCard(card) {
     try {
       if (!card || card.dataset.gaBuilt === '1') return;
@@ -211,55 +261,113 @@ if (tagValue) {
       var props = getProps(card);
       var c = classify(props, rule, cardRoot);
       var title = getTitle(cardRoot);
+
       var shell = document.createElement('div');
       shell.className = 'ga-card-shell';
+
       var thumbWrap = document.createElement('div');
       thumbWrap.className = 'ga-thumb-wrap';
+
       var thumbBox = document.createElement('div');
       thumbBox.className = 'ga-thumb-box';
+
       if (imgInfo) {
         if (imgInfo.type === 'img' && imgInfo.el && imgInfo.el.parentNode) {
-          var moved = imgInfo.el; moved.removeAttribute('style'); moved.removeAttribute('width'); moved.removeAttribute('height'); thumbBox.appendChild(moved);
+          var moved = imgInfo.el;
+          moved.removeAttribute('style');
+          moved.removeAttribute('width');
+          moved.removeAttribute('height');
+          thumbBox.appendChild(moved);
         } else if (imgInfo.type === 'bg' && imgInfo.url) {
-          var bgDiv = document.createElement('div'); bgDiv.className = 'ga-thumb-bg-img'; bgDiv.style.backgroundImage = 'url("' + imgInfo.url + '")'; thumbBox.appendChild(bgDiv);
+          var bgDiv = document.createElement('div');
+          bgDiv.className = 'ga-thumb-bg-img';
+          bgDiv.style.backgroundImage = 'url("' + imgInfo.url + '")';
+          thumbBox.appendChild(bgDiv);
         }
       }
+
       thumbWrap.appendChild(thumbBox);
-      if (c.tag && c.tag.text) { var tagEl = document.createElement('div'); tagEl.className = 'ga-tag'; tagEl.textContent = c.tag.text; thumbWrap.appendChild(tagEl); }
-      var content = document.createElement('div'); content.className = 'ga-content';
-      var titleEl = document.createElement('div'); titleEl.className = 'ga-title'; titleEl.textContent = title || '';
-      var descEl = document.createElement('div'); descEl.className = 'ga-desc'; descEl.textContent = (c.desc && c.desc.text) ? c.desc.text : '';
-      var meta = document.createElement('div'); meta.className = 'ga-meta';
+      if (c.tag && c.tag.text) {
+        var tagEl = document.createElement('div');
+        tagEl.className = 'ga-tag';
+        tagEl.textContent = c.tag.text;
+        thumbWrap.appendChild(tagEl);
+      }
+
+      var content = document.createElement('div');
+      content.className = 'ga-content';
+
+      var titleEl = document.createElement('div');
+      titleEl.className = 'ga-title';
+      titleEl.textContent = title || '';
+
+      var descEl = document.createElement('div');
+      descEl.className = 'ga-desc';
+      descEl.textContent = (c.desc && c.desc.text) ? c.desc.text : '';
+
+      var meta = document.createElement('div');
+      meta.className = 'ga-meta';
+
       if (c.person || c.date) {
-        var mLeft = document.createElement('div'); mLeft.className = 'ga-meta-item';
-        var mRight = document.createElement('div'); mRight.className = 'ga-meta-item';
+        var mLeft = document.createElement('div');
+        mLeft.className = 'ga-meta-item';
+        var mRight = document.createElement('div');
+        mRight.className = 'ga-meta-item';
+
         if (c.person) {
           var av = c.person.el.querySelector('img:not([src^="data:"])');
-          if (av && av.src) { var avEl = document.createElement('img'); avEl.src = av.src; avEl.className = 'ga-avatar'; avEl.alt = ''; mLeft.appendChild(avEl); }
-          var nm = document.createElement('span'); nm.textContent = c.person.text || ''; mLeft.appendChild(nm);
+          if (av && av.src) {
+            var avEl = document.createElement('img');
+            avEl.src = av.src;
+            avEl.className = 'ga-avatar';
+            avEl.alt = '';
+            mLeft.appendChild(avEl);
+          }
+          var nm = document.createElement('span');
+          nm.textContent = c.person.text || '';
+          mLeft.appendChild(nm);
         }
         if (c.date) mRight.textContent = c.date.text || '';
-        meta.appendChild(mLeft); meta.appendChild(mRight);
+
+        meta.appendChild(mLeft);
+        meta.appendChild(mRight);
       }
-      var extrasEl = document.createElement('div'); extrasEl.className = 'ga-extras';
+
+      var extrasEl = document.createElement('div');
+      extrasEl.className = 'ga-extras';
       c.extras.forEach(function (p) {
         if (!p || !p.text) return;
-        var item = document.createElement('div'); item.className = 'ga-extra';
-        if (p.btn) { var pill = document.createElement('span'); pill.className = 'ga-pill'; pill.textContent = p.text; item.appendChild(pill); }
-        else { item.textContent = p.text; }
+        var item = document.createElement('div');
+        item.className = 'ga-extra';
+        if (p.btn) {
+          var pill = document.createElement('span');
+          pill.className = 'ga-pill';
+          pill.textContent = p.text;
+          item.appendChild(pill);
+        } else {
+          item.textContent = p.text;
+        }
         extrasEl.appendChild(item);
       });
+
       content.appendChild(titleEl);
       if (descEl.textContent) content.appendChild(descEl);
       if (meta.children.length) content.appendChild(meta);
       if (extrasEl.children.length) content.appendChild(extrasEl);
+
       shell.appendChild(thumbWrap);
       shell.appendChild(content);
-      Array.from(cardRoot.children).forEach(function (ch) { try { ch.style.setProperty('display', 'none', 'important'); } catch (e) {} });
+
+      Array.from(cardRoot.children).forEach(function (ch) {
+        try { ch.style.setProperty('display', 'none', 'important'); } catch (e) {}
+      });
       cardRoot.appendChild(shell);
       card.dataset.gaBuilt = '1';
-    } catch (e) { try { card.dataset.gaBuilt = 'err'; } catch (e2) {} }
+    } catch (e) {
+      try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
+    }
   }
+
   function run() {
     try {
       if (RUNNING) return;
@@ -267,13 +375,19 @@ if (tagValue) {
       CONFIG = loadConfig();
       installTabTracker();
       applyGridColumns();
-      document.querySelectorAll(CONFIG.gallery.cardSelector).forEach(function (card) { try { if (!card.dataset.gaBuilt) buildCard(card); } catch (e) {} });
+      document.querySelectorAll(CONFIG.gallery.cardSelector).forEach(function (card) {
+        try { if (!card.dataset.gaBuilt) buildCard(card); } catch (e) {}
+      });
       RUNNING = false;
-    } catch (e) { RUNNING = false; }
+    } catch (e) {
+      RUNNING = false;
+    }
   }
+
   setTimeout(run, 200);
   setTimeout(run, 800);
   setTimeout(run, 1600);
+
   try {
     var observer = new MutationObserver(function (mutations) {
       var hasNew = mutations.some(function (m) {
@@ -286,41 +400,3 @@ if (tagValue) {
     observer.observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
-
-function normalize(s) {
-  return (s || '').replace(/\s+/g, '').replace(/[()]/g, '').toLowerCase();
-}
-
-function findPropertyValueByName(cardRoot, propName) {
-  if (!cardRoot || !propName) return null;
-  var target = normalize(propName);
-  var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
-  for (var i = 0; i < nodes.length; i++) {
-    var el = nodes[i];
-    var text = (el.textContent || '').trim();
-    if (!text) continue;
-    if (normalize(text) === target) {
-      var sib = el.nextElementSibling;
-      if (sib && sib.textContent && sib.textContent.trim()) return sib.textContent.trim();
-      var parent = el.parentElement;
-      if (parent) {
-        var kids = Array.from(parent.children);
-        var idx = kids.indexOf(el);
-        for (var j = idx + 1; j < kids.length; j++) {
-          var t = (kids[j].textContent || '').trim();
-          if (t) return t;
-        }
-      }
-      return null;
-    }
-  }
-  return null;
-}
-
-function getRuleTagValue(cardRoot, rule) {
-  if (!rule) return null;
-  if (rule.tagSource === 'property' && rule.tagPropertyName) {
-    return findPropertyValueByName(cardRoot, rule.tagPropertyName);
-  }
-  return null;
-}
