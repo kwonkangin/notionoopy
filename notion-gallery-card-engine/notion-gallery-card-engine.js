@@ -193,104 +193,50 @@
   }
 
   function buildCard(card) {
-    try {
-      if (!card || card.dataset.gaBuilt === '1') return;
-      var cardRoot = getCardRoot(card);
-      if (!cardRoot) return;
-      if (cardRoot.querySelector('.ga-overlay-root')) { card.dataset.gaBuilt = '1'; return; }
+  try {
+    if (!card || card.dataset.gaBuilt === '1') return;
+    var box = card.querySelector(':scope > a > div[role="button"]') || card.querySelector('a > div[role="button"]');
+    if (!box) return;
+    if (box.querySelector('.ga-tag-row')) { card.dataset.gaBuilt = '1'; return; }
 
-      var rule = getGalleryConfig(card);
-      var props = getProps(card);
-      var c = classify(props, rule, cardRoot);
-      var title = getTitle(cardRoot);
+    var rule = getGalleryConfig(card);
+    var props = getProps(card);
+    var c = classify(props, rule, box);
+    var children = Array.from(box.children);
 
-      var overlay = document.createElement('div');
-      overlay.className = 'ga-overlay-root';
-      overlay.style.setProperty('position', 'relative', 'important');
-      overlay.style.setProperty('width', '100%', 'important');
-      overlay.style.setProperty('display', 'flex', 'important');
-      overlay.style.setProperty('flex-direction', 'column', 'important');
-      overlay.style.setProperty('gap', '6px', 'important');
-      overlay.style.setProperty('pointer-events', 'none', 'important');
+    if (!children.length) return;
 
-      if (c.tag && c.tag.text) {
-        var tagRow = document.createElement('div');
-        tagRow.className = 'ga-tag-row';
-        tagRow.style.setProperty('display', 'flex', 'important');
-        tagRow.style.setProperty('justify-content', 'flex-end', 'important');
-        tagRow.style.setProperty('padding', '0 8px', 'important');
-        tagRow.style.setProperty('box-sizing', 'border-box', 'important');
-        var tagEl = document.createElement('div');
-        tagEl.className = 'ga-tag';
-        tagEl.textContent = c.tag.text;
-        tagEl.style.setProperty('display', 'inline-block', 'important');
-        tagEl.style.setProperty('padding', '2px 8px', 'important');
-        tagEl.style.setProperty('border-radius', '999px', 'important');
-        tagEl.style.setProperty('background', 'rgba(0,0,0,0.06)', 'important');
-        tagEl.style.setProperty('font-size', '12px', 'important');
-        tagEl.style.setProperty('line-height', '1.4', 'important');
-        tagRow.appendChild(tagEl);
-        overlay.appendChild(tagRow);
-      }
+    var tagRow = document.createElement('div');
+    tagRow.className = 'ga-tag-row';
+    tagRow.style.setProperty('display', 'flex', 'important');
+    tagRow.style.setProperty('justify-content', 'flex-end', 'important');
+    tagRow.style.setProperty('width', '100%', 'important');
+    tagRow.style.setProperty('padding', '4px 8px 0', 'important');
+    tagRow.style.setProperty('box-sizing', 'border-box', 'important');
+    tagRow.style.setProperty('pointer-events', 'none', 'important');
 
-      var titleEl = document.createElement('div');
-      titleEl.className = 'ga-title';
-      titleEl.textContent = title || '';
-      titleEl.style.setProperty('font-weight', '600', 'important');
-      titleEl.style.setProperty('font-size', '14px', 'important');
-      titleEl.style.setProperty('line-height', '1.35', 'important');
-      titleEl.style.setProperty('padding', '0 8px', 'important');
+    if (c.tag && c.tag.text) {
+      var tagEl = document.createElement('div');
+      tagEl.className = 'ga-tag';
+      tagEl.textContent = c.tag.text;
+      tagEl.style.setProperty('display', 'inline-block', 'important');
+      tagEl.style.setProperty('padding', '2px 8px', 'important');
+      tagEl.style.setProperty('border-radius', '999px', 'important');
+      tagEl.style.setProperty('background', 'rgba(0,0,0,0.06)', 'important');
+      tagEl.style.setProperty('font-size', '12px', 'important');
+      tagEl.style.setProperty('line-height', '1.4', 'important');
+      tagRow.appendChild(tagEl);
 
-      var descEl = document.createElement('div');
-      descEl.className = 'ga-desc';
-      descEl.textContent = (c.desc && c.desc.text) ? c.desc.text : '';
-      descEl.style.setProperty('font-size', '12px', 'important');
-      descEl.style.setProperty('line-height', '1.45', 'important');
-      descEl.style.setProperty('opacity', '0.8', 'important');
-      descEl.style.setProperty('padding', '0 8px', 'important');
-
-      var meta = document.createElement('div');
-      meta.className = 'ga-meta';
-      if (c.person || c.date) {
-        meta.style.setProperty('display', 'flex', 'important');
-        meta.style.setProperty('justify-content', 'space-between', 'important');
-        meta.style.setProperty('gap', '8px', 'important');
-        meta.style.setProperty('padding', '0 8px', 'important');
-        if (c.person) {
-          var left = document.createElement('div');
-          left.textContent = c.person.text || '';
-          meta.appendChild(left);
-        }
-        if (c.date) {
-          var right = document.createElement('div');
-          right.textContent = c.date.text || '';
-          meta.appendChild(right);
-        }
-      }
-
-      var extrasEl = document.createElement('div');
-      extrasEl.className = 'ga-extras';
-      c.extras.forEach(function (p) {
-        if (!p || !p.text) return;
-        var item = document.createElement('div');
-        item.className = 'ga-extra';
-        item.textContent = p.text;
-        item.style.setProperty('padding', '0 8px', 'important');
-        item.style.setProperty('font-size', '12px', 'important');
-        extrasEl.appendChild(item);
-      });
-
-      overlay.appendChild(titleEl);
-      if (descEl.textContent) overlay.appendChild(descEl);
-      if (meta.children.length) overlay.appendChild(meta);
-      if (extrasEl.children.length) overlay.appendChild(extrasEl);
-
-      cardRoot.appendChild(overlay);
-      card.dataset.gaBuilt = '1';
-    } catch (e) {
-      try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
+      var insertAt = Math.min(3, children.length);
+      if (insertAt >= children.length) box.appendChild(tagRow);
+      else box.insertBefore(tagRow, children[insertAt]);
     }
+
+    card.dataset.gaBuilt = '1';
+  } catch (e) {
+    try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
   }
+}
 
   function run() {
     try {
