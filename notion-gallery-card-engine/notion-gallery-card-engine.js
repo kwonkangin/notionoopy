@@ -75,6 +75,25 @@
     return null;
   }
 
+  function getTextureTagFromCard(cardRoot) {
+    try {
+      var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'))
+        .map(function (el) { return (el.textContent || '').trim(); })
+        .filter(Boolean);
+      var seen = {};
+      var uniq = nodes.filter(function (t) { var k = normalize(t); if (seen[k]) return false; seen[k] = true; return true; });
+      var candidates = uniq.filter(function (t) {
+        var n = normalize(t);
+        if (n.length < 2) return false;
+        if (/^\d+$/.test(n)) return false;
+        if (/^(전체보기|디자인|기장|실루엣|넥라인|비침정도원단두께|화이트톤|텍스쳐)$/.test(n)) return false;
+        if (n.indexOf('티셔츠') > -1 || n.indexOf('shirt') > -1 || n.indexOf('top') > -1) return true;
+        return false;
+      });
+      return candidates[0] || null;
+    } catch (e) { return null; }
+  }
+
   function loadConfig() {
     var custom = window.GA_CONFIG || {};
     var config = mergeConfig(DEFAULT_CONFIG, custom);
@@ -212,23 +231,21 @@
     var r = { tag: null, person: null, date: null, desc: null, extras: [] };
     var tagMode = (rule && rule.tagMode) || 'auto';
     var tagIndex = (rule && typeof rule.tagIndex === 'number') ? rule.tagIndex : -1;
-
     function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
     function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
-
     try {
-      var tagValue = getRuleTagValue(cardRoot, rule);
-
-      if (tagValue) {
-        r.tag = { text: tagValue };
-      } else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
-        r.tag = props[tagIndex];
-      } else if (tagMode === 'auto') {
-        r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
-      } else if (tagMode === 'none') {
-        r.tag = null;
+      var activeTab = getActiveTabName();
+      if (normalize(activeTab) === normalize('텍스쳐')) {
+        var textureTag = getTextureTagFromCard(cardRoot);
+        if (textureTag) r.tag = { text: textureTag };
       }
-
+      if (!r.tag) {
+        var tagValue = getRuleTagValue(cardRoot, rule);
+        if (tagValue) r.tag = { text: tagValue };
+        else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) r.tag = props[tagIndex];
+        else if (tagMode === 'auto') r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
+        else if (tagMode === 'none') r.tag = null;
+      }
       props.forEach(function (p, idx) {
         if (!p || !p.text || p === r.tag) return;
         if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
@@ -236,14 +253,12 @@
         if (!r.desc && idx === 0 && !p.btn) { r.desc = p; return; }
         r.extras.push(p);
       });
-
       if (!r.desc) {
         for (var i = 0; i < props.length; i++) {
           var p = props[i];
           if (p && p !== r.tag && p.text && !p.btn && p !== r.date && p !== r.person) { r.desc = p; break; }
         }
       }
-
       r.extras = props.filter(function (x) { return x && x !== r.tag && x !== r.date && x !== r.person && x !== r.desc; });
     } catch (e) {}
     return r;
