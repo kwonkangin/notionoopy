@@ -34,21 +34,12 @@
     });
     return out;
   }
-  function pickFirst(el, selectors) {
-    if (!el) return null;
-    for (var i = 0; i < selectors.length; i++) {
-      try { var found = el.closest(selectors[i]); if (found) return found; } catch (e) {}
-    }
-    return null;
-  }
   function readCssVar(el, name, fallback) { try { var v = getComputedStyle(el).getPropertyValue(name); v = (v || '').trim(); return v || fallback; } catch (e) { return fallback; } }
 
   function getTitle(cardRoot) {
     try { var spans = cardRoot.querySelectorAll('span'); for (var i = 0; i < spans.length; i++) { var t = txt(spans[i]); if (t && t.length > 1) return t; } } catch (e) {}
     return '';
   }
-
-  function getRuleTagValue(cardRoot, rule) { return null; }
 
   function loadConfig() {
     var custom = window.GA_CONFIG || {};
@@ -65,10 +56,8 @@
   var RUNNING = false;
 
   function getCardRoot(card) {
-    try { return card.querySelector(':scope > a > div[role="button"]') || card.querySelector(':scope > a > div') || card.querySelector('a > div[role="button"]') || card.querySelector('a > div') || card.querySelector('a'); } catch (e) { return null; }
+    try { return card.querySelector(':scope > a > div[role="button"]') || card.querySelector('a > div[role="button"]') || card.querySelector('a > div') || card.querySelector('a'); } catch (e) { return null; }
   }
-
-  function getGalleryTitle() { return ''; }
 
   function installTabTracker() {
     try {
@@ -193,50 +182,49 @@
   }
 
   function buildCard(card) {
-  try {
-    if (!card || card.dataset.gaBuilt === '1') return;
-    var box = card.querySelector(':scope > a > div[role="button"]') || card.querySelector('a > div[role="button"]');
-    if (!box) return;
-    if (box.querySelector('.ga-tag-row')) { card.dataset.gaBuilt = '1'; return; }
+    try {
+      if (!card || card.dataset.gaBuilt === '1') return;
+      var box = card.querySelector(':scope > a > div[role="button"]') || card.querySelector('a > div[role="button"]');
+      if (!box) return;
+      if (box.querySelector('.ga-tag-row')) { card.dataset.gaBuilt = '1'; return; }
 
-    var rule = getGalleryConfig(card);
-    var props = getProps(card);
-    var c = classify(props, rule, box);
-    var children = Array.from(box.children);
+      var rule = getGalleryConfig(card);
+      var props = getProps(card);
+      var c = classify(props, rule, box);
+      var children = Array.from(box.children);
+      if (!children.length) return;
 
-    if (!children.length) return;
+      var tagRow = document.createElement('div');
+      tagRow.className = 'ga-tag-row';
+      tagRow.style.setProperty('display', 'flex', 'important');
+      tagRow.style.setProperty('justify-content', 'flex-end', 'important');
+      tagRow.style.setProperty('width', '100%', 'important');
+      tagRow.style.setProperty('padding', '4px 8px 0', 'important');
+      tagRow.style.setProperty('box-sizing', 'border-box', 'important');
+      tagRow.style.setProperty('pointer-events', 'none', 'important');
 
-    var tagRow = document.createElement('div');
-    tagRow.className = 'ga-tag-row';
-    tagRow.style.setProperty('display', 'flex', 'important');
-    tagRow.style.setProperty('justify-content', 'flex-end', 'important');
-    tagRow.style.setProperty('width', '100%', 'important');
-    tagRow.style.setProperty('padding', '4px 8px 0', 'important');
-    tagRow.style.setProperty('box-sizing', 'border-box', 'important');
-    tagRow.style.setProperty('pointer-events', 'none', 'important');
+      if (c.tag && c.tag.text) {
+        var tagEl = document.createElement('div');
+        tagEl.className = 'ga-tag';
+        tagEl.textContent = c.tag.text;
+        tagEl.style.setProperty('display', 'inline-block', 'important');
+        tagEl.style.setProperty('padding', '2px 8px', 'important');
+        tagEl.style.setProperty('border-radius', '999px', 'important');
+        tagEl.style.setProperty('background', 'rgba(0,0,0,0.06)', 'important');
+        tagEl.style.setProperty('font-size', '12px', 'important');
+        tagEl.style.setProperty('line-height', '1.4', 'important');
+        tagRow.appendChild(tagEl);
 
-    if (c.tag && c.tag.text) {
-      var tagEl = document.createElement('div');
-      tagEl.className = 'ga-tag';
-      tagEl.textContent = c.tag.text;
-      tagEl.style.setProperty('display', 'inline-block', 'important');
-      tagEl.style.setProperty('padding', '2px 8px', 'important');
-      tagEl.style.setProperty('border-radius', '999px', 'important');
-      tagEl.style.setProperty('background', 'rgba(0,0,0,0.06)', 'important');
-      tagEl.style.setProperty('font-size', '12px', 'important');
-      tagEl.style.setProperty('line-height', '1.4', 'important');
-      tagRow.appendChild(tagEl);
+        var insertAt = Math.min(3, children.length);
+        if (insertAt >= children.length) box.appendChild(tagRow);
+        else box.insertBefore(tagRow, children[insertAt]);
+      }
 
-      var insertAt = Math.min(3, children.length);
-      if (insertAt >= children.length) box.appendChild(tagRow);
-      else box.insertBefore(tagRow, children[insertAt]);
+      card.dataset.gaBuilt = '1';
+    } catch (e) {
+      try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
     }
-
-    card.dataset.gaBuilt = '1';
-  } catch (e) {
-    try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
   }
-}
 
   function run() {
     try {
