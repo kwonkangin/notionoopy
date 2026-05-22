@@ -288,10 +288,38 @@
       var shell = document.createElement('div');
       shell.className = 'ga-card-shell';
       var thumbWrap = document.createElement('div');
-      thumbWrap.className = 'ga-thumb-wrap';
-      var thumbBox = document.createElement('div');
-      thumbBox.className = 'ga-thumb-box';
-      thumbWrap.appendChild(thumbBox);
+thumbWrap.className = 'ga-thumb-wrap';
+thumbWrap.style.setProperty('position', 'relative', 'important');
+thumbWrap.style.setProperty('width', '100%', 'important');
+thumbWrap.style.setProperty('aspect-ratio', '4 / 5', 'important');
+thumbWrap.style.setProperty('overflow', 'hidden', 'important');
+thumbWrap.style.setProperty('background', 'transparent', 'important');
+
+var thumbBox = document.createElement('div');
+thumbBox.className = 'ga-thumb-box';
+thumbBox.style.setProperty('position', 'absolute', 'important');
+thumbBox.style.setProperty('inset', '0', 'important');
+thumbBox.style.setProperty('width', '100%', 'important');
+thumbBox.style.setProperty('height', '100%', 'important');
+thumbBox.style.setProperty('overflow', 'hidden', 'important');
+
+var img = cardRoot.querySelector('img[src]:not([src^="data:"])');
+if (img) {
+  var clone = img.cloneNode(true);
+  clone.style.setProperty('position', 'absolute', 'important');
+  clone.style.setProperty('inset', '0', 'important');
+  clone.style.setProperty('width', '100%', 'important');
+  clone.style.setProperty('height', '100%', 'important');
+  clone.style.setProperty('object-fit', 'cover', 'important');
+  clone.style.setProperty('display', 'block', 'important');
+  clone.style.setProperty('opacity', '1', 'important');
+  clone.style.setProperty('visibility', 'visible', 'important');
+  thumbBox.appendChild(clone);
+} else {
+  thumbBox.style.setProperty('background', '#f2f2f2', 'important');
+}
+
+thumbWrap.appendChild(thumbBox);
 
       if (c.tag && c.tag.text) {
         var tagEl = document.createElement('div');
