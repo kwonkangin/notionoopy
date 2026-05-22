@@ -183,27 +183,29 @@
   }
 
   function getProps(card) {
-    try {
-      var cardRoot = getCardRoot(card);
-      if (!cardRoot) return [];
-      var children = Array.from(cardRoot.children).filter(function (el) { return el && el.nodeType === 1 && getComputedStyle(el).display !== 'none'; });
-      if (!children.length) return [];
-      var title = getTitle(cardRoot);
-      var propArea = null;
-      for (var i = 0; i < children.length; i++) {
-        var blockText = txt(children[i]);
-        if (!blockText) continue;
-        if (title && blockText === title) continue;
-        if (title && blockText.indexOf(title) === 0 && blockText.length <= title.length + 3) continue;
-        propArea = children[i];
-        break;
-      }
-      if (!propArea && children.length > 1) propArea = children[children.length - 1];
-      if (!propArea) return [];
-      var items = Array.from(propArea.children).filter(function (item) { return item && item.nodeType === 1 && txt(item); });
-      return items.map(function (item, idx) { return { el: item, idx: idx, text: txt(item), btn: item.querySelector('[role="button"]'), hasImg: !!item.querySelector('img:not([src^="data:"])') }; });
-    } catch (e) { return []; }
-  }
+  try {
+    var cardRoot = getCardRoot(card);
+    if (!cardRoot) return [];
+    var shell = cardRoot.querySelector('.ga-card-shell');
+    if (shell) shell.remove();
+    var children = Array.from(cardRoot.children).filter(function (el) { return el && el.nodeType === 1 && getComputedStyle(el).display !== 'none'; });
+    if (!children.length) return [];
+    var title = getTitle(cardRoot);
+    var propArea = null;
+    for (var i = 0; i < children.length; i++) {
+      var blockText = txt(children[i]);
+      if (!blockText) continue;
+      if (title && blockText === title) continue;
+      if (title && blockText.indexOf(title) === 0 && blockText.length <= title.length + 3) continue;
+      propArea = children[i];
+      break;
+    }
+    if (!propArea && children.length > 1) propArea = children[children.length - 1];
+    if (!propArea) return [];
+    var items = Array.from(propArea.children).filter(function (item) { return item && item.nodeType === 1 && txt(item); });
+    return items.map(function (item, idx) { return { el: item, idx: idx, text: txt(item), btn: item.querySelector('[role="button"]'), hasImg: !!item.querySelector('img:not([src^="data:"])') }; });
+  } catch (e) { return []; }
+}
 
   function classify(props, rule, cardRoot) {
     var r = { tag: null, person: null, date: null, desc: null, extras: [] };
