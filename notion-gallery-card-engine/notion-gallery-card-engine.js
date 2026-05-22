@@ -1,3 +1,4 @@
+
 (function () {
   'use strict';
 
@@ -8,7 +9,6 @@
     },
     gallery: {
       cardSelector: '.notion-collection-item',
-      galleryRootSelectors: ['.notion-collection_view-block', '.notion-gallery-view'],
       titleSelectors: ['.notion-collection-view-title', 'h1', 'h2', 'h3', '[data-content-editable-leaf="true"]']
     },
     layout: {
@@ -43,74 +43,21 @@
   }
   function readCssVar(el, name, fallback) { try { var v = getComputedStyle(el).getPropertyValue(name); v = (v || '').trim(); return v || fallback; } catch (e) { return fallback; } }
 
-  function findPropertyValueByName(cardRoot, propName) {
-    if (!cardRoot || !propName) return null;
-    var target = normalize(propName);
-    var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
-    for (var i = 0; i < nodes.length; i++) {
-      var el = nodes[i];
-      var text = (el.textContent || '').trim();
-      if (!text) continue;
-      var n = normalize(text);
-      if (n === target || n.indexOf(target) > -1 || target.indexOf(n) > -1) {
-        var parent = el.parentElement;
-        if (parent) {
-          var kids = Array.from(parent.children);
-          var idx = kids.indexOf(el);
-          for (var j = idx + 1; j < kids.length; j++) {
-            var t = (kids[j].textContent || '').trim();
-            if (t && normalize(t) !== target) return t;
-          }
-        }
-      }
-    }
-    return null;
+  function getTitle(cardRoot) {
+    try { var spans = cardRoot.querySelectorAll('span'); for (var i = 0; i < spans.length; i++) { var t = txt(spans[i]); if (t && t.length > 1) return t; } } catch (e) {}
+    return '';
   }
 
-  function getRuleTagValue(cardRoot, rule) {
-    if (!rule) return null;
-    if (rule.tagSource === 'property' && rule.tagPropertyName) {
-      return findPropertyValueByName(cardRoot, rule.tagPropertyName);
-    }
-    return null;
-  }
-
-  function getTextureTagFromCard(cardRoot) {
-    try {
-      var texts = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'))
-        .map(function (el) { return (el.textContent || '').trim(); })
-        .filter(Boolean);
-      var uniq = [];
-      var seen = {};
-      texts.forEach(function (t) {
-        var k = normalize(t);
-        if (!seen[k]) { seen[k] = true; uniq.push(t); }
-      });
-      var scored = uniq.map(function (t) {
-        var n = normalize(t);
-        var score = 0;
-        if (n.length >= 3) score += 1;
-        if (/[가-힣]/.test(t)) score += 1;
-        if (/shirt|tee|top|tshirt|tee셔츠|티셔츠/i.test(t)) score += 3;
-        if (/(white|black|gray|beige|blue|pink|navy|green|brown|yellow|red)/i.test(t)) score += 1;
-        if (/\d/.test(t)) score -= 1;
-        if (/^(전체보기|디자인|기장|실루엣|넥라인|비침정도원단두께|화이트톤|텍스쳐)$/.test(n)) score -= 5;
-        return { text: t, score: score };
-      });
-      scored.sort(function (a, b) { return b.score - a.score; });
-      return scored.length && scored[0].score > 0 ? scored[0].text : null;
-    } catch (e) { return null; }
-  }
+  function getRuleTagValue(cardRoot, rule) { return null; }
 
   function loadConfig() {
     var custom = window.GA_CONFIG || {};
     var config = mergeConfig(DEFAULT_CONFIG, custom);
     var root = document.querySelector(config.gallery.cardSelector);
     if (!root) return config;
-    var cssHost = root;
-    config.gallery.gridColumnsDesktop = readCssVar(cssHost, '--ga-grid-columns-desktop', config.layout.grid.desktop);
-    config.gallery.gridColumnsTablet = readCssVar(cssHost, '--ga-grid-columns-tablet', config.layout.grid.tablet);
-    config.gallery.gridColumnsMobile = readCssVar(cssHost, '--ga-grid-columns-mobile', config.layout.grid.mobile);
+    config.gallery.gridColumnsDesktop = readCssVar(root, '--ga-grid-columns-desktop', config.layout.grid.desktop);
+    config.gallery.gridColumnsTablet = readCssVar(root, '--ga-grid-columns-tablet', config.layout.grid.tablet);
+    config.gallery.gridColumnsMobile = readCssVar(root, '--ga-grid-columns-mobile', config.layout.grid.mobile);
     return config;
   }
 
@@ -118,10 +65,10 @@
   var RUNNING = false;
 
   function getCardRoot(card) {
-    try { return card.querySelector(':scope > a > div[role="button"]') || card.querySelector(':scope > a > div') || card.querySelector('a > div[role="button"]') || card.querySelector('a > div'); } catch (e) { return null; }
+    try { return card.querySelector(':scope > a > div[role="button"]') || card.querySelector(':scope > a > div') || card.querySelector('a > div[role="button"]') || card.querySelector('a > div') || card.querySelector('a'); } catch (e) { return null; }
   }
-  function getGalleryRoot(card) { return pickFirst(card, CONFIG.gallery.galleryRootSelectors); }
-  function getGalleryTitle(root) { try { var nodes = qsa(root, CONFIG.gallery.titleSelectors); for (var i = 0; i < nodes.length; i++) { var t = txt(nodes[i]); if (t) return t; } } catch (e) {} return ''; }
+
+  function getGalleryTitle() { return ''; }
 
   function installTabTracker() {
     try {
@@ -172,31 +119,21 @@
   }
 
   function getGalleryConfig(card) {
-    var root = getGalleryRoot(card);
-    var title = getGalleryTitle(root);
     var activeTab = getActiveTabName();
     var rules = CONFIG.rules || [];
     var fallback = null;
     for (var i = 0; i < rules.length; i++) {
       var rule = rules[i]; if (!rule || !rule.match) continue;
       if (rule.match === 'all') { fallback = rule; continue; }
-      if (rule.match.indexOf('title:') === 0) { if (normalize(title) === normalize(rule.match.slice(6))) return rule; }
       if (rule.match.indexOf('tab:') === 0) { if (normalize(activeTab) === normalize(rule.match.slice(4))) return rule; }
     }
     return fallback || { tagMode: 'auto' };
-  }
-
-  function getTitle(cardRoot) {
-    try { var spans = cardRoot.querySelectorAll('span'); for (var i = 0; i < spans.length; i++) { var t = txt(spans[i]); if (t && t.length > 1) return t; } } catch (e) {}
-    return '';
   }
 
   function getProps(card) {
     try {
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return [];
-      var shell = cardRoot.querySelector('.ga-card-shell');
-      if (shell) shell.remove();
       var children = Array.from(cardRoot.children).filter(function (el) { return el && el.nodeType === 1 && getComputedStyle(el).display !== 'none'; });
       if (!children.length) return [];
       var title = getTitle(cardRoot);
@@ -223,15 +160,8 @@
     function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
     function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
     try {
-      var activeTab = getActiveTabName();
-      if (normalize(activeTab) === normalize('텍스쳐')) {
-        var textureTag = getTextureTagFromCard(cardRoot);
-        if (textureTag) r.tag = { text: textureTag };
-      }
       if (!r.tag) {
-        var tagValue = getRuleTagValue(cardRoot, rule);
-        if (tagValue) r.tag = { text: tagValue };
-        else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) r.tag = props[tagIndex];
+        if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) r.tag = props[tagIndex];
         else if (tagMode === 'auto') r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
         else if (tagMode === 'none') r.tag = null;
       }
@@ -267,70 +197,29 @@
       if (!card || card.dataset.gaBuilt === '1') return;
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return;
-      if (cardRoot.querySelector('.ga-card-shell')) { card.dataset.gaBuilt = '1'; return; }
+      if (cardRoot.querySelector('.ga-overlay-root')) { card.dataset.gaBuilt = '1'; return; }
 
       var rule = getGalleryConfig(card);
       var props = getProps(card);
       var c = classify(props, rule, cardRoot);
       var title = getTitle(cardRoot);
 
-      var shell = document.createElement('div');
-      shell.className = 'ga-card-shell';
-      shell.style.setProperty('display', 'flex', 'important');
-      shell.style.setProperty('flex-direction', 'column', 'important');
-      shell.style.setProperty('gap', '8px', 'important');
-      shell.style.setProperty('width', '100%', 'important');
-
-      var thumbWrap = document.createElement('div');
-      thumbWrap.className = 'ga-thumb-wrap';
-      thumbWrap.style.setProperty('position', 'relative', 'important');
-      thumbWrap.style.setProperty('width', '100%', 'important');
-      thumbWrap.style.setProperty('aspect-ratio', '4 / 5', 'important');
-      thumbWrap.style.setProperty('overflow', 'hidden', 'important');
-      thumbWrap.style.setProperty('background', 'transparent', 'important');
-      thumbWrap.style.setProperty('z-index', '1', 'important');
-
-      var thumbBox = document.createElement('div');
-      thumbBox.className = 'ga-thumb-box';
-      thumbBox.style.setProperty('position', 'absolute', 'important');
-      thumbBox.style.setProperty('inset', '0', 'important');
-      thumbBox.style.setProperty('width', '100%', 'important');
-      thumbBox.style.setProperty('height', '100%', 'important');
-      thumbBox.style.setProperty('overflow', 'hidden', 'important');
-      thumbBox.style.setProperty('background', '#f2f2f2', 'important');
-
-      var img = cardRoot.querySelector('img[src]:not([src^="data:"])');
-      if (img) {
-        var clone = img.cloneNode(true);
-        clone.style.setProperty('position', 'absolute', 'important');
-        clone.style.setProperty('inset', '0', 'important');
-        clone.style.setProperty('width', '100%', 'important');
-        clone.style.setProperty('height', '100%', 'important');
-        clone.style.setProperty('object-fit', 'cover', 'important');
-        clone.style.setProperty('display', 'block', 'important');
-        clone.style.setProperty('opacity', '1', 'important');
-        clone.style.setProperty('visibility', 'visible', 'important');
-        thumbBox.innerHTML = '';
-        thumbBox.appendChild(clone);
-      }
-
-      thumbWrap.appendChild(thumbBox);
-
-      var content = document.createElement('div');
-      content.className = 'ga-content';
-      content.style.setProperty('display', 'flex', 'important');
-      content.style.setProperty('flex-direction', 'column', 'important');
-      content.style.setProperty('gap', '6px', 'important');
-      content.style.setProperty('width', '100%', 'important');
+      var overlay = document.createElement('div');
+      overlay.className = 'ga-overlay-root';
+      overlay.style.setProperty('position', 'relative', 'important');
+      overlay.style.setProperty('width', '100%', 'important');
+      overlay.style.setProperty('display', 'flex', 'important');
+      overlay.style.setProperty('flex-direction', 'column', 'important');
+      overlay.style.setProperty('gap', '6px', 'important');
+      overlay.style.setProperty('pointer-events', 'none', 'important');
 
       if (c.tag && c.tag.text) {
         var tagRow = document.createElement('div');
         tagRow.className = 'ga-tag-row';
         tagRow.style.setProperty('display', 'flex', 'important');
         tagRow.style.setProperty('justify-content', 'flex-end', 'important');
-        tagRow.style.setProperty('width', '100%', 'important');
-        tagRow.style.setProperty('pointer-events', 'none', 'important');
-
+        tagRow.style.setProperty('padding', '0 8px', 'important');
+        tagRow.style.setProperty('box-sizing', 'border-box', 'important');
         var tagEl = document.createElement('div');
         tagEl.className = 'ga-tag';
         tagEl.textContent = c.tag.text;
@@ -340,45 +229,43 @@
         tagEl.style.setProperty('background', 'rgba(0,0,0,0.06)', 'important');
         tagEl.style.setProperty('font-size', '12px', 'important');
         tagEl.style.setProperty('line-height', '1.4', 'important');
-        tagEl.style.setProperty('z-index', '2', 'important');
         tagRow.appendChild(tagEl);
-        content.appendChild(tagRow);
+        overlay.appendChild(tagRow);
       }
 
       var titleEl = document.createElement('div');
       titleEl.className = 'ga-title';
       titleEl.textContent = title || '';
+      titleEl.style.setProperty('font-weight', '600', 'important');
+      titleEl.style.setProperty('font-size', '14px', 'important');
+      titleEl.style.setProperty('line-height', '1.35', 'important');
+      titleEl.style.setProperty('padding', '0 8px', 'important');
 
       var descEl = document.createElement('div');
       descEl.className = 'ga-desc';
       descEl.textContent = (c.desc && c.desc.text) ? c.desc.text : '';
+      descEl.style.setProperty('font-size', '12px', 'important');
+      descEl.style.setProperty('line-height', '1.45', 'important');
+      descEl.style.setProperty('opacity', '0.8', 'important');
+      descEl.style.setProperty('padding', '0 8px', 'important');
 
       var meta = document.createElement('div');
       meta.className = 'ga-meta';
       if (c.person || c.date) {
-        var mLeft = document.createElement('div');
-        mLeft.className = 'ga-meta-item';
-        var mRight = document.createElement('div');
-        mRight.className = 'ga-meta-item';
-
+        meta.style.setProperty('display', 'flex', 'important');
+        meta.style.setProperty('justify-content', 'space-between', 'important');
+        meta.style.setProperty('gap', '8px', 'important');
+        meta.style.setProperty('padding', '0 8px', 'important');
         if (c.person) {
-          var av = c.person.el.querySelector('img:not([src^="data:"])');
-          if (av && av.src) {
-            var avEl = document.createElement('img');
-            avEl.src = av.src;
-            avEl.className = 'ga-avatar';
-            avEl.alt = '';
-            mLeft.appendChild(avEl);
-          }
-          var nm = document.createElement('span');
-          nm.textContent = c.person.text || '';
-          mLeft.appendChild(nm);
+          var left = document.createElement('div');
+          left.textContent = c.person.text || '';
+          meta.appendChild(left);
         }
-
-        if (c.date) mRight.textContent = c.date.text || '';
-
-        meta.appendChild(mLeft);
-        meta.appendChild(mRight);
+        if (c.date) {
+          var right = document.createElement('div');
+          right.textContent = c.date.text || '';
+          meta.appendChild(right);
+        }
       }
 
       var extrasEl = document.createElement('div');
@@ -387,29 +274,18 @@
         if (!p || !p.text) return;
         var item = document.createElement('div');
         item.className = 'ga-extra';
-        if (p.btn) {
-          var pill = document.createElement('span');
-          pill.className = 'ga-pill';
-          pill.textContent = p.text;
-          item.appendChild(pill);
-        } else {
-          item.textContent = p.text;
-        }
+        item.textContent = p.text;
+        item.style.setProperty('padding', '0 8px', 'important');
+        item.style.setProperty('font-size', '12px', 'important');
         extrasEl.appendChild(item);
       });
 
-      content.appendChild(titleEl);
-      if (descEl.textContent) content.appendChild(descEl);
-      if (meta.children.length) content.appendChild(meta);
-      if (extrasEl.children.length) content.appendChild(extrasEl);
+      overlay.appendChild(titleEl);
+      if (descEl.textContent) overlay.appendChild(descEl);
+      if (meta.children.length) overlay.appendChild(meta);
+      if (extrasEl.children.length) overlay.appendChild(extrasEl);
 
-      shell.appendChild(thumbWrap);
-      shell.appendChild(content);
-
-      Array.from(cardRoot.children).forEach(function (ch) {
-        try { ch.style.setProperty('display', 'none', 'important'); } catch (e) {}
-      });
-      cardRoot.appendChild(shell);
+      cardRoot.appendChild(overlay);
       card.dataset.gaBuilt = '1';
     } catch (e) {
       try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
