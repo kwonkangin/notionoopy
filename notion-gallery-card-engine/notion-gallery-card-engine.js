@@ -171,9 +171,17 @@
     function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
     function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
     try {
-      if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) r.tag = props[tagIndex];
-      else if (tagMode === 'auto') r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
-      else if (tagMode === 'none') r.tag = null;
+      var tagValue = getRuleTagValue(cardRoot, rule);
+
+if (tagValue) {
+  r.tag = { text: tagValue };
+} else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
+  r.tag = props[tagIndex];
+} else if (tagMode === 'auto') {
+  r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
+} else if (tagMode === 'none') {
+  r.tag = null;
+}
       props.forEach(function (p, idx) {
         if (!p || !p.text || p === r.tag) return;
         if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
@@ -201,7 +209,7 @@
       var rule = getGalleryConfig(card);
       var imgInfo = getImgInfo(card);
       var props = getProps(card);
-      var c = classify(props, rule);
+      var c = classify(props, rule, cardRoot);
       var title = getTitle(cardRoot);
       var shell = document.createElement('div');
       shell.className = 'ga-card-shell';
@@ -278,3 +286,41 @@
     observer.observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
+
+function normalize(s) {
+  return (s || '').replace(/\s+/g, '').replace(/[()]/g, '').toLowerCase();
+}
+
+function findPropertyValueByName(cardRoot, propName) {
+  if (!cardRoot || !propName) return null;
+  var target = normalize(propName);
+  var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
+  for (var i = 0; i < nodes.length; i++) {
+    var el = nodes[i];
+    var text = (el.textContent || '').trim();
+    if (!text) continue;
+    if (normalize(text) === target) {
+      var sib = el.nextElementSibling;
+      if (sib && sib.textContent && sib.textContent.trim()) return sib.textContent.trim();
+      var parent = el.parentElement;
+      if (parent) {
+        var kids = Array.from(parent.children);
+        var idx = kids.indexOf(el);
+        for (var j = idx + 1; j < kids.length; j++) {
+          var t = (kids[j].textContent || '').trim();
+          if (t) return t;
+        }
+      }
+      return null;
+    }
+  }
+  return null;
+}
+
+function getRuleTagValue(cardRoot, rule) {
+  if (!rule) return null;
+  if (rule.tagSource === 'property' && rule.tagPropertyName) {
+    return findPropertyValueByName(cardRoot, rule.tagPropertyName);
+  }
+  return null;
+}
