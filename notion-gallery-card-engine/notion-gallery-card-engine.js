@@ -1,33 +1,3 @@
-/*
-이제 우피/노션에서는 꼭 이 순서로 넣으세요.
-
-window.GA_CONFIG 먼저 선언.
-
-그 다음 엔진 스크립트 삽입.
-
-rules에서 tab: 규칙을 위에 두고 all은 맨 마지막으로 두기.
-
-카드가 아직도 깜빡이면 setTimeout 간격을 조금 더 늘리기.
-
-<script>
-window.GA_CONFIG = {
-  tab: {
-    selectors: ['span.css-ymcnjv', '.css-1jvn19f', '.css-14pj9fz'],
-    keywords: ['전체보기', '디자인', '기장', '넥라인']
-  },
-  rules: [
-    { match: 'tab:전체보기', tagMode: 'none' },
-    { match: 'tab:디자인', tagMode: 'index', tagIndex: 0 },
-    { match: 'tab:기장', tagMode: 'none' },
-    { match: 'tab:넥라인', tagMode: 'index', tagIndex: 0 },
-    { match: 'all', tagMode: 'auto' }
-  ]
-};
-</script>
-*/
-
-
-
 (function () {
   'use strict';
 
@@ -46,6 +16,7 @@ window.GA_CONFIG = {
     ]
   };
 
+  // JS 함수: 텍스트 공백 제거 및 소문자 변환
   function txt(el) {
     try { return el ? el.textContent.trim() : ''; } catch (e) { return ''; }
   }
@@ -100,70 +71,18 @@ window.GA_CONFIG = {
     }
   }
 
-  function cssBool(v, fallback) {
-    if (v == null || v === '') return fallback;
-    return String(v).toLowerCase() !== 'false' && String(v) !== '0';
-  }
-
   function loadConfig() {
     var custom = window.GA_CONFIG || {};
     var config = mergeConfig(DEFAULT_CONFIG, custom);
-
     var root = document.querySelector(config.gallery.cardSelector);
     if (!root) return config;
-
     var cssHost = root;
 
-    var gridDesktop = readCssVar(cssHost, '--ga-grid-columns-desktop', config.gallery.gridColumnsDesktop || 'repeat(3, minmax(0, 1fr))');
-    var gridTablet = readCssVar(cssHost, '--ga-grid-columns-tablet', config.gallery.gridColumnsTablet || 'repeat(2, minmax(0, 1fr))');
-    var gridMobile = readCssVar(cssHost, '--ga-grid-columns-mobile', config.gallery.gridColumnsMobile || 'repeat(1, minmax(0, 1fr))');
-
-    config.gallery.gridColumnsDesktop = gridDesktop;
-    config.gallery.gridColumnsTablet = gridTablet;
-    config.gallery.gridColumnsMobile = gridMobile;
-
-    config.gallery.cardBg = readCssVar(cssHost, '--ga-card-bg', 'rgba(255,255,255,0)');
-    config.gallery.cardBgHover = readCssVar(cssHost, '--ga-card-bg-hover', 'rgba(249,248,246,0)');
-    config.gallery.cardBorderColor = readCssVar(cssHost, '--ga-card-border-color', 'rgba(15,15,15,0.06)');
-    config.gallery.cardBorderWidth = readCssVar(cssHost, '--ga-card-border-width', '0px');
-    config.gallery.cardRadius = readCssVar(cssHost, '--ga-card-radius', '0px');
-    config.gallery.cardShadow = readCssVar(cssHost, '--ga-card-shadow', 'none');
-    config.gallery.cardShadowHover = readCssVar(cssHost, '--ga-card-shadow-hover', 'none');
-
-    config.gallery.thumbRatio = readCssVar(cssHost, '--ga-thumb-ratio', '3 / 4');
-    config.gallery.thumbPadding = readCssVar(cssHost, '--ga-thumb-padding', '0px');
-    config.gallery.thumbRadius = readCssVar(cssHost, '--ga-thumb-radius', '0px');
-    config.gallery.thumbFit = readCssVar(cssHost, '--ga-thumb-fit', 'cover');
-    config.gallery.thumbBg = readCssVar(cssHost, '--ga-thumb-bg', '#f0efed');
-
-    config.gallery.tagBg = readCssVar(cssHost, '--ga-tag-bg', 'rgba(255,255,255,0.92)');
-    config.gallery.tagColor = readCssVar(cssHost, '--ga-tag-color', '#37352f');
-    config.gallery.tagSize = readCssVar(cssHost, '--ga-tag-size', '12px');
-    config.gallery.tagRadius = readCssVar(cssHost, '--ga-tag-radius', '8px');
-    config.gallery.tagPadding = readCssVar(cssHost, '--ga-tag-padding', '5px 10px');
-
-    config.gallery.contentPadding = readCssVar(cssHost, '--ga-content-padding', '10px 12px 14px');
-    config.gallery.titleSize = readCssVar(cssHost, '--ga-title-size', '15px');
-    config.gallery.titleWeight = readCssVar(cssHost, '--ga-title-weight', '600');
-    config.gallery.titleColor = readCssVar(cssHost, '--ga-title-color', '#2f2f2b');
-    config.gallery.titleLines = readCssVar(cssHost, '--ga-title-lines', '2');
-
-    config.gallery.descSize = readCssVar(cssHost, '--ga-desc-size', '12px');
-    config.gallery.descColor = readCssVar(cssHost, '--ga-desc-color', 'rgba(55,53,47,0.62)');
-    config.gallery.descLines = readCssVar(cssHost, '--ga-desc-lines', '1');
-
-    config.gallery.metaSize = readCssVar(cssHost, '--ga-meta-size', '12px');
-    config.gallery.metaColor = readCssVar(cssHost, '--ga-meta-color', 'rgba(55,53,47,0.65)');
-    config.gallery.extraSize = readCssVar(cssHost, '--ga-extra-size', '11px');
-    config.gallery.extraColor = readCssVar(cssHost, '--ga-extra-color', 'rgba(55,53,47,0.5)');
-    config.gallery.extraGap = readCssVar(cssHost, '--ga-extra-gap', '5px');
-    config.gallery.avatarSize = readCssVar(cssHost, '--ga-avatar-size', '18px');
-
+    config.gallery.gridColumnsDesktop = readCssVar(cssHost, '--ga-grid-columns-desktop', config.gallery.gridColumnsDesktop || 'repeat(3, minmax(0, 1fr))');
     return config;
   }
 
   var CONFIG = loadConfig();
-  var RUNNING = false;
 
   function getCardRoot(card) {
     try {
@@ -206,7 +125,6 @@ window.GA_CONFIG = {
               el = el.parentElement;
               continue;
             }
-
             var matched = CONFIG.tab.selectors.some(function (sel) {
               try { return el.matches(sel); } catch (e) { return false; }
             });
@@ -221,7 +139,6 @@ window.GA_CONFIG = {
           el = el.parentElement;
         }
       }, true);
-
       window._GA_TAB_TRACKER_INSTALLED = true;
     } catch (e) {}
   }
@@ -229,18 +146,15 @@ window.GA_CONFIG = {
   function getActiveTabName() {
     try {
       if (window._GA_LAST_CLICKED_TAB) return window._GA_LAST_CLICKED_TAB;
-
       var candidates = qsa(document, CONFIG.tab.selectors).map(function (el) {
         var text = txt(el);
         if (!text) return null;
         if (CONFIG.tab.keywords.length && CONFIG.tab.keywords.indexOf(text) === -1) return null;
-
         var cs = getComputedStyle(el);
         return {
           text: text,
           fw: parseInt(cs.fontWeight, 10) || 0,
-          color: cs.color,
-          op: parseFloat(cs.opacity) || 1
+          color: cs.color
         };
       }).filter(Boolean);
 
@@ -264,7 +178,6 @@ window.GA_CONFIG = {
           }
         });
       });
-
       return active;
     } catch (e) {
       return '';
@@ -281,45 +194,38 @@ window.GA_CONFIG = {
     for (var i = 0; i < rules.length; i++) {
       var rule = rules[i];
       if (!rule || !rule.match) continue;
-
       if (rule.match === 'all') {
         fallback = rule;
         continue;
       }
-
       if (rule.match.indexOf('title:') === 0) {
         if (normalize(title) === normalize(rule.match.slice(6))) return rule;
       }
-
       if (rule.match.indexOf('tab:') === 0) {
         if (normalize(activeTab) === normalize(rule.match.slice(4))) return rule;
       }
     }
-
     return fallback || { tagMode: 'auto' };
   }
 
-function getImgInfo(card) {
-  try {
-    var imgs = card.querySelectorAll('img[src]');
-    for (var i = 0; i < imgs.length; i++) {
-      var src = imgs[i].src || '';
-      if (src) {
-        return { type: 'img', el: imgs[i] };
+  // JS 함수: 원본 이미지 탐색 시 형식을 가리지 않고 모두 수집
+  function getImgInfo(card) {
+    try {
+      var imgs = card.querySelectorAll('img[src]');
+      if (imgs.length > 0) {
+        return { type: 'img', el: imgs[0] };
       }
-    }
-
-    var divs = card.querySelectorAll('div[style]');
-    for (var j = 0; j < divs.length; j++) {
-      var bg = divs[j].style.backgroundImage;
-      if (bg && bg.indexOf('url(') !== -1) {
-        var m = bg.match(/url\(["']?([^"')]+)["']?\)/);
-        if (m && m[1]) return { type: 'bg', url: m[1] };
+      var divs = card.querySelectorAll('div[style]');
+      for (var j = 0; j < divs.length; j++) {
+        var bg = divs[j].style.backgroundImage;
+        if (bg && bg.indexOf('url(') !== -1) {
+          var m = bg.match(/url\(["']?([^"')]+)["']?\)/);
+          if (m && m[1]) return { type: 'bg', url: m[1] };
+        }
       }
-    }
-  } catch (e) {}
-  return null;
-}
+    } catch (e) {}
+    return null;
+  }
 
   function getTitle(cardRoot) {
     try {
@@ -336,13 +242,10 @@ function getImgInfo(card) {
     try {
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return [];
-
       var children = Array.from(cardRoot.children).filter(function (el) {
         return el && el.nodeType === 1 && getComputedStyle(el).display !== 'none';
       });
-
       if (!children.length) return [];
-
       var title = getTitle(cardRoot);
       var propArea = null;
 
@@ -384,7 +287,6 @@ function getImgInfo(card) {
     function looksLikeDate(text) {
       return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text);
     }
-
     function looksLikePerson(text) {
       return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text);
     }
@@ -393,9 +295,7 @@ function getImgInfo(card) {
       if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
         r.tag = props[tagIndex];
       } else if (tagMode === 'auto') {
-        r.tag = props.find(function (p) {
-          return p && p.btn;
-        }) || props[0] || null;
+        r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
       } else if (tagMode === 'none') {
         r.tag = null;
       }
@@ -403,22 +303,9 @@ function getImgInfo(card) {
       props.forEach(function (p, idx) {
         if (!p || !p.text) return;
         if (p === r.tag) return;
-
-        if (!r.date && looksLikeDate(p.text)) {
-          r.date = p;
-          return;
-        }
-
-        if (!r.person && (p.hasImg || looksLikePerson(p.text))) {
-          r.person = p;
-          return;
-        }
-
-        if (!r.desc && idx === 0 && !p.btn) {
-          r.desc = p;
-          return;
-        }
-
+        if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
+        if (!r.person && (p.hasImg || looksLikePerson(p.text))) { r.person = p; return; }
+        if (!r.desc && idx === 0 && !p.btn) { r.desc = p; return; }
         r.extras.push(p);
       });
 
@@ -431,12 +318,10 @@ function getImgInfo(card) {
           }
         }
       }
-
       r.extras = props.filter(function (x) {
         return x && x !== r.tag && x !== r.date && x !== r.person && x !== r.desc;
       });
     } catch (e) {}
-
     return r;
   }
 
@@ -444,7 +329,6 @@ function getImgInfo(card) {
     try {
       var grid = document.querySelector('.css-aggqen');
       if (!grid) return;
-
       grid.style.setProperty('grid-template-columns', CONFIG.gallery.gridColumnsDesktop, 'important');
     } catch (e) {}
   }
@@ -452,11 +336,10 @@ function getImgInfo(card) {
   function buildCard(card) {
     try {
       if (!card || card.dataset.gaBuilt === '1') return;
-
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return;
 
-      if (cardRoot.querySelector('.ga-card-shell')) {
+      if (cardRoot.querySelector('.cardShell_a1b')) {
         card.dataset.gaBuilt = '1';
         return;
       }
@@ -468,24 +351,37 @@ function getImgInfo(card) {
       var title = getTitle(cardRoot);
 
       var shell = document.createElement('div');
-      shell.className = 'ga-card-shell';
+      shell.className = 'cardShell_a1b';
 
       var thumbWrap = document.createElement('div');
-      thumbWrap.className = 'ga-thumb-wrap';
+      thumbWrap.className = 'thumbWrap_c2d';
 
       var thumbBox = document.createElement('div');
-      thumbBox.className = 'ga-thumb-box';
+      thumbBox.className = 'thumbBox_e3f';
 
+      // JS 함수: 원본 이미지를 숨기지 않고 복제하여 배치한 뒤 실시간 동기화 객체 연결
       if (imgInfo) {
-        if (imgInfo.type === 'img' && imgInfo.el && imgInfo.el.parentNode) {
-          var moved = imgInfo.el;
-          moved.removeAttribute('style');
-          moved.removeAttribute('width');
-          moved.removeAttribute('height');
-          thumbBox.appendChild(moved);
+        if (imgInfo.type === 'img' && imgInfo.el) {
+          var cloneImg = imgInfo.el.cloneNode(true);
+          cloneImg.className = 'efc_clonedImg_g4h';
+          cloneImg.removeAttribute('style');
+          cloneImg.removeAttribute('width');
+          cloneImg.removeAttribute('height');
+          thumbBox.appendChild(cloneImg);
+
+          var imgSyncObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+              if (m.type === 'attributes') {
+                if (m.attributeName === 'src') cloneImg.src = imgInfo.el.src;
+                if (m.attributeName === 'srcset') cloneImg.srcset = imgInfo.el.srcset;
+              }
+            });
+          });
+          imgSyncObserver.observe(imgInfo.el, { attributes: true, attributeFilter: ['src', 'srcset'] });
+
         } else if (imgInfo.type === 'bg' && imgInfo.url) {
           var bgDiv = document.createElement('div');
-          bgDiv.className = 'ga-thumb-bg-img';
+          bgDiv.className = 'thumbBgImg_h5i';
           bgDiv.style.backgroundImage = 'url("' + imgInfo.url + '")';
           thumbBox.appendChild(bgDiv);
         }
@@ -495,42 +391,41 @@ function getImgInfo(card) {
 
       if (c.tag && c.tag.text) {
         var tagEl = document.createElement('div');
-        tagEl.className = 'ga-tag';
+        tagEl.className = 'tagBadge_i5j';
         tagEl.textContent = c.tag.text;
         thumbWrap.appendChild(tagEl);
       }
 
       var content = document.createElement('div');
-      content.className = 'ga-content';
+      content.className = 'contentArea_k6l';
 
       var titleEl = document.createElement('div');
-      titleEl.className = 'ga-title';
+      titleEl.className = 'cardTitle_m7n';
       titleEl.textContent = title || '';
 
       var descEl = document.createElement('div');
-      descEl.className = 'ga-desc';
+      descEl.className = 'cardDesc_o8p';
       descEl.textContent = (c.desc && c.desc.text) ? c.desc.text : '';
 
       var meta = document.createElement('div');
-      meta.className = 'ga-meta';
+      meta.className = 'metaInfo_q9r';
 
       if (c.person || c.date) {
         var mLeft = document.createElement('div');
-        mLeft.className = 'ga-meta-item';
+        mLeft.className = 'metaItem_w2x';
 
         var mRight = document.createElement('div');
-        mRight.className = 'ga-meta-item';
+        mRight.className = 'metaItem_w2x';
 
         if (c.person) {
           var av = c.person.el.querySelector('img:not([src^="data:"])');
           if (av && av.src) {
             var avEl = document.createElement('img');
             avEl.src = av.src;
-            avEl.className = 'ga-avatar';
+            avEl.className = 'avatarImg_s0t';
             avEl.alt = '';
             mLeft.appendChild(avEl);
           }
-
           var nm = document.createElement('span');
           nm.textContent = c.person.text || '';
           mLeft.appendChild(nm);
@@ -545,23 +440,20 @@ function getImgInfo(card) {
       }
 
       var extrasEl = document.createElement('div');
-      extrasEl.className = 'ga-extras';
+      extrasEl.className = 'extraPills_u1v';
 
       c.extras.forEach(function (p) {
         if (!p || !p.text) return;
-
         var item = document.createElement('div');
-        item.className = 'ga-extra';
-
+        item.className = 'extraItem_y3z';
         if (p.btn) {
           var pill = document.createElement('span');
-          pill.className = 'ga-pill';
+          pill.className = 'pillBadge_z4a';
           pill.textContent = p.text;
           item.appendChild(pill);
         } else {
           item.textContent = p.text;
         }
-
         extrasEl.appendChild(item);
       });
 
@@ -573,8 +465,15 @@ function getImgInfo(card) {
       shell.appendChild(thumbWrap);
       shell.appendChild(content);
 
+      // JS 함수: 원본 요소를 투명하게 처리하여 지연 로딩 시스템 유지
       Array.from(cardRoot.children).forEach(function (ch) {
-        try { ch.style.setProperty('display', 'none', 'important'); } catch (e) {}
+        if (ch === shell) return;
+        try {
+          ch.style.setProperty('opacity', '0', 'important');
+          ch.style.setProperty('position', 'absolute', 'important');
+          ch.style.setProperty('pointer-events', 'none', 'important');
+          ch.style.setProperty('z-index', '-1', 'important');
+        } catch (e) {}
       });
 
       cardRoot.appendChild(shell);
@@ -615,7 +514,6 @@ function getImgInfo(card) {
           }
         });
       });
-
       if (hasNew) setTimeout(run, 120);
     });
 
