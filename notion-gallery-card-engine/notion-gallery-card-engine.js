@@ -16,7 +16,7 @@
     ]
   };
 
-  // JS 함수: 텍스트 공백 제거 및 소문자 변환
+  // JS 함수: 요소의 텍스트 공백 제거 및 소문자 정규화
   function txt(el) {
     try { return el ? el.textContent.trim() : ''; } catch (e) { return ''; }
   }
@@ -208,14 +208,18 @@
     return fallback || { tagMode: 'auto' };
   }
 
-  // JS 함수: 원본 이미지 탐색 시 형식을 가리지 않고 모두 수집
-  function getImgInfo(card) {
+  // JS 함수: 카드 내부에서 아바타(생성된 껍데기 이미지)를 제외한 가장 원본 썸네일 이미지를 탐색
+  function getImgInfo(cardNode) {
     try {
-      var imgs = card.querySelectorAll('img[src]');
+      var imgs = Array.from(cardNode.querySelectorAll('img[src]')).filter(function(img) {
+        return !img.classList.contains('efc_clonedImg_g4h') && !img.classList.contains('avatarImg_s0t');
+      });
+      
       if (imgs.length > 0) {
         return { type: 'img', el: imgs[0] };
       }
-      var divs = card.querySelectorAll('div[style]');
+      
+      var divs = cardNode.querySelectorAll('div[style]');
       for (var j = 0; j < divs.length; j++) {
         var bg = divs[j].style.backgroundImage;
         if (bg && bg.indexOf('url(') !== -1) {
@@ -345,7 +349,7 @@
       }
 
       var rule = getGalleryConfig(card);
-      var imgInfo = getImgInfo(card);
+      var imgInfo = getImgInfo(cardRoot);
       var props = getProps(card);
       var c = classify(props, rule);
       var title = getTitle(cardRoot);
@@ -359,25 +363,27 @@
       var thumbBox = document.createElement('div');
       thumbBox.className = 'thumbBox_e3f';
 
-      // JS 함수: 원본 이미지를 숨기지 않고 복제하여 배치한 뒤 실시간 동기화 객체 연결
+      // JS 함수: 썸네일 노드를 생성하고, React 특성(DOM 완전 교체)을 방어하기 위해 실시간 setInterval 동기화 수행
       if (imgInfo) {
         if (imgInfo.type === 'img' && imgInfo.el) {
-          var cloneImg = imgInfo.el.cloneNode(true);
+          var cloneImg = document.createElement('img');
           cloneImg.className = 'efc_clonedImg_g4h';
-          cloneImg.removeAttribute('style');
-          cloneImg.removeAttribute('width');
-          cloneImg.removeAttribute('height');
+          cloneImg.src = imgInfo.el.src;
           thumbBox.appendChild(cloneImg);
 
-          var imgSyncObserver = new MutationObserver(function(mutations) {
-            mutations.forEach(function(m) {
-              if (m.type === 'attributes') {
-                if (m.attributeName === 'src') cloneImg.src = imgInfo.el.src;
-                if (m.attributeName === 'srcset') cloneImg.srcset = imgInfo.el.srcset;
+          var syncTimer = setInterval(function() {
+            if (!cardRoot.isConnected) {
+              clearInterval(syncTimer);
+              return;
+            }
+            var latestImgInfo = getImgInfo(cardRoot);
+            if (latestImgInfo && latestImgInfo.type === 'img' && latestImgInfo.el) {
+              var newSrc = latestImgInfo.el.src;
+              if (newSrc && cloneImg.src !== newSrc) {
+                cloneImg.src = newSrc;
               }
-            });
-          });
-          imgSyncObserver.observe(imgInfo.el, { attributes: true, attributeFilter: ['src', 'srcset'] });
+            }
+          }, 200);
 
         } else if (imgInfo.type === 'bg' && imgInfo.url) {
           var bgDiv = document.createElement('div');
@@ -465,12 +471,16 @@
       shell.appendChild(thumbWrap);
       shell.appendChild(content);
 
-      // JS 함수: 원본 요소를 투명하게 처리하여 지연 로딩 시스템 유지
+      // JS 함수: 원본 요소를 투명하게 처리하되 시스템상으로는 100% 가득 차 있도록 구성하여 지연 로딩 방해 방지
       Array.from(cardRoot.children).forEach(function (ch) {
         if (ch === shell) return;
         try {
-          ch.style.setProperty('opacity', '0', 'important');
+          ch.style.setProperty('opacity', '0.01', 'important');
           ch.style.setProperty('position', 'absolute', 'important');
+          ch.style.setProperty('top', '0', 'important');
+          ch.style.setProperty('left', '0', 'important');
+          ch.style.setProperty('width', '100%', 'important');
+          ch.style.setProperty('height', '100%', 'important');
           ch.style.setProperty('pointer-events', 'none', 'important');
           ch.style.setProperty('z-index', '-1', 'important');
         } catch (e) {}
