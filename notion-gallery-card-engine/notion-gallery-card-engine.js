@@ -77,20 +77,28 @@
 
   function getTextureTagFromCard(cardRoot) {
     try {
-      var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'))
+      var texts = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'))
         .map(function (el) { return (el.textContent || '').trim(); })
         .filter(Boolean);
+      var uniq = [];
       var seen = {};
-      var uniq = nodes.filter(function (t) { var k = normalize(t); if (seen[k]) return false; seen[k] = true; return true; });
-      var candidates = uniq.filter(function (t) {
-        var n = normalize(t);
-        if (n.length < 2) return false;
-        if (/^\d+$/.test(n)) return false;
-        if (/^(전체보기|디자인|기장|실루엣|넥라인|비침정도원단두께|화이트톤|텍스쳐)$/.test(n)) return false;
-        if (n.indexOf('티셔츠') > -1 || n.indexOf('shirt') > -1 || n.indexOf('top') > -1) return true;
-        return false;
+      texts.forEach(function (t) {
+        var k = normalize(t);
+        if (!seen[k]) { seen[k] = true; uniq.push(t); }
       });
-      return candidates[0] || null;
+      var scored = uniq.map(function (t) {
+        var n = normalize(t);
+        var score = 0;
+        if (n.length >= 3) score += 1;
+        if (/[가-힣]/.test(t)) score += 1;
+        if (/shirt|tee|top|tshirt|tee셔츠|티셔츠/i.test(t)) score += 3;
+        if (/(white|black|gray|beige|blue|pink|navy|green|brown|yellow|red)/i.test(t)) score += 1;
+        if (/\d/.test(t)) score -= 1;
+        if (/^(전체보기|디자인|기장|실루엣|넥라인|비침정도원단두께|화이트톤|텍스쳐)$/.test(n)) score -= 5;
+        return { text: t, score: score, norm: n };
+      });
+      scored.sort(function (a, b) { return b.score - a.score; });
+      return scored.length && scored[0].score > 0 ? scored[0].text : null;
     } catch (e) { return null; }
   }
 
@@ -182,8 +190,10 @@
     try {
       var imgs = card.querySelectorAll('img[src]');
       for (var i = 0; i < imgs.length; i++) {
-        var src = imgs[i].src || '';
-        if (src && src.indexOf('data:') !== 0) return { type: 'img', el: imgs[i] };
+        var img = imgs[i];
+        var src = img.src || '';
+        if (!src || src.indexOf('data:') === 0) continue;
+        return { type: 'img', el: img };
       }
       var divs = card.querySelectorAll('div[style]');
       for (var j = 0; j < divs.length; j++) {
@@ -406,7 +416,6 @@
   setTimeout(run, 200);
   setTimeout(run, 800);
   setTimeout(run, 1600);
-
   try {
     var observer = new MutationObserver(function (mutations) {
       var hasNew = mutations.some(function (m) {
