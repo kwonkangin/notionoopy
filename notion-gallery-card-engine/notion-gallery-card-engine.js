@@ -253,7 +253,14 @@
     return r;
   }
 
-  function applyGridColumns() { try { var grid = document.querySelector('.css-aggqen'); if (!grid) return; grid.style.setProperty('grid-template-columns', CONFIG.layout.grid.desktop, 'important'); } catch (e) {} }
+  function applyGridColumns() {
+    try {
+      var grid = document.querySelector('.css-aggqen');
+      if (!grid) return;
+      grid.style.setProperty('grid-template-columns', CONFIG.layout.grid.desktop, 'important');
+      grid.style.setProperty('gap', CONFIG.layout.grid.gap, 'important');
+    } catch (e) {}
+  }
 
   function buildCard(card) {
     try {
@@ -261,75 +268,82 @@
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return;
       if (cardRoot.querySelector('.ga-card-shell')) { card.dataset.gaBuilt = '1'; return; }
+
       var rule = getGalleryConfig(card);
       var props = getProps(card);
       var c = classify(props, rule, cardRoot);
       var title = getTitle(cardRoot);
 
-      var img = cardRoot.querySelector('img[src]:not([src^="data:"])');
-      if (img) {
-        var p = img.parentElement;
-        if (p) {
-          p.style.setProperty('display', 'block', 'important');
-          p.style.setProperty('width', '100%', 'important');
-          p.style.setProperty('height', '100%', 'important');
-          p.style.setProperty('overflow', 'hidden', 'important');
-          p.style.setProperty('background', 'transparent', 'important');
-        }
-        img.style.setProperty('display', 'block', 'important');
-        img.style.setProperty('width', '100%', 'important');
-        img.style.setProperty('height', '100%', 'important');
-        img.style.setProperty('object-fit', 'cover', 'important');
-        img.style.setProperty('opacity', '1', 'important');
-        img.style.setProperty('visibility', 'visible', 'important');
-        img.style.setProperty('position', 'static', 'important');
-      }
-
       var shell = document.createElement('div');
       shell.className = 'ga-card-shell';
+      shell.style.setProperty('display', 'flex', 'important');
+      shell.style.setProperty('flex-direction', 'column', 'important');
+      shell.style.setProperty('gap', '8px', 'important');
+      shell.style.setProperty('width', '100%', 'important');
+
       var thumbWrap = document.createElement('div');
-thumbWrap.className = 'ga-thumb-wrap';
-thumbWrap.style.setProperty('position', 'relative', 'important');
-thumbWrap.style.setProperty('width', '100%', 'important');
-thumbWrap.style.setProperty('aspect-ratio', '4 / 5', 'important');
-thumbWrap.style.setProperty('overflow', 'hidden', 'important');
-thumbWrap.style.setProperty('background', 'transparent', 'important');
+      thumbWrap.className = 'ga-thumb-wrap';
+      thumbWrap.style.setProperty('position', 'relative', 'important');
+      thumbWrap.style.setProperty('width', '100%', 'important');
+      thumbWrap.style.setProperty('aspect-ratio', '4 / 5', 'important');
+      thumbWrap.style.setProperty('overflow', 'hidden', 'important');
+      thumbWrap.style.setProperty('background', 'transparent', 'important');
+      thumbWrap.style.setProperty('z-index', '1', 'important');
 
-var thumbBox = document.createElement('div');
-thumbBox.className = 'ga-thumb-box';
-thumbBox.style.setProperty('position', 'absolute', 'important');
-thumbBox.style.setProperty('inset', '0', 'important');
-thumbBox.style.setProperty('width', '100%', 'important');
-thumbBox.style.setProperty('height', '100%', 'important');
-thumbBox.style.setProperty('overflow', 'hidden', 'important');
+      var thumbBox = document.createElement('div');
+      thumbBox.className = 'ga-thumb-box';
+      thumbBox.style.setProperty('position', 'absolute', 'important');
+      thumbBox.style.setProperty('inset', '0', 'important');
+      thumbBox.style.setProperty('width', '100%', 'important');
+      thumbBox.style.setProperty('height', '100%', 'important');
+      thumbBox.style.setProperty('overflow', 'hidden', 'important');
+      thumbBox.style.setProperty('background', '#f2f2f2', 'important');
 
-var img = cardRoot.querySelector('img[src]:not([src^="data:"])');
-if (img) {
-  var clone = img.cloneNode(true);
-  clone.style.setProperty('position', 'absolute', 'important');
-  clone.style.setProperty('inset', '0', 'important');
-  clone.style.setProperty('width', '100%', 'important');
-  clone.style.setProperty('height', '100%', 'important');
-  clone.style.setProperty('object-fit', 'cover', 'important');
-  clone.style.setProperty('display', 'block', 'important');
-  clone.style.setProperty('opacity', '1', 'important');
-  clone.style.setProperty('visibility', 'visible', 'important');
-  thumbBox.appendChild(clone);
-} else {
-  thumbBox.style.setProperty('background', '#f2f2f2', 'important');
-}
-
-thumbWrap.appendChild(thumbBox);
-
-      if (c.tag && c.tag.text) {
-        var tagEl = document.createElement('div');
-        tagEl.className = 'ga-tag';
-        tagEl.textContent = c.tag.text;
-        thumbWrap.appendChild(tagEl);
+      var img = cardRoot.querySelector('img[src]:not([src^="data:"])');
+      if (img) {
+        var clone = img.cloneNode(true);
+        clone.style.setProperty('position', 'absolute', 'important');
+        clone.style.setProperty('inset', '0', 'important');
+        clone.style.setProperty('width', '100%', 'important');
+        clone.style.setProperty('height', '100%', 'important');
+        clone.style.setProperty('object-fit', 'cover', 'important');
+        clone.style.setProperty('display', 'block', 'important');
+        clone.style.setProperty('opacity', '1', 'important');
+        clone.style.setProperty('visibility', 'visible', 'important');
+        thumbBox.innerHTML = '';
+        thumbBox.appendChild(clone);
       }
+
+      thumbWrap.appendChild(thumbBox);
 
       var content = document.createElement('div');
       content.className = 'ga-content';
+      content.style.setProperty('display', 'flex', 'important');
+      content.style.setProperty('flex-direction', 'column', 'important');
+      content.style.setProperty('gap', '6px', 'important');
+      content.style.setProperty('width', '100%', 'important');
+
+      if (c.tag && c.tag.text) {
+        var tagRow = document.createElement('div');
+        tagRow.className = 'ga-tag-row';
+        tagRow.style.setProperty('display', 'flex', 'important');
+        tagRow.style.setProperty('justify-content', 'flex-end', 'important');
+        tagRow.style.setProperty('width', '100%', 'important');
+        tagRow.style.setProperty('pointer-events', 'none', 'important');
+
+        var tagEl = document.createElement('div');
+        tagEl.className = 'ga-tag';
+        tagEl.textContent = c.tag.text;
+        tagEl.style.setProperty('display', 'inline-block', 'important');
+        tagEl.style.setProperty('padding', '2px 8px', 'important');
+        tagEl.style.setProperty('border-radius', '999px', 'important');
+        tagEl.style.setProperty('background', 'rgba(0,0,0,0.06)', 'important');
+        tagEl.style.setProperty('font-size', '12px', 'important');
+        tagEl.style.setProperty('line-height', '1.4', 'important');
+        tagEl.style.setProperty('z-index', '2', 'important');
+        tagRow.appendChild(tagEl);
+        content.appendChild(tagRow);
+      }
 
       var titleEl = document.createElement('div');
       titleEl.className = 'ga-title';
@@ -341,7 +355,6 @@ thumbWrap.appendChild(thumbBox);
 
       var meta = document.createElement('div');
       meta.className = 'ga-meta';
-
       if (c.person || c.date) {
         var mLeft = document.createElement('div');
         mLeft.className = 'ga-meta-item';
