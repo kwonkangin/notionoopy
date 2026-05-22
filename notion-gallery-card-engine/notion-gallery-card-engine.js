@@ -44,30 +44,28 @@
   function readCssVar(el, name, fallback) { try { var v = getComputedStyle(el).getPropertyValue(name); v = (v || '').trim(); return v || fallback; } catch (e) { return fallback; } }
 
   function findPropertyValueByName(cardRoot, propName) {
-    if (!cardRoot || !propName) return null;
-    var target = normalize(propName);
-    var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
-    for (var i = 0; i < nodes.length; i++) {
-      var el = nodes[i];
-      var text = (el.textContent || '').trim();
-      if (!text) continue;
-      if (normalize(text) === target) {
-        var sib = el.nextElementSibling;
-        if (sib && sib.textContent && sib.textContent.trim()) return sib.textContent.trim();
-        var parent = el.parentElement;
-        if (parent) {
-          var kids = Array.from(parent.children);
-          var idx = kids.indexOf(el);
-          for (var j = idx + 1; j < kids.length; j++) {
-            var t = (kids[j].textContent || '').trim();
-            if (t) return t;
-          }
+  if (!cardRoot || !propName) return null;
+  var target = normalize(propName);
+  var all = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
+  for (var i = 0; i < all.length; i++) {
+    var el = all[i];
+    var text = (el.textContent || '').trim();
+    if (!text) continue;
+    var n = normalize(text);
+    if (n === target || n.indexOf(target) > -1 || target.indexOf(n) > -1) {
+      var parent = el.parentElement;
+      if (parent) {
+        var kids = Array.from(parent.children);
+        var idx = kids.indexOf(el);
+        for (var j = idx + 1; j < kids.length; j++) {
+          var t = (kids[j].textContent || '').trim();
+          if (t && normalize(t) !== target) return t;
         }
-        return null;
       }
     }
-    return null;
   }
+  return null;
+}
 
   function getRuleTagValue(cardRoot, rule) {
     if (!rule) return null;
