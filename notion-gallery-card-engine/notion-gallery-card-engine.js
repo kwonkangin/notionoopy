@@ -27,6 +27,9 @@ window.GA_CONFIG = {
 };
 </script> */
 
+
+
+
 (function () {
   'use strict';
 
@@ -275,7 +278,7 @@ window.GA_CONFIG = {
         }
       }
 
-      var hosts = card.querySelectorAll('.css-9a9znp, .css-9a9znp .css-8wcy4w, .css-9a9znp .css-8wcy4w > div, .css-9a9znp [style*="background-image"]');
+      var hosts = card.querySelectorAll('.css-9a9znp, .css-9a9znp .css-8wcy4w, .css-9a9znp .css-8wcy4w > div, .css-9a9znp [style*="background-image"], .lazy-image-wrapper');
       for (var k = 0; k < hosts.length; k++) {
         var node = hosts[k];
         var bg = '';
@@ -461,7 +464,7 @@ window.GA_CONFIG = {
       shell.className = 'ga-card-shell';
 
       var thumbWrap = document.createElement('div');
-      thumbWrap.className = 'ga-thumb-wrap';
+      thumbWrap.className = 'ga-thumb-wrap' + (imgInfo ? ' has-image' : ' no-image');
 
       var thumbBox = document.createElement('div');
       thumbBox.className = 'ga-thumb-box';
@@ -473,6 +476,8 @@ window.GA_CONFIG = {
           if (imgInfo.el.srcset) newImg.srcset = imgInfo.el.srcset;
           newImg.alt = imgInfo.el.alt || '';
           newImg.decoding = 'async';
+          newImg.loading = 'lazy';
+          newImg.className = 'ga-thumb-img';
           thumbBox.appendChild(newImg);
         } else if (imgInfo.type === 'bg' && imgInfo.url) {
           var bgDiv = document.createElement('div');
@@ -480,19 +485,23 @@ window.GA_CONFIG = {
           bgDiv.style.backgroundImage = 'url("' + imgInfo.url + '")';
           thumbBox.appendChild(bgDiv);
         }
+      } else {
+        var empty = document.createElement('div');
+        empty.className = 'ga-thumb-empty';
+        thumbBox.appendChild(empty);
       }
 
       thumbWrap.appendChild(thumbBox);
+
+      var content = document.createElement('div');
+      content.className = 'ga-content';
 
       if (c.tag && c.tag.text) {
         var tagEl = document.createElement('div');
         tagEl.className = 'ga-tag';
         tagEl.textContent = c.tag.text;
-        thumbWrap.appendChild(tagEl);
+        content.appendChild(tagEl);
       }
-
-      var content = document.createElement('div');
-      content.className = 'ga-content';
 
       var titleEl = document.createElement('div');
       titleEl.className = 'ga-title';
@@ -640,4 +649,5 @@ window.GA_CONFIG = {
       subtree: true
     });
   } catch (e) {}
+
 })();
