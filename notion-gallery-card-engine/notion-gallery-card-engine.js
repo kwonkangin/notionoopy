@@ -44,28 +44,28 @@
   function readCssVar(el, name, fallback) { try { var v = getComputedStyle(el).getPropertyValue(name); v = (v || '').trim(); return v || fallback; } catch (e) { return fallback; } }
 
   function findPropertyValueByName(cardRoot, propName) {
-  if (!cardRoot || !propName) return null;
-  var target = normalize(propName);
-  var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
-  for (var i = 0; i < nodes.length; i++) {
-    var el = nodes[i];
-    var text = (el.textContent || '').trim();
-    if (!text) continue;
-    var n = normalize(text);
-    if (n === target || n.indexOf(target) > -1 || target.indexOf(n) > -1) {
-      var parent = el.parentElement;
-      if (parent) {
-        var kids = Array.from(parent.children);
-        var idx = kids.indexOf(el);
-        for (var j = idx + 1; j < kids.length; j++) {
-          var t = (kids[j].textContent || '').trim();
-          if (t && normalize(t) !== target) return t;
+    if (!cardRoot || !propName) return null;
+    var target = normalize(propName);
+    var nodes = Array.from(cardRoot.querySelectorAll('div, span, p, a, button'));
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      var text = (el.textContent || '').trim();
+      if (!text) continue;
+      var n = normalize(text);
+      if (n === target || n.indexOf(target) > -1 || target.indexOf(n) > -1) {
+        var parent = el.parentElement;
+        if (parent) {
+          var kids = Array.from(parent.children);
+          var idx = kids.indexOf(el);
+          for (var j = idx + 1; j < kids.length; j++) {
+            var t = (kids[j].textContent || '').trim();
+            if (t && normalize(t) !== target) return t;
+          }
         }
       }
     }
+    return null;
   }
-  return null;
-}
 
   function getRuleTagValue(cardRoot, rule) {
     if (!rule) return null;
@@ -86,6 +86,7 @@
     config.gallery.gridColumnsMobile = readCssVar(cssHost, '--ga-grid-columns-mobile', config.layout.grid.mobile);
     return config;
   }
+
   var CONFIG = loadConfig();
   var RUNNING = false;
 
@@ -177,65 +178,76 @@
     return null;
   }
 
+  function getTitle(cardRoot) {
+    try { var spans = cardRoot.querySelectorAll('span'); for (var i = 0; i < spans.length; i++) { var t = txt(spans[i]); if (t && t.length > 1) return t; } } catch (e) {}
+    return '';
+  }
+
   function getProps(card) {
-  try {
-    var cardRoot = getCardRoot(card);
-    if (!cardRoot) return [];
-    var shell = cardRoot.querySelector('.ga-card-shell');
-    if (shell) shell.remove();
-    var children = Array.from(cardRoot.children).filter(function (el) { return el && el.nodeType === 1 && getComputedStyle(el).display !== 'none'; });
-    if (!children.length) return [];
-    var title = getTitle(cardRoot);
-    var propArea = null;
-    for (var i = 0; i < children.length; i++) {
-      var blockText = txt(children[i]);
-      if (!blockText) continue;
-      if (title && blockText === title) continue;
-      if (title && blockText.indexOf(title) === 0 && blockText.length <= title.length + 3) continue;
-      propArea = children[i];
-      break;
-    }
-    if (!propArea && children.length > 1) propArea = children[children.length - 1];
-    if (!propArea) return [];
-    var items = Array.from(propArea.children).filter(function (item) { return item && item.nodeType === 1 && txt(item); });
-    return items.map(function (item, idx) { return { el: item, idx: idx, text: txt(item), btn: item.querySelector('[role="button"]'), hasImg: !!item.querySelector('img:not([src^="data:"])') }; });
-  } catch (e) { return []; }
-}
+    try {
+      var cardRoot = getCardRoot(card);
+      if (!cardRoot) return [];
+      var shell = cardRoot.querySelector('.ga-card-shell');
+      if (shell) shell.remove();
+      var children = Array.from(cardRoot.children).filter(function (el) { return el && el.nodeType === 1 && getComputedStyle(el).display !== 'none'; });
+      if (!children.length) return [];
+      var title = getTitle(cardRoot);
+      var propArea = null;
+      for (var i = 0; i < children.length; i++) {
+        var blockText = txt(children[i]);
+        if (!blockText) continue;
+        if (title && blockText === title) continue;
+        if (title && blockText.indexOf(title) === 0 && blockText.length <= title.length + 3) continue;
+        propArea = children[i];
+        break;
+      }
+      if (!propArea && children.length > 1) propArea = children[children.length - 1];
+      if (!propArea) return [];
+      var items = Array.from(propArea.children).filter(function (item) { return item && item.nodeType === 1 && txt(item); });
+      return items.map(function (item, idx) { return { el: item, idx: idx, text: txt(item), btn: item.querySelector('[role="button"]'), hasImg: !!item.querySelector('img:not([src^="data:"])') }; });
+    } catch (e) { return []; }
+  }
 
   function classify(props, rule, cardRoot) {
-  var r = { tag: null, person: null, date: null, desc: null, extras: [] };
-  var tagMode = (rule && rule.tagMode) || 'auto';
-  var tagIndex = (rule && typeof rule.tagIndex === 'number') ? rule.tagIndex : -1;
-  function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
-  function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
-  try {
-    var tagValue = getRuleTagValue(cardRoot, rule);
-    if (tagValue) {
-      r.tag = { text: tagValue };
-    } else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
-      r.tag = props[tagIndex];
-    } else if (tagMode === 'auto') {
-      r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
-    } else if (tagMode === 'none') {
-      r.tag = null;
-    }
-    props.forEach(function (p, idx) {
-      if (!p || !p.text || p === r.tag) return;
-      if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
-      if (!r.person && (p.hasImg || looksLikePerson(p.text))) { r.person = p; return; }
-      if (!r.desc && idx === 0 && !p.btn) { r.desc = p; return; }
-      r.extras.push(p);
-    });
-    if (!r.desc) {
-      for (var i = 0; i < props.length; i++) {
-        var p = props[i];
-        if (p && p !== r.tag && p.text && !p.btn && p !== r.date && p !== r.person) { r.desc = p; break; }
+    var r = { tag: null, person: null, date: null, desc: null, extras: [] };
+    var tagMode = (rule && rule.tagMode) || 'auto';
+    var tagIndex = (rule && typeof rule.tagIndex === 'number') ? rule.tagIndex : -1;
+
+    function looksLikeDate(text) { return /(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})|(\d{1,2}[.\-\/]\d{1,2})|(\d+\s*(일|주|개월|년)\s*전)/.test(text); }
+    function looksLikePerson(text) { return /작성|by\s|에디터|editor|관리자|admin|담당|기고|글쓴이/i.test(text); }
+
+    try {
+      var tagValue = getRuleTagValue(cardRoot, rule);
+
+      if (tagValue) {
+        r.tag = { text: tagValue };
+      } else if (tagMode === 'index' && tagIndex >= 0 && props[tagIndex]) {
+        r.tag = props[tagIndex];
+      } else if (tagMode === 'auto') {
+        r.tag = props.find(function (p) { return p && p.btn; }) || props[0] || null;
+      } else if (tagMode === 'none') {
+        r.tag = null;
       }
-    }
-    r.extras = props.filter(function (x) { return x && x !== r.tag && x !== r.date && x !== r.person && x !== r.desc; });
-  } catch (e) {}
-  return r;
-}
+
+      props.forEach(function (p, idx) {
+        if (!p || !p.text || p === r.tag) return;
+        if (!r.date && looksLikeDate(p.text)) { r.date = p; return; }
+        if (!r.person && (p.hasImg || looksLikePerson(p.text))) { r.person = p; return; }
+        if (!r.desc && idx === 0 && !p.btn) { r.desc = p; return; }
+        r.extras.push(p);
+      });
+
+      if (!r.desc) {
+        for (var i = 0; i < props.length; i++) {
+          var p = props[i];
+          if (p && p !== r.tag && p.text && !p.btn && p !== r.date && p !== r.person) { r.desc = p; break; }
+        }
+      }
+
+      r.extras = props.filter(function (x) { return x && x !== r.tag && x !== r.date && x !== r.person && x !== r.desc; });
+    } catch (e) {}
+    return r;
+  }
 
   function applyGridColumns() { try { var grid = document.querySelector('.css-aggqen'); if (!grid) return; grid.style.setProperty('grid-template-columns', CONFIG.layout.grid.desktop, 'important'); } catch (e) {} }
 
@@ -245,6 +257,7 @@
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return;
       if (cardRoot.querySelector('.ga-card-shell')) { card.dataset.gaBuilt = '1'; return; }
+
       var rule = getGalleryConfig(card);
       var imgInfo = getImgInfo(card);
       var props = getProps(card);
@@ -276,6 +289,7 @@
       }
 
       thumbWrap.appendChild(thumbBox);
+
       if (c.tag && c.tag.text) {
         var tagEl = document.createElement('div');
         tagEl.className = 'ga-tag';
@@ -316,6 +330,7 @@
           nm.textContent = c.person.text || '';
           mLeft.appendChild(nm);
         }
+
         if (c.date) mRight.textContent = c.date.text || '';
 
         meta.appendChild(mLeft);
