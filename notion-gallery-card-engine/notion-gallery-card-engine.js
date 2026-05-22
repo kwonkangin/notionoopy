@@ -89,7 +89,8 @@
       return card.querySelector(':scope > a > div[role="button"]') ||
              card.querySelector(':scope > a > div') ||
              card.querySelector('a > div[role="button"]') ||
-             card.querySelector('a > div');
+             card.querySelector('a > div') ||
+             card.querySelector('a'); // a 태그 바로 밑에 자식이 있을 경우 대비
     } catch (e) {
       return null;
     }
@@ -111,6 +112,7 @@
     return '';
   }
 
+  // JS 함수: 사용자가 탭을 클릭했을 때 활성 탭 이름을 저장하는 추적기
   function installTabTracker() {
     try {
       if (window._GA_TAB_TRACKER_INSTALLED) return;
@@ -208,7 +210,7 @@
     return fallback || { tagMode: 'auto' };
   }
 
-  // JS 함수: 카드 내부에서 아바타(생성된 껍데기 이미지)를 제외한 가장 원본 썸네일 이미지를 탐색
+  // JS 함수: 생성된 가짜 썸네일과 아바타를 제외한 찐 원본 썸네일 요소를 색출
   function getImgInfo(cardNode) {
     try {
       var imgs = Array.from(cardNode.querySelectorAll('img[src]')).filter(function(img) {
@@ -246,8 +248,9 @@
     try {
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return [];
+      // 껍데기는 필터링
       var children = Array.from(cardRoot.children).filter(function (el) {
-        return el && el.nodeType === 1 && getComputedStyle(el).display !== 'none';
+        return el && el.nodeType === 1 && !el.classList.contains('cardShell_a1b');
       });
       if (!children.length) return [];
       var title = getTitle(cardRoot);
@@ -354,21 +357,24 @@
       var c = classify(props, rule);
       var title = getTitle(cardRoot);
 
-      var shell = document.createElement('div');
+      // 시맨틱 태그 구조 적용
+      var shell = document.createElement('article');
       shell.className = 'cardShell_a1b';
 
-      var thumbWrap = document.createElement('div');
+      var thumbWrap = document.createElement('figure');
       thumbWrap.className = 'thumbWrap_c2d';
 
       var thumbBox = document.createElement('div');
       thumbBox.className = 'thumbBox_e3f';
 
-      // JS 함수: 썸네일 노드를 생성하고, React 특성(DOM 완전 교체)을 방어하기 위해 실시간 setInterval 동기화 수행
+      // JS 함수: 썸네일 복제 및 고해상도(srcset) 실시간 동기화 (우피 환경 대응)
       if (imgInfo) {
         if (imgInfo.type === 'img' && imgInfo.el) {
           var cloneImg = document.createElement('img');
           cloneImg.className = 'efc_clonedImg_g4h';
           cloneImg.src = imgInfo.el.src;
+          if(imgInfo.el.srcset) cloneImg.srcset = imgInfo.el.srcset;
+          cloneImg.alt = title || '갤러리 썸네일 이미지'; // 접근성 적용
           thumbBox.appendChild(cloneImg);
 
           var syncTimer = setInterval(function() {
@@ -378,12 +384,14 @@
             }
             var latestImgInfo = getImgInfo(cardRoot);
             if (latestImgInfo && latestImgInfo.type === 'img' && latestImgInfo.el) {
-              var newSrc = latestImgInfo.el.src;
-              if (newSrc && cloneImg.src !== newSrc) {
-                cloneImg.src = newSrc;
+              if (cloneImg.src !== latestImgInfo.el.src) {
+                cloneImg.src = latestImgInfo.el.src;
+              }
+              if (latestImgInfo.el.srcset && cloneImg.srcset !== latestImgInfo.el.srcset) {
+                cloneImg.srcset = latestImgInfo.el.srcset;
               }
             }
-          }, 200);
+          }, 150); // 동기화 주기를 짧게 설정하여 시각적 공백 최소화
 
         } else if (imgInfo.type === 'bg' && imgInfo.url) {
           var bgDiv = document.createElement('div');
@@ -405,11 +413,11 @@
       var content = document.createElement('div');
       content.className = 'contentArea_k6l';
 
-      var titleEl = document.createElement('div');
+      var titleEl = document.createElement('h3');
       titleEl.className = 'cardTitle_m7n';
       titleEl.textContent = title || '';
 
-      var descEl = document.createElement('div');
+      var descEl = document.createElement('p');
       descEl.className = 'cardDesc_o8p';
       descEl.textContent = (c.desc && c.desc.text) ? c.desc.text : '';
 
@@ -429,7 +437,7 @@
             var avEl = document.createElement('img');
             avEl.src = av.src;
             avEl.className = 'avatarImg_s0t';
-            avEl.alt = '';
+            avEl.alt = '프로필 이미지';
             mLeft.appendChild(avEl);
           }
           var nm = document.createElement('span');
@@ -471,22 +479,15 @@
       shell.appendChild(thumbWrap);
       shell.appendChild(content);
 
-      // JS 함수: 원본 요소를 투명하게 처리하되 시스템상으로는 100% 가득 차 있도록 구성하여 지연 로딩 방해 방지
-      Array.from(cardRoot.children).forEach(function (ch) {
-        if (ch === shell) return;
-        try {
-          ch.style.setProperty('opacity', '0.01', 'important');
-          ch.style.setProperty('position', 'absolute', 'important');
-          ch.style.setProperty('top', '0', 'important');
-          ch.style.setProperty('left', '0', 'important');
-          ch.style.setProperty('width', '100%', 'important');
-          ch.style.setProperty('height', '100%', 'important');
-          ch.style.setProperty('pointer-events', 'none', 'important');
-          ch.style.setProperty('z-index', '-1', 'important');
-        } catch (e) {}
-      });
-
-      cardRoot.appendChild(shell);
+      // DOM 구조 안정화 (a 태그 바로 하위에 삽입하여 CSS :not 선택자와 연동)
+      if(cardRoot.tagName.toLowerCase() === 'a') {
+         cardRoot.appendChild(shell);
+      } else {
+         var actualAnchor = cardRoot.closest('a') || cardRoot.querySelector('a');
+         if(actualAnchor) actualAnchor.appendChild(shell);
+         else cardRoot.appendChild(shell);
+      }
+      
       card.dataset.gaBuilt = '1';
     } catch (e) {
       try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
@@ -507,9 +508,9 @@
     } catch (e) {}
   }
 
-  setTimeout(run, 200);
-  setTimeout(run, 800);
-  setTimeout(run, 1600);
+  setTimeout(run, 150);
+  setTimeout(run, 600);
+  setTimeout(run, 1200);
 
   try {
     var observer = new MutationObserver(function (mutations) {
