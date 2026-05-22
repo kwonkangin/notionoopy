@@ -95,7 +95,7 @@
         if (/(white|black|gray|beige|blue|pink|navy|green|brown|yellow|red)/i.test(t)) score += 1;
         if (/\d/.test(t)) score -= 1;
         if (/^(전체보기|디자인|기장|실루엣|넥라인|비침정도원단두께|화이트톤|텍스쳐)$/.test(n)) score -= 5;
-        return { text: t, score: score, norm: n };
+        return { text: t, score: score };
       });
       scored.sort(function (a, b) { return b.score - a.score; });
       return scored.length && scored[0].score > 0 ? scored[0].text : null;
@@ -156,7 +156,7 @@
         if (!text) return null;
         if (CONFIG.tab.keywords.length && CONFIG.tab.keywords.indexOf(text) === -1) return null;
         var cs = getComputedStyle(el);
-        return { text: text, fw: parseInt(cs.fontWeight, 10) || 0, color: cs.color, op: parseFloat(cs.opacity) || 1 };
+        return { text: text, fw: parseInt(cs.fontWeight, 10) || 0, color: cs.color };
       }).filter(Boolean);
       if (!candidates.length) return '';
       var groups = {}, active = '', topScore = -1;
@@ -289,6 +289,14 @@
       var c = classify(props, rule, cardRoot);
       var title = getTitle(cardRoot);
 
+      if (imgInfo && imgInfo.type === 'img' && imgInfo.el) {
+        imgInfo.el.style.setProperty('display', 'block', 'important');
+        imgInfo.el.style.setProperty('width', '100%', 'important');
+        imgInfo.el.style.setProperty('height', '100%', 'important');
+        imgInfo.el.style.setProperty('object-fit', 'cover', 'important');
+        imgInfo.el.style.setProperty('position', 'static', 'important');
+      }
+
       var shell = document.createElement('div');
       shell.className = 'ga-card-shell';
 
@@ -297,21 +305,6 @@
 
       var thumbBox = document.createElement('div');
       thumbBox.className = 'ga-thumb-box';
-
-      if (imgInfo) {
-        if (imgInfo.type === 'img' && imgInfo.el && imgInfo.el.parentNode) {
-          var moved = imgInfo.el;
-          moved.removeAttribute('style');
-          moved.removeAttribute('width');
-          moved.removeAttribute('height');
-          thumbBox.appendChild(moved);
-        } else if (imgInfo.type === 'bg' && imgInfo.url) {
-          var bgDiv = document.createElement('div');
-          bgDiv.className = 'ga-thumb-bg-img';
-          bgDiv.style.backgroundImage = 'url("' + imgInfo.url + '")';
-          thumbBox.appendChild(bgDiv);
-        }
-      }
 
       thumbWrap.appendChild(thumbBox);
 
@@ -416,6 +409,7 @@
   setTimeout(run, 200);
   setTimeout(run, 800);
   setTimeout(run, 1600);
+
   try {
     var observer = new MutationObserver(function (mutations) {
       var hasNew = mutations.some(function (m) {
