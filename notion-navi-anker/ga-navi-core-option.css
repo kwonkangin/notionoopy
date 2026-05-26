@@ -1,22 +1,29 @@
+<style>
 .ga-anchor-navi-container {
   /* ==========================================================
-     [스위치 패널] 레이아웃 및 배치 방식을 여기서 결정하세요!
-     ========================================================== */
-  --ga-nav-bg-width: 100vw;              /* 100vw : 전체 화면 / 100% : 본문 넓이 제한 */
-  --ga-nav-is-box: 0;                    /* 100vw 일때는 0 / 100% 일때는 1 (치우침 방지) */
-  --ga-nav-position-mode: sticky;        /* sticky : 중간 대기 후 고정 / fixed : 상단 즉시 고정 */
+     [가변 배치 스위치] 원하는 공간 배치를 여기서 커스텀하세요!
+     ========================================================= */
+  --ga-nav-bg-width: 100vw;              /* 100vw : 전체 화면 가득 / 100% : 본문 제한 */
+  --ga-nav-is-box: 0;                    /* 100vw 세팅 시 0 / 100% 세팅 시 1 (중앙 맞춤) */
+  --ga-nav-position-mode: sticky;        /* sticky : 중간 스크롤 고정 / fixed : 상단 즉시 고정 */
+
+  /* 📐 [좌표 가변 매퍼] 정렬 요구사항에 맞춰 값을 수정하세요 (기본값: 상단 딱붙음) */
+  --ga-nav-offset-top: 0px;              /* 상단 고정 높이 (공백을 주려면 '20px' 등으로 조절) */
+  --ga-nav-offset-bottom: auto;          /* 하단 고정 여부 (바닥에 붙이려면 이 값을 '0px' 주고 top을 'auto' 처리) */
+  --ga-nav-offset-left: auto;            /* 좌측 고정 여부 (왼쪽 정렬 정밀 세팅 시 사용, 기본: auto) */
+  --ga-nav-offset-right: auto;           /* 우측 고정 여부 (오른쪽 정렬 정밀 세팅 시 사용, 기본: auto) */
 
   /* ==========================================================
-     [디자인 세부 설정] 세부적인 수치 제어
+     [디자인 세부 설정]
      ========================================================== */
-  --ga-nav-bg-color: #111111;           /* 네비바 전체 배경색 */
-  --ga-nav-height: 54px;                /* 네비바의 세로 높이 규격 */
-  --ga-nav-font-size: 15px;             /* 메뉴 글자 크기 */
-  --ga-nav-font-weight: 600;            /* 메뉴 글자 두께 */
-  --ga-nav-letter-spacing: -0.3px;      /* 자간 (글자 사이 간격) */
-  --ga-nav-item-gap: 10px;              /* 메뉴와 메뉴 사이의 간격 */
-  --ga-nav-item-padding: 0 16px;        /* 개별 메뉴 텍스트 좌우 여백 패딩 */
-  --ga-nav-text-align: flex-start;      /* 메뉴 정렬 방식 (flex-start: 왼쪽, center: 중앙) */
+  --ga-nav-bg-color: #111111;           
+  --ga-nav-height: 54px;                
+  --ga-nav-font-size: 15px;             
+  --ga-nav-font-weight: 600;            
+  --ga-nav-letter-spacing: -0.3px;      
+  --ga-nav-item-gap: 10px;              
+  --ga-nav-item-padding: 0 16px;        
+  --ga-nav-text-align: flex-start;      
   
   --ga-nav-text-color: rgba(255, 255, 255, 0.4);   
   --ga-nav-text-color-hover: rgba(255, 255, 255, 0.8);  
@@ -26,3 +33,4 @@
   --ga-nav-active-line-height: 3px;      
   --ga-nav-active-line-gap: 16px;        
 }
+</style>
