@@ -217,3 +217,51 @@
     --grid-cols-mob: 2;                        /* 모바일 핸드폰 가로폭에서 한 줄에 보여줄 카드 개수 */
 }
 </style>
+
+----------------------------------------------------------------------------------------------------
+
+<style>
+/* ==========================================================
+   [순정 복구 + 이미지 커스텀] 노션 기본 디자인에 3/4 비율만 적용
+   ========================================================== */
+.notion-gallery-view .notion-collection-item {
+  
+  /* 🎛️ [시스템 스위치] 1: 노션 원래 고유 색상 및 매핑 시스템 100% 사용 */
+  --ga-use-notion-color: 1;
+
+  /* [A] 카드 외곽 레이아웃 -> 노션 순정 수치로 복구 (20px 라운딩 + 순정 그림자) */
+  --ga-card-bg: rgb(255, 255, 255);          
+  --ga-card-border-width: 0px;                
+  --ga-card-radius: 20px;                     
+  --ga-card-shadow: rgba(15, 15, 15, 0.1) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 2px 4px 0px;
+  --ga-card-shadow-hover: rgba(15, 15, 15, 0.1) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 2px 4px 0px;
+
+  /* [B] 썸네일 이미지 커스텀 -> 순정 상태에서 비율만 3/4 세로형으로 고정 */
+  --ga-thumb-ratio: 3 / 4;                    /* 👈 원하셨던 3:4 세로형 기획전 비율 */
+  --ga-thumb-padding: 0px;                    
+  --ga-thumb-radius: 20px;                    /* 카드 모서리(20px)와 일치시켜 깔끔하게 밀착 */
+  --ga-thumb-fit: cover;                      
+  --ga-thumb-bg: #f7f7f5;                     
+
+  /* [D] 타이틀 및 본문 텍스트 -> 노션 순정 수치로 복구 (16px 기본 두께) */
+  --ga-content-padding: 8px 10px 12px;        
+  --ga-title-size: 16px;                      
+  --ga-title-weight: 400;                     
+  --ga-title-color: rgb(55, 53, 47);          
+  --ga-title-lines: 1;                        /* 노션 기본형태인 1줄 초과시 자동 말줄임(...) */
+
+  --ga-desc-size: 12px;                       
+  --ga-desc-lines: 1;                         
+}
+
+/* ==========================================================
+   [그리드 복구] PC 화면에서 브라우저 크기에 따라 카드가 자동으로 늘어나도록 순정화
+   (커스텀 열 개수 변수를 제거하여 노션 고유의 유동형 그리드로 완전 리셋합니다)
+   ========================================================== */
+.notion-gallery-view .css-2axpky,
+.notion-gallery-view .css-11gm33a {
+    --grid-cols-pc: unset;
+    --grid-cols-tab: unset;
+    --grid-cols-mob: unset;
+}
+</style>
