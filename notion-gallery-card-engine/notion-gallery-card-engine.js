@@ -13,7 +13,10 @@
     },
     rules: [
       { match: 'all', tagMode: 'auto' }
-    ]
+    ],
+    /* 🎛️ [신규 기능 스위치] 노션 고유의 선택/다중선택 속성 색상을 그대로 사용할지 여부 */
+    /* true: 노션 색상 강제 매핑 / false: 사용자가 설정한 CSS 전용 테마 색상 고정 */
+    useNotionColor: true 
   };
 
   function txt(el) {
@@ -208,17 +211,14 @@
     return fallback || { tagMode: 'auto' };
   }
 
-  // JS 함수: 원본 DOM에서 이미지를 탐색
   function getImgInfo(cardNode) {
     try {
       var imgs = Array.from(cardNode.querySelectorAll('img')).filter(function(img) {
         return !img.classList.contains('avatarImg_s0t');
       });
-      
       if (imgs.length > 0) {
         return { type: 'img', el: imgs[0] };
       }
-      
       var divs = cardNode.querySelectorAll('div[style]');
       for (var j = 0; j < divs.length; j++) {
         var bg = divs[j].style.backgroundImage;
@@ -240,6 +240,24 @@
       }
     } catch (e) {}
     return '';
+  }
+
+  /* 🎨 [신규 유틸리티 함수] 원본 노션 요소의 배경색과 글자색 추출 */
+  function getNotionElementColor(element) {
+    if (!element) return null;
+    try {
+      // 역할상 버튼이거나 별도 배경색이 박힌 하위 뱃지 컨테이너 탐색
+      var target = element.querySelector('[role="button"]') || element.querySelector('[style*="background-color"]') || element;
+      var style = window.getComputedStyle(target);
+      var bg = style.backgroundColor;
+      var co = style.color;
+      
+      // 색상 연산 보정 (투명도가 잡혀있는 원본 테마 완벽 동기화 보장)
+      if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+        return { bg: bg, color: co };
+      }
+    } catch (e) {}
+    return null;
   }
 
   function getProps(card) {
@@ -274,7 +292,7 @@
           el: item,
           idx: idx,
           text: txt(item),
-          btn: item.querySelector('[role="button"]'),
+          btn: item.querySelector('[role="button"]') || item.querySelector('[style*="background-color"]'),
           hasImg: !!item.querySelector('img:not([src^="data:"])')
         };
       });
@@ -362,7 +380,6 @@
       var thumbBox = document.createElement('div');
       thumbBox.className = 'thumbBox_e3f';
 
-      // JS 핵심: URL 문자열만을 추출하여 배경으로 실시간 적용 (이미지 태그 렌더링 충돌 회피)
       var bgVisual = document.createElement('div');
       bgVisual.className = 'efc_clonedBg_g4h';
       thumbBox.appendChild(bgVisual);
@@ -376,7 +393,6 @@
         if (latestImg) {
           var activeUrl = '';
           if (latestImg.type === 'img' && latestImg.el) {
-            // 브라우저가 srcset 연산 등을 마친 최종 해상도 URL (currentSrc) 우선 채택
             activeUrl = latestImg.el.currentSrc || latestImg.el.src;
           } else if (latestImg.type === 'bg' && latestImg.url) {
             activeUrl = latestImg.url;
@@ -397,6 +413,17 @@
         var tagEl = document.createElement('div');
         tagEl.className = 'tagBadge_i5j';
         tagEl.textContent = c.tag.text;
+        
+        /* 🎨 [색상 매핑 플러그인 1] 우측 상단 메인 태그 뱃지 색상 연동 */
+        if (CONFIG.useNotionColor && c.tag.el) {
+          var tagColors = getNotionElementColor(c.tag.el);
+          if (tagColors) {
+            tagEl.style.backgroundColor = tagColors.bg;
+            tagEl.style.color = tagColors.color;
+            // backdrop-filter 흐림 효과가 노션 순수 색상을 해치지 않도록 임시 보정
+            tagEl.style.backdropFilter = 'none'; 
+          }
+        }
         thumbWrap.appendChild(tagEl);
       }
 
@@ -454,6 +481,15 @@
           var pill = document.createElement('span');
           pill.className = 'pillBadge_z4a';
           pill.textContent = p.text;
+          
+          /* 🎨 [색상 매핑 플러그인 2] 하단 다중 선택 필약 뱃지 색상 연동 */
+          if (CONFIG.useNotionColor && p.el) {
+            var pillColors = getNotionElementColor(p.el);
+            if (pillColors) {
+              pill.style.backgroundColor = pillColors.bg;
+              pill.style.color = pillColors.color;
+            }
+          }
           item.appendChild(pill);
         } else {
           item.textContent = p.text;
