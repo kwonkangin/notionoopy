@@ -1,19 +1,27 @@
-/* [고정 레이아웃 코어] - 수정 불필요 */
+/* ==========================================================
+   [Ga-Navi Core v2.6] 하드웨어 가변형 복합 레이아웃 CSS 코어
+   ========================================================== */
 .ga-anchor-navi-container {
   position: var(--ga-nav-position-mode) !important; 
-  top: 0 !important; z-index: 999992 !important;
+  z-index: 999992 !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s ease;
   background: var(--ga-nav-bg-color) !important; box-sizing: border-box !important;
   width: var(--ga-nav-bg-width) !important;
-  left: auto !important; right: auto !important;
+  
+  /* 🎯 [가변 하드웨어 좌표 축 업데이트] 전역 대시보드의 유동 변수 연동 */
+  top: var(--ga-nav-offset-top) !important;
+  bottom: var(--ga-nav-offset-bottom) !important;
+  left: var(--ga-nav-offset-left) !important;
+  right: var(--ga-nav-offset-right) !important;
+  
   margin-left: calc((var(--ga-nav-bg-width) - 100vw) / 2 * (1 - var(--ga-nav-is-box))) !important;
 }
 .ga-navi-inner {
   display: flex !important; align-items: center !important; box-sizing: border-box !important;
   margin: 0 auto !important; height: var(--ga-nav-height) !important;
   justify-content: var(--ga-nav-text-align) !important; gap: var(--ga-nav-item-gap) !important;
-  overflow-x: auto !important; white-space: nowrap !important;
-  -webkit-overflow-scrolling: touch; max-width: var(--page-max-width, 1400px) !important;
+  overflow-x: auto !important; white-space: nowrap !important; -webkit-overflow-scrolling: touch; 
+  max-width: var(--page-max-width, 1400px) !important;
   padding-left: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
   padding-right: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
 }
@@ -32,6 +40,11 @@
   height: var(--ga-nav-active-line-height) !important; background: var(--ga-nav-active-line-color) !important;
 }
 @media (max-width: 768px) {
-  .ga-anchor-navi-container { width: 100vw !important; margin-left: calc(-50vw + 50%) !important; }
+  .ga-anchor-navi-container { 
+    width: 100vw !important; 
+    margin-left: calc(-50vw + 50%) !important;
+    top: var(--ga-nav-offset-top) !important;
+    bottom: var(--ga-nav-offset-bottom) !important;
+  }
   .ga-navi-inner { padding-left: 24px !important; padding-right: 24px !important; }
 }
