@@ -1,0 +1,234 @@
+/* ==========================================================
+   [Ga-Gallery Core v2.0] 글로벌 갤러리 카드 뼈대 CSS
+   ========================================================== */
+
+/* 갤러리 뷰 본문 반응형 그리드 단 수 동적 매핑 */
+.notion-gallery-view .css-2axpky, 
+.notion-gallery-view .css-11gm33a {
+    display: grid !important;
+    grid-template-columns: repeat(var(--grid-cols-pc, 4), minmax(0, 1fr)) !important;
+    gap: 24px 18px !important;
+}
+
+@media (max-width: 1024px) {
+    .notion-gallery-view .css-2axpky, 
+    .notion-gallery-view .css-11gm33a { 
+        grid-template-columns: repeat(var(--grid-cols-tab, 3), minmax(0, 1fr)) !important; 
+    }
+}
+
+@media (max-width: 560px) {
+    .notion-gallery-view .css-2axpky, 
+    .notion-gallery-view .css-11gm33a { 
+        grid-template-columns: repeat(var(--grid-cols-mob, 2), minmax(0, 1fr)) !important; 
+    }
+}
+
+/* 카드 컨테이너 기초화 및 정렬 기준점 배치 */
+.notion-gallery-view .notion-page-block.notion-collection-item {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+
+.notion-gallery-view .notion-collection-item a {
+  position: relative !important;
+}
+
+/* 카드 전체 클릭 영역 활성화 및 마우스 오버(모션) 제어 */
+.notion-gallery-view .notion-collection-item > a[style*="height: 100%"], 
+.notion-gallery-view .notion-collection-item > div > a {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  background: var(--ga-card-bg, transparent) !important;
+  border: var(--ga-card-border-width, 0px) solid var(--ga-card-border-color, transparent) !important;
+  border-radius: var(--ga-card-radius, 0px) !important;
+  box-shadow: var(--ga-card-shadow, none) !important;
+  overflow: hidden !important;
+  text-decoration: none !important;
+  transition: transform .18s ease, box-shadow .18s ease !important;
+  cursor: pointer !important;
+}
+
+.notion-gallery-view .notion-collection-item > a:hover, 
+.notion-gallery-view .notion-collection-item > div > a:hover {
+  background: var(--ga-card-bg-hover, transparent) !important;
+  box-shadow: var(--ga-card-shadow-hover, none) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* 🎯 [격벽 보호 장치] 테이블 뷰 우회 가림 차단 주범 제거 엔진 */
+.notion-gallery-view .notion-collection-item a > *:not(.cardShell_a1b) {
+  opacity: 0.001 !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important; height: 100% !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  overflow: hidden !important;
+}
+
+/* 새롭게 조립된 시맨틱 카드 레이아웃 구조 */
+.cardShell_a1b {
+  display: flex !important;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* 썸네일 박스 영역 */
+.thumbWrap_c2d {
+  position: relative;
+  padding: var(--ga-thumb-padding, 0px);
+  padding-bottom: 0;
+  margin: 0;
+}
+
+.thumbBox_e3f {
+  width: 100%;
+  aspect-ratio: var(--ga-thumb-ratio, 1 / 1);
+  border-radius: var(--ga-thumb-radius, 0px);
+  overflow: hidden;
+  background: var(--ga-thumb-bg, #f0efed);
+  position: relative;
+}
+
+/* JS 연동 이미지 레이어 및 확대 모션 */
+.efc_clonedBg_g4h {
+  position: absolute !important;
+  inset: 0 !important;
+  background-size: var(--ga-thumb-fit, cover) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  transition: transform .28s ease !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1 !important;
+}
+
+.notion-gallery-view .notion-collection-item a:hover .efc_clonedBg_g4h {
+  transform: scale(1.035);
+}
+
+/* 우측 상단 단독/메인 태그 뱃지 스타일 */
+.tagBadge_i5j {
+  position: absolute;
+  top: calc(var(--ga-thumb-padding, 0px) + 8px);
+  right: calc(var(--ga-thumb-padding, 0px) + 8px);
+  z-index: 3;
+  padding: var(--ga-tag-padding, 4px 8px);
+  border-radius: var(--ga-tag-radius, 4px);
+  font-size: var(--ga-tag-size, 11px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  background: var(--ga-tag-bg, #ffffff);
+  color: var(--ga-tag-color, #333333);
+}
+
+/* 카드 텍스트 하단 영역 패키징 */
+.contentArea_k6l {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: var(--ga-content-padding, 10px);
+  min-width: 0;
+  flex: 1;
+}
+
+/* 제목, 설명 줄 바꿈 강제 제안 처리 */
+.cardTitle_m7n {
+  font-size: var(--ga-title-size, 15px);
+  font-weight: var(--ga-title-weight, 600);
+  color: var(--ga-title-color, #222222);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: var(--ga-title-lines, 2);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: keep-all;
+  white-space: normal;
+  margin: 0;
+}
+
+.cardDesc_o8p {
+  font-size: var(--ga-desc-size, 13px);
+  color: var(--ga-desc-color, #666666);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: var(--ga-desc-lines, 1);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  font-weight: 500;
+  margin: 1px 0 0 0;
+}
+
+/* 날짜 및 아바타 프로필 레이아웃 */
+.metaInfo_q9r {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.metaItem_w2x {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--ga-meta-size, 12px);
+  color: var(--ga-meta-color, #888888);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.avatarImg_s0t {
+  width: var(--ga-avatar-size, 18px);
+  height: var(--ga-avatar-size, 18px);
+  border-radius: 99px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+/* 부가 속성 컨테이너 */
+.extraPills_u1v {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ga-extra-gap, 4px);
+  align-items: center;
+}
+
+.notion-gallery-view .extraItem_y3z:not(:has(.pillBadge_z4a)) {
+  font-size: var(--ga-extra-text-size, 13px) !important;
+  color: var(--ga-extra-color, #777777) !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: var(--ga-extra-text-lines, 1) !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  word-break: break-all !important;
+}
+
+/* 다중 선택 / 단일 선택 뱃지 공통 스타일 세팅 */
+.notion-gallery-view .pillBadge_z4a {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: var(--ga-select-pill-size, 11px) !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  background: rgba(55,53,47,0.06);
+  color: var(--ga-extra-color, #555555);
+}
