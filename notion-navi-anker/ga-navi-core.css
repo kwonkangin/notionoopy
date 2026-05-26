@@ -1,4 +1,3 @@
-<style>
 /* [고정 레이아웃 코어] - 수정 불필요 */
 .ga-anchor-navi-container {
   position: var(--ga-nav-position-mode) !important; 
@@ -36,4 +35,3 @@
   .ga-anchor-navi-container { width: 100vw !important; margin-left: calc(-50vw + 50%) !important; }
   .ga-navi-inner { padding-left: 24px !important; padding-right: 24px !important; }
 }
-</style>
