@@ -1,0 +1,28 @@
+.ga-anchor-navi-container {
+  /* ==========================================================
+     [스위치 패널] 레이아웃 및 배치 방식을 여기서 결정하세요!
+     ========================================================== */
+  --ga-nav-bg-width: 100vw;              /* 100vw : 전체 화면 / 100% : 본문 넓이 제한 */
+  --ga-nav-is-box: 0;                    /* 100vw 일때는 0 / 100% 일때는 1 (치우침 방지) */
+  --ga-nav-position-mode: sticky;        /* sticky : 중간 대기 후 고정 / fixed : 상단 즉시 고정 */
+
+  /* ==========================================================
+     [디자인 세부 설정] 세부적인 수치 제어
+     ========================================================== */
+  --ga-nav-bg-color: #111111;           /* 네비바 전체 배경색 */
+  --ga-nav-height: 54px;                /* 네비바의 세로 높이 규격 */
+  --ga-nav-font-size: 15px;             /* 메뉴 글자 크기 */
+  --ga-nav-font-weight: 600;            /* 메뉴 글자 두께 */
+  --ga-nav-letter-spacing: -0.3px;      /* 자간 (글자 사이 간격) */
+  --ga-nav-item-gap: 10px;              /* 메뉴와 메뉴 사이의 간격 */
+  --ga-nav-item-padding: 0 16px;        /* 개별 메뉴 텍스트 좌우 여백 패딩 */
+  --ga-nav-text-align: flex-start;      /* 메뉴 정렬 방식 (flex-start: 왼쪽, center: 중앙) */
+  
+  --ga-nav-text-color: rgba(255, 255, 255, 0.4);   
+  --ga-nav-text-color-hover: rgba(255, 255, 255, 0.8);  
+  --ga-nav-text-color-active: #ffffff;             
+
+  --ga-nav-active-line-color: #ffffff;   
+  --ga-nav-active-line-height: 3px;      
+  --ga-nav-active-line-gap: 16px;        
+}
