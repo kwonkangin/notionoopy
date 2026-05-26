@@ -13,10 +13,7 @@
     },
     rules: [
       { match: 'all', tagMode: 'auto' }
-    ],
-    /* 🎛️ [신규 기능 스위치] 노션 고유의 선택/다중선택 속성 색상을 그대로 사용할지 여부 */
-    /* true: 노션 색상 강제 매핑 / false: 사용자가 설정한 CSS 전용 테마 색상 고정 */
-    useNotionColor: true 
+    ]
   };
 
   function txt(el) {
@@ -36,12 +33,8 @@
     custom = custom || {};
     Object.keys(custom).forEach(function (k) {
       if (
-        custom[k] &&
-        typeof custom[k] === 'object' &&
-        !Array.isArray(custom[k]) &&
-        out[k] &&
-        typeof out[k] === 'object' &&
-        !Array.isArray(out[k])
+        custom[k] && typeof custom[k] === 'object' && !Array.isArray(custom[k]) &&
+        out[k] && typeof out[k] === 'object' && !Array.isArray(out[k])
       ) {
         out[k] = mergeConfig(out[k], custom[k]);
       } else {
@@ -216,9 +209,8 @@
       var imgs = Array.from(cardNode.querySelectorAll('img')).filter(function(img) {
         return !img.classList.contains('avatarImg_s0t');
       });
-      if (imgs.length > 0) {
-        return { type: 'img', el: imgs[0] };
-      }
+      if (imgs.length > 0) return { type: 'img', el: imgs[0] };
+      
       var divs = cardNode.querySelectorAll('div[style]');
       for (var j = 0; j < divs.length; j++) {
         var bg = divs[j].style.backgroundImage;
@@ -242,17 +234,13 @@
     return '';
   }
 
-  /* 🎨 [신규 유틸리티 함수] 원본 노션 요소의 배경색과 글자색 추출 */
   function getNotionElementColor(element) {
     if (!element) return null;
     try {
-      // 역할상 버튼이거나 별도 배경색이 박힌 하위 뱃지 컨테이너 탐색
       var target = element.querySelector('[role="button"]') || element.querySelector('[style*="background-color"]') || element;
       var style = window.getComputedStyle(target);
       var bg = style.backgroundColor;
       var co = style.color;
-      
-      // 색상 연산 보정 (투명도가 잡혀있는 원본 테마 완벽 동기화 보장)
       if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
         return { bg: bg, color: co };
       }
@@ -371,6 +359,10 @@
       var c = classify(props, rule);
       var title = getTitle(cardRoot);
 
+      /* 🎯 [핵심 개선] CSS 설정창에 적힌 --ga-use-notion-color 변수 값을 실시간 추출 (기본 백업값: 1) */
+      var cssUseColorVar = (readCssVar(card, '--ga-use-notion-color', '1')).trim();
+      var useColorTrigger = cssUseColorVar === '1';
+
       var shell = document.createElement('article');
       shell.className = 'cardShell_a1b';
 
@@ -397,12 +389,9 @@
           } else if (latestImg.type === 'bg' && latestImg.url) {
             activeUrl = latestImg.url;
           }
-          
           if (activeUrl && activeUrl.indexOf('data:') !== 0) {
             var newBg = 'url("' + activeUrl + '")';
-            if (bgVisual.style.backgroundImage !== newBg) {
-              bgVisual.style.backgroundImage = newBg;
-            }
+            if (bgVisual.style.backgroundImage !== newBg) bgVisual.style.backgroundImage = newBg;
           }
         }
       }, 100);
@@ -414,13 +403,12 @@
         tagEl.className = 'tagBadge_i5j';
         tagEl.textContent = c.tag.text;
         
-        /* 🎨 [색상 매핑 플러그인 1] 우측 상단 메인 태그 뱃지 색상 연동 */
-        if (CONFIG.useNotionColor && c.tag.el) {
+        /* 🎨 CSS 연동형 스위치가 1(ON) 일 때만 색상 강제 매핑 지점 */
+        if (useColorTrigger && c.tag.el) {
           var tagColors = getNotionElementColor(c.tag.el);
           if (tagColors) {
             tagEl.style.backgroundColor = tagColors.bg;
             tagEl.style.color = tagColors.color;
-            // backdrop-filter 흐림 효과가 노션 순수 색상을 해치지 않도록 임시 보정
             tagEl.style.backdropFilter = 'none'; 
           }
         }
@@ -442,32 +430,21 @@
       meta.className = 'metaInfo_q9r';
 
       if (c.person || c.date) {
-        var mLeft = document.createElement('div');
-        mLeft.className = 'metaItem_w2x';
-
-        var mRight = document.createElement('div');
-        mRight.className = 'metaItem_w2x';
+        var mLeft = document.createElement('div'); mLeft.className = 'metaItem_w2x';
+        var mRight = document.createElement('div'); mRight.className = 'metaItem_w2x';
 
         if (c.person) {
           var av = c.person.el.querySelector('img:not([src^="data:"])');
           if (av && av.src) {
             var avEl = document.createElement('img');
-            avEl.src = av.src;
-            avEl.className = 'avatarImg_s0t';
-            avEl.alt = '프로필 이미지';
+            avEl.src = av.src; avEl.className = 'avatarImg_s0t'; avEl.alt = '프로필 이미지';
             mLeft.appendChild(avEl);
           }
-          var nm = document.createElement('span');
-          nm.textContent = c.person.text || '';
+          var nm = document.createElement('span'); nm.textContent = c.person.text || '';
           mLeft.appendChild(nm);
         }
-
-        if (c.date) {
-          mRight.textContent = c.date.text || '';
-        }
-
-        meta.appendChild(mLeft);
-        meta.appendChild(mRight);
+        if (c.date) mRight.textContent = c.date.text || '';
+        meta.appendChild(mLeft); meta.appendChild(mRight);
       }
 
       var extrasEl = document.createElement('div');
@@ -482,8 +459,8 @@
           pill.className = 'pillBadge_z4a';
           pill.textContent = p.text;
           
-          /* 🎨 [색상 매핑 플러그인 2] 하단 다중 선택 필약 뱃지 색상 연동 */
-          if (CONFIG.useNotionColor && p.el) {
+          /* 🎨 CSS 연동형 스위치가 1(ON) 일 때만 색상 강제 매핑 지점 */
+          if (useColorTrigger && p.el) {
             var pillColors = getNotionElementColor(p.el);
             if (pillColors) {
               pill.style.backgroundColor = pillColors.bg;
@@ -502,17 +479,14 @@
       if (meta.children.length) content.appendChild(meta);
       if (extrasEl.children.length) content.appendChild(extrasEl);
 
-      shell.appendChild(thumbWrap);
-      shell.appendChild(content);
+      shell.appendChild(thumbWrap); shell.appendChild(content);
 
       if(cardRoot.tagName && cardRoot.tagName.toLowerCase() === 'a') {
          cardRoot.appendChild(shell);
       } else {
          var actualAnchor = cardRoot.closest('a') || cardRoot.querySelector('a');
-         if(actualAnchor) actualAnchor.appendChild(shell);
-         else cardRoot.appendChild(shell);
+         actualAnchor ? actualAnchor.appendChild(shell) : cardRoot.appendChild(shell);
       }
-      
       card.dataset.gaBuilt = '1';
     } catch (e) {
       try { card.dataset.gaBuilt = 'err'; } catch (e2) {}
@@ -521,41 +495,24 @@
 
   function run() {
     try {
-      loadConfig();
-      installTabTracker();
-      applyGridColumns();
-
+      loadConfig(); installTabTracker(); applyGridColumns();
       document.querySelectorAll(CONFIG.gallery.cardSelector).forEach(function (card) {
-        try {
-          if (!card.dataset.gaBuilt) buildCard(card);
-        } catch (e) {}
+        try { if (!card.dataset.gaBuilt) buildCard(card); } catch (e) {}
       });
     } catch (e) {}
   }
 
-  setTimeout(run, 150);
-  setTimeout(run, 500);
-  setTimeout(run, 1000);
+  setTimeout(run, 150); setTimeout(run, 500); setTimeout(run, 1000);
 
   try {
     var observer = new MutationObserver(function (mutations) {
       var hasNew = mutations.some(function (m) {
         return Array.from(m.addedNodes).some(function (n) {
-          try {
-            return n.nodeType === 1 &&
-              (n.matches(CONFIG.gallery.cardSelector) ||
-               !!n.querySelector(CONFIG.gallery.cardSelector));
-          } catch (e) {
-            return false;
-          }
+          try { return n.nodeType === 1 && (n.matches(CONFIG.gallery.cardSelector) || !!n.querySelector(CONFIG.gallery.cardSelector)); } catch (e) { return false; }
         });
       });
       if (hasNew) setTimeout(run, 120);
     });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    observer.observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
