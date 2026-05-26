@@ -1,3 +1,186 @@
+<!-- 
+<style>
+/* ==========================================================
+   [격벽 보호막] 오직 갤러리뷰(.notion-gallery-view) 내부에 있을 때만 변수 발동
+   ========================================================== */
+.notion-gallery-view .notion-collection-item {
+  
+  /* ==========================================================
+     🎛️ [글로벌 스위치] 노션 고유 색상 매핑 시스템 ON / OFF
+     ========================================================== */
+  /* [규칙] 1 : 노션 데이터베이스에 지정된 고유 색상(파랑,오렌지 등)을 그대로 카드에 바인딩 */
+  /* [규칙] 0 : 노션 색상을 무시하고, 아래 [C]와 [E]번에 지정된 고유 CSS 테마 색상으로 통일 */
+  --ga-use-notion-color: 1;
+
+
+  /* --------------------------------------------------------
+     [A] 카드 전체 레이아웃 세팅
+     -------------------------------------------------------- */
+  --ga-card-bg: rgba(255,255,255,0);           /* 카드의 기본 배경색 (rgba 또는 #컬러코드) */
+  --ga-card-bg-hover: rgba(249,248,246,0);     /* 마우스 올렸을 때(호버) 카드의 배경색 */
+  --ga-card-border-color: rgba(15,15,15,0.06); /* 카드의 테두리(보더) 선 색상 */
+  --ga-card-border-width: 0px;                 /* 카드의 테두리 두께 (0px 설정 시 테두리 선 제거) */
+  --ga-card-radius: 0px;                       /* 카드 겉 상자의 모서리 둥글기 곡률 (Border-radius) */
+  --ga-card-shadow: none;                      /* 카드의 평상시 그림자 속성 (기본값: none) */
+  --ga-card-shadow-hover: none;                /* 마우스 올렸을 때(호버) 카드의 그림자 속성 */
+
+  /* --------------------------------------------------------
+     [B] 썸네일 이미지 세팅
+     -------------------------------------------------------- */
+  --ga-thumb-ratio: 3 / 4;                     /* 썸네일 박스의 가로/세로 비율 (예: 1/1 정정사각형, 3/4 세로형 기획전 스타일) */
+  --ga-thumb-padding: 0px;                     /* 카드 내에서 썸네일 이미지를 안쪽으로 밀어 넣는 여백 패딩 */
+  --ga-thumb-radius: 16px;                     /* 썸네일 이미지 자체의 모서리 둥글기 곡률 (상품 컷 스타일링의 핵심) */
+  --ga-thumb-fit: cover;                       /* 이미지 채움 규칙 (cover: 비율유지 꽉채움 / contain: 잘림 없이 전체노출 및 바둑판방지) */
+  --ga-thumb-bg: #f0efed;                      /* 실제 이미지가 로드되기 전, 또는 이미지 누락 시 나타날 플레이스홀더 배경색 */
+
+  /* --------------------------------------------------------
+     [C] 썸네일 우측 상단 메인 태그 (노션 고유색 미동작/0일 때 백업용)
+     -------------------------------------------------------- */
+  --ga-tag-bg: rgba(255,255,255,0.92);         /* 메인 태그의 배경색 (글로벌 스위치가 0일 때 강제 작동) */
+  --ga-tag-color: #FF4500;                     /* 메인 태그의 글자(텍스트) 색상 (글로벌 스위치가 0일 때 강제 작동) */
+  --ga-tag-size: 11px;                         /* 메인 태그의 글자 크기(폰트 사이즈) */
+  --ga-tag-radius: 6px;                        /* 메인 태그 상자의 모서리 둥글기 곡률 */
+  --ga-tag-padding: 4px 8px;                   /* 메인 태그 안쪽 텍스트의 상하 좌우 여백 패딩 값 */
+
+  /* --------------------------------------------------------
+     [D] 본문 텍스트 및 제목 세팅
+     -------------------------------------------------------- */
+  --ga-content-padding: 12px 4px 14px;         /* 카드 하단 텍스트 영역(타이틀+설명+속성)의 상 좌 우 하 여백 패딩 */
+  --ga-title-size: 15px;                       /* 메인 제목(주로 상품명 또는 타이틀)의 글자 크기 */
+  --ga-title-weight: 600;                      /* 메인 제목의 글자 두께 (400: 일반, 600: 중간 두껍게, 700: 아주 두껍게) */
+  --ga-title-color: #2f2f2b;                   /* 메인 제목의 글자 색상 */
+  --ga-title-lines: 2;                         /* 메인 제목이 길어질 때 최대로 보여줄 줄 수 (설정 줄 수 초과 시 끝에 '...' 처리) */
+
+  --ga-desc-size: 13px;                        /* 부제목(주로 서브 설명글, 가격 등)의 글자 크기 */
+  --ga-desc-color: #6b685f;                    /* 부제목의 글자 색상 */
+  --ga-desc-lines: 1;                          /* 부제목이 길어질 때 최대로 보여줄 줄 수 (설정 줄 수 초과 시 끝에 '...' 처리) */
+
+  --ga-meta-size: 12px;                        /* 메타 정보(주로 생성 날짜 또는 작성자 이름)의 글자 크기 */
+  --ga-meta-color: rgba(55,53,47,0.65);        /* 메타 정보의 글자 색상 */
+  
+  /* --------------------------------------------------------
+     [E] 하단 부가 속성 및 다중 선택 뱃지 세팅 (노션 고유색 미동작/0일 때 백업용)
+     -------------------------------------------------------- */
+  --ga-extra-gap: 5px;                         /* 하단 나열되는 부가 속성 뱃지들 간의 사방 간격 격자 여백 */
+  --ga-extra-color: rgba(55,53,47,0.6);        /* 하단 부가 속성 중 '순수 텍스트' 속성들의 글자 색상 */
+  --ga-extra-text-size: 13px;                  /* 하단 부가 속성 중 '순수 텍스트' 속성들의 글자 크기 */
+  --ga-extra-text-lines: 1;                    /* 하단 순수 텍스트 속성이 길어질 때 제한할 최대 줄 수 */
+  
+  --ga-select-pill-size: 11px;                 /* 하단 다중 선택/단일 선택 '뱃지(Pill)' 내부의 글자 크기 */
+
+  --ga-avatar-size: 18px;                      /* 노션 사람(Person) 속성 활성화 시 나타나는 프로필 아바타 이미지의 지름 크기 */
+}
+
+/* ==========================================================
+   [그리드 제어 섹션] 프로젝트 레이아웃 배치 구조 정의
+   ========================================================== */
+/* 1. 노션 데이터베이스에서 속성 - 카드 크기를 '크게' 제어했을 때의 반응형 단수 */
+.notion-gallery-view .css-2axpky {
+    --grid-cols-pc: 5;                         /* PC 와이드 모니터 화면 해상도에서 한 줄에 배치할 카드 개수 */
+    --grid-cols-tab: 4;                        /* 태블릿 화면 해상도(아이패드 등)에서 한 줄에 배치할 카드 개수 */
+    --grid-cols-mob: 2;                        /* 모바일 스마트폰 디바이스 해상도에서 한 줄에 배치할 카드 개수 */
+}
+
+/* 2. 노션 데이터베이스에서 속성 - 카드 크기를 '중간' 또는 '작게' 제어했을 때의 반응형 단수 */
+.notion-gallery-view .css-11gm33a {
+    --grid-cols-pc: 6;                         /* PC 와이드 모니터 화면 해상도에서 한 줄에 배치할 카드 개수 */
+    --grid-cols-tab: 4;                        /* 태블릿 화면 해상도(아이패드 등)에서 한 줄에 배치할 카드 개수 */
+    --grid-cols-mob: 2;                        /* 모바일 스마트폰 디바이스 해상도에서 한 줄에 배치할 카드 개수 */
+}
+</style>
+-->>>
+
+<style>
+  
+  /* --- 이하 그리드 및 구조 코어 생략 (기존 격벽 코드가 그대로 작동합니다) --- */
+.notion-gallery-view .css-2axpky, 
+.notion-gallery-view .css-11gm33a {
+    display: grid !important;
+    grid-template-columns: repeat(var(--grid-cols-pc), minmax(0, 1fr)) !important;
+    gap: 24px 18px !important;
+}
+
+@media (max-width: 1024px) {
+    .notion-gallery-view .css-2axpky, 
+    .notion-gallery-view .css-11gm33a { grid-template-columns: repeat(var(--grid-cols-tab), minmax(0, 1fr)) !important; }
+}
+@media (max-width: 560px) {
+    .notion-gallery-view .css-2axpky, 
+    .notion-gallery-view .css-11gm33a { grid-template-columns: repeat(var(--grid-cols-mob), minmax(0, 1fr)) !important; }
+}
+
+/* 카드 컨테이너 초기화 고정범위 제한 */
+.notion-gallery-view .notion-page-block.notion-collection-item {
+  width: 100% !important; min-width: 0 !important; margin: 0 !important; position: relative !important;
+}
+.notion-gallery-view .notion-collection-item a { position: relative !important; }
+
+/* 카드 링크 구역 배치 제한 */
+.notion-gallery-view .notion-collection-item > a[style*="height: 100%"],
+.notion-gallery-view .notion-collection-item > div > a {
+  display: flex !important; flex-direction: column !important; height: 100% !important; width: 100% !important; min-width: 0 !important;
+  background: var(--ga-card-bg) !important; border: var(--ga-card-border-width) solid var(--ga-card-border-color) !important;
+  border-radius: var(--ga-card-radius) !important; box-shadow: var(--ga-card-shadow) !important;
+  overflow: hidden !important; text-decoration: none !important; transition: transform .18s ease, box-shadow .18s ease !important; cursor: pointer !important;
+}
+.notion-gallery-view .notion-collection-item > a:hover,
+.notion-gallery-view .notion-collection-item > div > a:hover {
+  background: var(--ga-card-bg-hover) !important; box-shadow: var(--ga-card-shadow-hover) !important; transform: translateY(-2px) !important;
+}
+
+/* 테이블뷰 우회용 원본 요소 강제 투명화 격벽 */
+.notion-gallery-view .notion-collection-item a > *:not(.cardShell_a1b) {
+  opacity: 0.001 !important; position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important; height: 100% !important; pointer-events: none !important; z-index: -1 !important; overflow: hidden !important;
+}
+
+/* 시맨틱 카드 껍데기 레이아웃 선언 */
+.cardShell_a1b { display: flex !important; flex-direction: column; width: 100%; min-width: 0; position: relative; z-index: 2; }
+.thumbWrap_c2d { position: relative; padding: var(--ga-thumb-padding); padding-bottom: 0; margin: 0; }
+.thumbBox_e3f { width: 100%; aspect-ratio: var(--ga-thumb-ratio); border-radius: var(--ga-thumb-radius); overflow: hidden; background: var(--ga-thumb-bg); position: relative; }
+.efc_clonedBg_g4h { position: absolute !important; inset: 0 !important; background-size: var(--ga-thumb-fit) !important; background-position: center !important; background-repeat: no-repeat !important; transition: transform .28s ease !important; width: 100% !important; height: 100% !important; z-index: 1 !important; }
+.notion-gallery-view .notion-collection-item a:hover .efc_clonedBg_g4h { transform: scale(1.035); }
+
+/* 썸네일 우측 상단 메인 태그 뱃지 */
+.tagBadge_i5j {
+  position: absolute; top: calc(var(--ga-thumb-padding) + 8px); right: calc(var(--ga-thumb-padding) + 8px); z-index: 3;
+  font-size: var(--ga-tag-size); font-weight: 600; line-height: 1;
+  padding: var(--ga-tag-padding); border-radius: var(--ga-tag-radius); white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1); pointer-events: none;
+  
+  /* 🛠️ [보정] JS가 노션 색상을 주입하지 못했을 때를 대비한 기본값 지정 */
+  background: var(--ga-tag-bg); 
+  color: var(--ga-tag-color); 
+}
+
+.contentArea_k6l { display: flex; flex-direction: column; gap: 5px; padding: var(--ga-content-padding); min-width: 0; flex: 1; }
+.cardTitle_m7n { font-size: var(--ga-title-size); font-weight: var(--ga-title-weight); color: var(--ga-title-color); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: var(--ga-title-lines); -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; white-space: normal; margin: 0; }
+.cardDesc_o8p { font-size: 13px; color: #6b685f; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; font-weight: 500; margin: 1px 0 0 0; }
+.metaInfo_q9r { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; align-items: center; min-width: 0; }
+.metaItem_w2x { display: flex; align-items: center; gap: 4px; font-size: var(--ga-meta-size); color: var(--ga-meta-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.avatarImg_s0t { width: var(--ga-avatar-size); height: var(--ga-avatar-size); border-radius: 99px; object-fit: cover; flex: 0 0 auto; }
+.extraPills_u1v { display: flex; flex-wrap: wrap; gap: var(--ga-extra-gap); align-items: center; }
+
+/* 속성 개별 제어 레이어 격벽 */
+.notion-gallery-view .extraItem_y3z:not(:has(.pillBadge_z4a)) {
+  font-size: var(--ga-extra-text-size) !important; color: var(--ga-extra-color) !important;
+  display: -webkit-box !important; -webkit-line-clamp: var(--ga-extra-text-lines) !important; -webkit-box-orient: vertical !important; overflow: hidden !important; white-space: normal !important; word-break: break-all !important;
+}
+
+/* 하단 다중 선택 / 선택 뱃지 공통 필약 */
+.notion-gallery-view .pillBadge_z4a {
+  display: inline-flex !important; align-items: center !important; padding: 3px 8px !important; border-radius: 999px !important;
+  font-size: var(--ga-select-pill-size) !important;
+  font-weight: 500 !important;
+  
+  /* 🛠️ [보정] JS가 노션 배경색을 주입하므로, 기존 CSS에 박혀있던 고정 회색 배경을 제거합니다. 
+     만약 JS 스위치가 깔리면 이 기본 회색 테마가 베이스로 깔리게 됩니다. */
+  background: rgba(55,53,47,0.07); 
+  color: var(--ga-extra-color);
+}
+</style>
+
+
+<script>
 (function () {
   'use strict';
 
@@ -516,3 +699,5 @@
     observer.observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
+  
+</script>
