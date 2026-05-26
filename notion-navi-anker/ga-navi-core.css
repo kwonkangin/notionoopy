@@ -1,0 +1,39 @@
+<style>
+/* [고정 레이아웃 코어] - 수정 불필요 */
+.ga-anchor-navi-container {
+  position: var(--ga-nav-position-mode) !important; 
+  top: 0 !important; z-index: 999992 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s ease;
+  background: var(--ga-nav-bg-color) !important; box-sizing: border-box !important;
+  width: var(--ga-nav-bg-width) !important;
+  left: auto !important; right: auto !important;
+  margin-left: calc((var(--ga-nav-bg-width) - 100vw) / 2 * (1 - var(--ga-nav-is-box))) !important;
+}
+.ga-navi-inner {
+  display: flex !important; align-items: center !important; box-sizing: border-box !important;
+  margin: 0 auto !important; height: var(--ga-nav-height) !important;
+  justify-content: var(--ga-nav-text-align) !important; gap: var(--ga-nav-item-gap) !important;
+  overflow-x: auto !important; white-space: nowrap !important;
+  -webkit-overflow-scrolling: touch; max-width: var(--page-max-width, 1400px) !important;
+  padding-left: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
+  padding-right: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
+}
+.ga-navi-inner::-webkit-scrollbar { display: none !important; }
+.ga-navi-item {
+  background: transparent !important; border: none !important; cursor: pointer !important;
+  position: relative !important; text-decoration: none !important; transition: color 0.25s ease;
+  display: inline-flex !important; align-items: center !important; height: 100% !important;
+  color: var(--ga-nav-text-color) !important; font-size: var(--ga-nav-font-size) !important;
+  font-weight: var(--ga-nav-font-weight) !important; padding: var(--ga-nav-item-padding) !important;
+}
+.ga-navi-item.active { color: var(--ga-nav-text-color-active) !important; }
+.ga-navi-item.active::after {
+  content: '' !important; position: absolute !important; bottom: 0 !important;
+  left: var(--ga-nav-active-line-gap) !important; right: var(--ga-nav-active-line-gap) !important;
+  height: var(--ga-nav-active-line-height) !important; background: var(--ga-nav-active-line-color) !important;
+}
+@media (max-width: 768px) {
+  .ga-anchor-navi-container { width: 100vw !important; margin-left: calc(-50vw + 50%) !important; }
+  .ga-navi-inner { padding-left: 24px !important; padding-right: 24px !important; }
+}
+</style>
