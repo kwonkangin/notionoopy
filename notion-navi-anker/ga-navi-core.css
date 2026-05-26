@@ -8,7 +8,7 @@
   background: var(--ga-nav-bg-color) !important; box-sizing: border-box !important;
   width: var(--ga-nav-bg-width) !important;
   
-  /* 🎯 [가변 하드웨어 좌표 축 업데이트] 전역 대시보드의 유동 변수 연동 */
+  /* 🎯 전역 대시보드의 유동 변수 연동 */
   top: var(--ga-nav-offset-top) !important;
   bottom: var(--ga-nav-offset-bottom) !important;
   left: var(--ga-nav-offset-left) !important;
@@ -39,12 +39,28 @@
   left: var(--ga-nav-active-line-gap) !important; right: var(--ga-nav-active-line-gap) !important;
   height: var(--ga-nav-active-line-height) !important; background: var(--ga-nav-active-line-color) !important;
 }
+
+/* ==========================================================
+   🚨 [모바일 여백 차단 패치 조치 구역]
+   ========================================================== */
 @media (max-width: 768px) {
   .ga-anchor-navi-container { 
     width: 100vw !important; 
-    margin-left: calc(-50vw + 50%) !important;
+    max-width: 100vw !important;
+    
+    /* 🛠️ 버벅임 및 가로 스크롤 흔들림을 유발하던 수식을 삭제하고 절대 좌표로 밀착시킵니다. */
+    margin-left: 0 !important; 
+    left: 0 !important;
+    right: 0 !important;
+    
     top: var(--ga-nav-offset-top) !important;
     bottom: var(--ga-nav-offset-bottom) !important;
   }
-  .ga-navi-inner { padding-left: 24px !important; padding-right: 24px !important; }
+  .ga-navi-inner { 
+    /* 모바일 기기 화면 안쪽에서 메뉴명이 너무 벽에 붙지 않도록 안전 패딩 확보 */
+    padding-left: 20px !important; 
+    padding-right: 20px !important; 
+    /* 스크롤 시 안쪽 패딩 끝에서 바가 잘려 보이지 않도록 결합 */
+    padding-bottom: 0px !important; 
+  }
 }
