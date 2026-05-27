@@ -3,48 +3,43 @@
   /* ==========================================================
      [가변 배치 스위치]
      ========================================================= */
-  --ga-nav-bg-width: 100vw;              /* 100vw : 전체 화면 가득 / 100% : 본문 제한 */
-  --ga-nav-is-box: 0;                    /* 100vw 세팅 시 0 / 100% 세팅 시 1 (중앙 맞춤) */
-  --ga-nav-position-mode: sticky;        /* sticky : 중간 스크롤 고정 / fixed : 상단 즉시 고정 */
+  --ga-nav-bg-width: 100vw;              /* [기본: 100vw] 옵션: 100vw(전체 가득) | 100%(본문 가로폭 제한) */
+  --ga-nav-is-box: 0;                    /* [기본: 0]     옵션: 0(--ga-nav-bg-width가 100vw일 때) | 1:(--ga-nav-bg-width가 100%일 때 중앙 정렬) */
+  --ga-nav-position-mode: sticky;        /* [기본: sticky] 옵션: sticky(본문 중간 대기 후 스크롤 고정) | fixed(상단 즉시 고정) */
 
-  --ga-nav-offset-top: 0px;              
-  --ga-nav-offset-bottom: auto;          
-  --ga-nav-offset-left: auto;            
-  --ga-nav-offset-right: auto;           
+  --ga-nav-offset-top: 0px;              /* [기본: 0px]    옵션: 0px(상단 밀착) | 10px, 20px 등(상단 이격 거리 설정) */
+  --ga-nav-offset-bottom: auto;          /* [기본: auto]   옵션: auto(상단 고정 시) | 0px(하단 바 형태로 바닥 고정 시 사용하며 이때 top은 auto 세팅) */
+  --ga-nav-offset-left: auto;            /* [기본: auto]   옵션: auto(기본정렬) | 0px(좌측 강제 밀착 정렬 시) */
+  --ga-nav-offset-right: auto;           /* [기본: auto]   옵션: auto(기본정렬) | 0px(우측 강제 밀착 정렬 시) */
 
   /* ==========================================================
      🎯 [정렬 및 줄바꿈 신규 대시보드 변수 세팅 바]
      ========================================================== */
-  /* 1. 개별 메뉴 글자 줄간격 (기본값: 1.35배) */
-  --ga-nav-line-height: 1.35;
-
-  /* 2. 각 메뉴 안에서 글자를 어디로 정렬할지 (left: 좌측정렬, center: 중앙정렬, right: 우측정렬) */
-  --ga-nav-item-text-align: center;
-
-  /* 3. 메뉴명 '끼리' 윗줄을 맞출지, 중앙을 맞출지, 바닥을 맞출지 정하는 전체 높이 정렬 
-     (flex-start: 윗선 맞춤 / center: 상하 정중앙 맞춤 / flex-end: 바닥선 맞춤) */
-  --ga-nav-vertical-align: center;
-
-  /* 4. 전체 메뉴바 안에서 메뉴 무리들을 어느 쪽에 배치할지 (flex-start: 왼쪽 치우침, center: 네비바 정중앙) */
-  --ga-nav-text-align: flex-start;      
+  --ga-nav-line-height: 1.35;            /* [기본: 1.35]   옵션: 1.2 ~ 1.5 숫자 입력 (메뉴명이 2줄일 때 상하 간격 배율) */
+  
+  --ga-nav-item-text-align: center;      /* [기본: center] 옵션: center(메뉴 글자 중앙 정렬) | left(좌측 정렬) | right(우측 정렬) */
+  
+  --ga-nav-vertical-align: center;       /* [기본: center] 옵션: center(상하 정중앙 정렬) | flex-start(윗줄 정렬) | flex-end(아래 정렬) */
+  
+  --ga-nav-text-align: flex-start;      /* [기본: flex-start] 옵션: flex-start(메뉴 덩어리 왼쪽 배치) | center(메뉴 덩어리 중앙 배치) | flex-end(우측 배치) */
 
   /* ==========================================================
      [디자인 세부 사양 설정]
      ========================================================== */
-  --ga-nav-bg-color: #111111;           
-  --ga-nav-height: 66px;                 /* 2줄 메뉴명을 위해 66px로 확장 권장 */
-  --ga-nav-font-size: 14px;             
-  --ga-nav-font-weight: 600;            
-  --ga-nav-letter-spacing: -0.3px;      
-  --ga-nav-item-gap: 12px;              
-  --ga-nav-item-padding: 0 16px;        
+  --ga-nav-bg-color: #111111;            /* [기본: #111111] 옵션: #Hex코드 | rgb() | rgba() (네비바 전체 배경색) */
+  --ga-nav-height: 66px;                 /* [기본: 66px]   옵션: px 단위 수치 (1줄 전용은 54px 추천, 2줄 포함 시 64px~70px 추천) */
+  --ga-nav-font-size: 14px;              /* [기본: 14px]   옵션: px 단위 수치 (메뉴 글씨 크기) */
+  --ga-nav-font-weight: 600;             /* [기본: 600]    옵션: 400(Regular) | 500(Medium) | 600(Semi-Bold) | 700(Bold) */
+  --ga-nav-letter-spacing: -0.3px;       /* [기본: -0.3px]  옵션: px 단위 수치 (글자 사이 자간 설정) */
+  --ga-nav-item-gap: 12px;               /* [기본: 12px]   옵션: px 단위 수치 (메뉴 탭과 메뉴 탭 사이의 간격) */
+  --ga-nav-item-padding: 0 16px;         /* [기본: 0 16px]  옵션: 상하 좌우 구조 (예: 0 12px 등 개별 탭 내부 글자 여백 패딩) */
   
-  --ga-nav-text-color: rgba(255, 255, 255, 0.4);   
-  --ga-nav-text-color-hover: rgba(255, 255, 255, 0.8);  
-  --ga-nav-text-color-active: #ffffff;             
+  --ga-nav-text-color: rgba(255, 255, 255, 0.4);      /* [기본: 투명도 흰색] 옵션: 평상시 활성화되지 않은 일반 메뉴 글자 색상 */
+  --ga-nav-text-color-hover: rgba(255, 255, 255, 0.8); /* [기본: 투명도 흰색] 옵션: 마우스를 올렸을 때(호버) 메뉴 글자 색상 */
+  --ga-nav-text-color-active: #ffffff;                /* [기본: #ffffff]    옵션: 현재 보고 있는 스크롤 섹션 활성화 메뉴 글자 색상 */
 
-  --ga-nav-active-line-color: #ffffff;   
-  --ga-nav-active-line-height: 3px;      
-  --ga-nav-active-line-gap: 16px;        
+  --ga-nav-active-line-color: #ffffff;   /* [기본: #ffffff]    옵션: 활성화 시 하단에 생기는 언더라인 선 색상 */
+  --ga-nav-active-line-height: 3px;      /* [기본: 3px]       옵션: px 단위 수치 (하단 언더라인 선 두께) */
+  --ga-nav-active-line-gap: 16px;        /* [기본: 16px]      옵션: px 단위 수치 (메뉴 글자 크기 대비 하단 선의 안쪽 여백 축소 간격) */
 }
 </style>
