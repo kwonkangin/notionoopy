@@ -297,7 +297,6 @@
       var c = classify(props, rule);
       var title = getTitle(cardRoot);
 
-      /* 🎛️ [CSS 변수 스위치 트래킹] 테마 제어판의 --ga-use-notion-color 설정 실시간 채집 */
       var cssUseColorVar = (readCssVar(card, '--ga-use-notion-color', '1')).trim();
       var useColorTrigger = cssUseColorVar === '1';
 
