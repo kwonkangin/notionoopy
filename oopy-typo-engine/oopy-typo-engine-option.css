@@ -1,4 +1,8 @@
+
+
 /* 아래는 경량화 실사용코드 */
+<!--타이포-->
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@f682525cb4c67925126fbf16a02e74221d356d51/oopy-typo-engine/oopy-typo-engine.js" defer></script>
 
 <style>
 :root {
