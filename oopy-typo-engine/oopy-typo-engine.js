@@ -1,6 +1,6 @@
 /**
  * =========================================================================
- * 🚀 [GitHub Master Core Engine v4.6] 조건부 기호 방향성 추적 마스터 코어
+ * 🚀 [GitHub Master Core Engine v4.6] 실시간 완전체/독립 포지셔닝 하이브리드 엔진
  * =========================================================================
  */
 (function() {
@@ -105,40 +105,44 @@
           ${sel} div { text-align: var(--ga-quote-align) !important; }
         `;
       } 
-      // 🎯 [완결판] 리스트 블록 매트릭스 방향 정렬 연산 처리 파트
+      // 🎯 [특수 리스트 분기 체임버 알고리즘]
       else if (['bullet', 'number', 'to_do'].includes(key)) {
-        const txtAlign = getVar(`--ga-${vKey}-align`);
-        const followText = getVar(`--ga-${vKey}-marker-follow-text`);
-        const markerSide = getVar(`--ga-${vKey}-marker-side`);
+        const syncVal = getVar(`--ga-${vKey}-marker-sync`);
+        const alignVal = getVar(`--ga-${vKey}-align`);
+        const posVal = getVar(`--ga-${vKey}-marker-pos`);
 
-        // 텍스트 정렬 방향과 기호의 상호작용 매트릭스 공식 판정
-        let flexDir = 'row';
-        if (followText === 'on') {
-          flexDir = (txtAlign === 'right') ? 'row-reverse' : 'row';
+        if (syncVal === 'on') {
+          // ─── A 모드: 기호가 텍스트 정렬을 완전체로 끈끈하게 추종 ───
+          if (alignVal === 'left') {
+            css += `
+              ${sel} > div { display: flex !important; flex-direction: row !important; justify-content: flex-start !important; width: 100% !important; margin: 0 !important; }
+              ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
+              ${sel} div[contenteditable] { text-align: left !important; }
+            `;
+          } else if (alignVal === 'center') {
+            css += `
+              ${sel} > div { display: flex !important; flex-direction: row !important; justify-content: center !important; width: 100% !important; margin: 0 !important; }
+              ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
+              ${sel} div[contenteditable] { text-align: center !important; }
+            `;
+          } else if (alignVal === 'right') {
+            css += `
+              ${sel} > div { display: flex !important; flex-direction: row-reverse !important; justify-content: flex-end !important; width: 100% !important; margin: 0 !important; }
+              ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
+              ${sel} div[contenteditable] { text-align: right !important; }
+            `;
+          }
         } else {
-          flexDir = (markerSide === 'right') ? 'row-reverse' : 'row';
-        }
-
-        css += `
-          ${sel} > div { display: flex !important; width: 100% !important; margin: 0 !important; flex-direction: ${flexDir} !important; }
-          ${sel} div[contenteditable] { text-align: ${txtAlign} !important; }
-          
-          /* 전체 박스 바깥 포지셔닝 배치 공식 */
-          :root:has([style*="--ga-${vKey}-box-position: left"]) ${sel} > div { justify-content: flex-start !important; }
-          :root:has([style*="--ga-${vKey}-box-position: left"]) ${sel} > div > div:nth-of-type(2) { flex: 1 1 0px !important; }
-          
-          :root:has([style*="--ga-${vKey}-box-position: center-box"]) ${sel} > div { justify-content: center !important; }
-          :root:has([style*="--ga-${vKey}-box-position: center-box"]) ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
-          
-          :root:has([style*="--ga-${vKey}-box-position: right-box"]) ${sel} > div { justify-content: flex-end !important; }
-          :root:has([style*="--ga-${vKey}-box-position: right-box"]) ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
-        `;
-
-        // 가로축이 반전(row-reverse)될 때 노션 기호 상자의 간격을 자연스럽게 재교정
-        if (flexDir === 'row-reverse') {
-          css += `${sel} > div > div:nth-of-type(1) { margin-left: 10px !important; margin-right: 0px !important; }\n`;
-        } else {
-          css += `${sel} > div > div:nth-of-type(1) { margin-right: 10px !important; margin-left: 0px !important; }\n`;
+          // ─── B 모드: 기호는 독립 정렬(최좌측/최우측) 상태 유지, 텍스트는 프리 핸들링 ───
+          let flexDir = 'row';
+          if (['far-right', 'right'].includes(posVal)) {
+            flexDir = 'row-reverse';
+          }
+          css += `
+            ${sel} > div { display: flex !important; flex-direction: ${flexDir} !important; justify-content: flex-start !important; width: 100% !important; margin: 0 !important; }
+            ${sel} > div > div:nth-of-type(2) { flex: 1 1 0px !important; width: 100% !important; }
+            ${sel} div[contenteditable] { text-align: ${alignVal} !important; }
+          `;
         }
       } else {
         css += `${sel} { text-align: var(--ga-${vKey}-align) !important; }\n`;
