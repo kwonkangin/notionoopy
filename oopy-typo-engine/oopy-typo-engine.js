@@ -1,6 +1,6 @@
 /**
  * =========================================================================
- * 🚀 [GitHub Master Core Engine v4.8] 실시간 싱크/독립 기호 제어 마스터 엔진
+ * 🚀 [GitHub Master Core Engine v5.0] 실시간 돔 재조립형 리스트 인터랙션 엔진
  * =========================================================================
  */
 (function() {
@@ -105,29 +105,10 @@
           ${sel} div { text-align: var(--ga-quote-align) !important; }
         `;
       } 
-      // 🎯 [완결 오버라이딩 리스트 연산 아키텍처] 
+      // 리스트 서식용 원본 인라인 속성 격파 규칙 생성
       else if (['bullet', 'number', 'to_do'].includes(key)) {
         css += `
           ${sel} > div { display: flex !important; width: 100% !important; margin: 0 !important; }
-          ${sel} div[contenteditable] { text-align: var(--ga-${vKey}-align) !important; }
-          
-          /* ─── 시나리오 A : 기호가 글자 방향을 완전체로 끈질기게 따라다님 (marker-sync: on) ─── */
-          :root:has([style*="--ga-${vKey}-marker-sync: on"]) ${sel} > div { flex-direction: row !important; }
-          :root:has([style*="--ga-${vKey}-marker-sync: on"]) ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
-          
-          :root:has([style*="--ga-${vKey}-marker-sync: on"]):has([style*="--ga-${vKey}-align: left"]) ${sel} > div { justify-content: flex-start !important; }
-          :root:has([style*="--ga-${vKey}-marker-sync: on"]):has([style*="--ga-${vKey}-align: center"]) ${sel} > div { justify-content: center !important; }
-          :root:has([style*="--ga-${vKey}-marker-sync: on"]):has([style*="--ga-${vKey}-align: right"]) ${sel} > div { justify-content: flex-end !important; }
-          
-          /* ─── 시나리오 B : 기호가 글자 방향을 따르지 않고 완전 분리 독립 (marker-sync: off) ─── */
-          :root:has([style*="--ga-${vKey}-marker-sync: off"]) ${sel} > div > div:nth-of-type(2) { flex: 1 1 0px !important; }
-          
-          /* 독립 가동 분기 B-1 : 기호를 최좌측(left)에 고정 박제 */
-          :root:has([style*="--ga-${vKey}-marker-sync: off"]):has([style*="--ga-${vKey}-marker-pos: left"]) ${sel} > div { flex-direction: row !important; justify-content: flex-start !important; }
-          
-          /* 독립 가동 분기 B-2 : 기호를 최우측(right)에 고정 박제 */
-          :root:has([style*="--ga-${vKey}-marker-sync: off"]):has([style*="--ga-${vKey}-marker-pos: right"]) ${sel} > div { flex-direction: row-reverse !important; justify-content: flex-end !important; }
-          :root:has([style*="--ga-${vKey}-marker-sync: off"]):has([style*="--ga-${vKey}-marker-pos: right"]) ${sel} > div > div:nth-of-type(1) { margin-left: 8px !important; margin-right: 0px !important; }
         `;
       } else {
         css += `${sel} { text-align: var(--ga-${vKey}-align) !important; }\n`;
@@ -162,19 +143,107 @@
       document.head.appendChild(shadowStyle);
     }
     shadowStyle.innerHTML = css;
+    
+    // 돔 구조 정렬 릴레이 엔진 강제 기상
+    executeDynamicListDomRelocation();
     isCompiling = false;
+  }
+
+  // 🎯 [핵심 알고리즘] 노션의 리스트 중첩 격벽을 완전히 파괴하여 순서를 강제 동기화하는 도끼 공법
+  function executeDynamicListDomRelocation() {
+    ['bullet', 'number', 'to_do'].forEach(type => {
+      const selMap = { bullet: '.notion-bulleted_list-block', number: '.notion-numbered_list-block', todo: '.notion-to_do-block' };
+      const selector = selMap[type];
+      if (getVar(`--ga-${type}-custom`) !== 'on') return;
+
+      const align = getVar(`--ga-${type}-align`) || 'left';
+      const sync = getVar(`--ga-${type}-marker-sync`) === 'on';
+      const pos = getVar(`--ga-${type}-marker-pos`) || 'left';
+
+      document.querySelectorAll(selector).forEach(block => {
+        const mainRow = block.querySelector(':scope > div');
+        if (!mainRow) return;
+
+        // 노션의 순정 요소들을 도청용 클래스로 가두기
+        let marker = block.querySelector('.ga-marker-box') || mainRow.querySelector(':scope > div:nth-of-type(1)');
+        let contentCol = block.querySelector('.ga-content-col') || mainRow.querySelector('div[style*="flex: 1"], div[style*="flex:1"]');
+        
+        if (!marker || !contentCol) return;
+        marker.classList.add('ga-marker-box');
+        contentCol.classList.add('ga-content-col');
+
+        const textRowWrap = contentCol.querySelector(':scope > div');
+        if (!textRowWrap) return;
+        const textBlock = textRowWrap.querySelector(':scope > div[contenteditable]');
+        if (!textBlock) return;
+
+        if (sync) {
+          /* ─────────────────────────────────────────────────────────────────────────
+           * シ나리오 A : [완전체 동행 모드] 기호와 글자를 한 묶음으로 묶어 배치 이동
+           * ───────────────────────────────────────────────────────────────────────── */
+          textRowWrap.style.setProperty('display', 'flex', 'important');
+          textRowWrap.style.setProperty('align-items', 'center', 'important');
+          
+          const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
+          textRowWrap.style.setProperty('justify-content', justifyMap[align] || 'flex-start', 'important');
+          
+          textBlock.style.setProperty('width', 'auto', 'important');
+          textBlock.style.setProperty('flex', 'none', 'important');
+          textBlock.style.setProperty('text-align', 'left', 'important');
+
+          // 기호를 글자 바로 앞방(textRowWrap 내부)으로 긴급 이송하여 순서 뒤집힘 완벽 봉쇄!
+          if (marker.parentElement !== textRowWrap) {
+            textRowWrap.insertBefore(marker, textBlock);
+          }
+          
+          // 외곽 컨테이너들을 방해받지 않는 유연한 구조로 해제
+          mainRow.style.setProperty('display', 'block', 'important');
+          contentCol.style.setProperty('width', '100%', 'important');
+          contentCol.style.setProperty('flex', 'none', 'important');
+          marker.style.setProperty('margin', '0 6px 0 0', 'important');
+          marker.style.setProperty('display', 'inline-flex', 'important');
+        } else {
+          /* ─────────────────────────────────────────────────────────────────────────
+           * シ나리오 B : [독립 격리 배치 모드] 기호는 벽면에 고정하고 글자만 따로 정렬
+           * ───────────────────────────────────────────────────────────────────────── */
+          if (marker.parentElement !== mainRow) {
+            mainRow.insertBefore(marker, contentCol);
+          }
+          
+          mainRow.style.setProperty('display', 'flex', 'important');
+          contentCol.style.setProperty('flex', '1 1 0px', 'important');
+          contentCol.style.setProperty('width', 'auto', 'important');
+          
+          if (pos === 'right') {
+            mainRow.style.setProperty('flex-direction', 'row-reverse', 'important');
+            marker.style.setProperty('margin-left', '8px', 'important');
+            marker.style.setProperty('margin-right', '0px', 'important');
+          } else {
+            mainRow.style.setProperty('flex-direction', 'row', 'important');
+            marker.style.setProperty('margin-right', '2px', 'important');
+            marker.style.setProperty('margin-left', '0px', 'important');
+          }
+
+          textRowWrap.style.setProperty('display', 'block', 'important');
+          textBlock.style.setProperty('width', '100%', 'important');
+          textBlock.style.setProperty('flex', 'none', 'important');
+          textBlock.style.setProperty('text-align', align, 'important');
+          marker.style.setProperty('display', 'flex', 'important');
+        }
+      });
+    });
   }
 
   compileAndInjectStyles();
 
-  // 대시보드 무새로고침 가시성 변화 감지 도청기
+  // 대시보드 새로고침 감지 도청 장치
   const liveObserver = new MutationObserver((mutations) => {
     const isOwn = mutations.every(m => m.target.id === 'ga-core-compiled-engine' || (m.addedNodes.length && m.addedNodes[0].id === 'ga-core-compiled-engine'));
     if (!isOwn) compileAndInjectStyles();
   });
   liveObserver.observe(document.head, { childList: true, subtree: true, characterData: true });
 
-  // 스크롤 트래킹 센서
+  // 스크롤 트래킹 레이더 가동
   function startCoreScrollSensor() {
     const selectors = ['h1', 'h2', 'h3', 'h4', 'h5', '.notion-text-block', '.notion-quote-block', '.notion-bulleted_list-block', '.notion-numbered_list-block', '.notion-to_do-block'];
     const targets = [];
