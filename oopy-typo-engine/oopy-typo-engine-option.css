@@ -1,3 +1,148 @@
+/* 아래는 경량화 실사용코드 */
+
+<style>
+:root {
+  /* [1. 시스템 스위치] */
+  --ga-system-main-switch: on;    /* 시스템 | 디폴트: on | 선택: on, off */
+  --ga-motion-repeat: on;         /* 모션반복 | 디폴트: on | 선택: on, off */
+  --ga-motion-duration: 1.05s;    /* 모션시간 | 디폴트: 1.05s | 선택: 시간초(s) */
+  --ga-motion-easing: cubic-bezier(0.16, 1, 0.3, 1); /* 모션곡선 */
+
+  /* [2. 컬러 치환] */
+  --ga-color-override: on;        /* 컬러치환 | 디폴트: on | 선택: on, off */
+  --ga-color-default-text: #37352f;                                                   /* 기본글자색 | 디폴트: #37352f */
+  --ga-color-gray-text: #9b9a97;    --ga-color-gray-bg: #f1f1f1;                      /* 회색치환 | 디폴트: #9b9a97 / #f1f1f1 */
+  --ga-color-blue-text: #0b6e99;    --ga-color-blue-bg: #e3f2fd;                      /* 파란치환 | 디폴트: #0b6e99 / #e3f2fd */
+  --ga-color-red-text: #e03e3e;     --ga-color-red-bg: #fde8e8;                      /* 빨간치환 | 디폴트: #e03e3e / #fde8e8 */
+  --ga-color-green-text: #00856a;   --ga-color-green-bg: #e2f5f1;                      /* 초록치환 | 디폴트: #00856a / #e2f5f1 */
+  --ga-color-brown-text: #64473a;   --ga-color-brown-bg: #f4f0ec;                      /* 갈색치환 | 디폴트: #64473a / #f4f0ec */
+  --ga-color-orange-text: #d9730d;  --ga-color-orange-bg: #f9ebd9;                      /* 주황치환 | 디폴트: #d9730d / #f9ebd9 */
+  --ga-color-yellow-text: #dfab01;  --ga-color-yellow-bg: #fbf3db;                      /* 노란치환 | 디폴트: #dfab01 / #fbf3db */
+  --ga-color-purple-text: #6940a5;  --ga-color-purple-bg: #f3edf8;                      /* 보라치환 | 디폴트: #6940a5 / #f3edf8 */
+  --ga-color-pink-text: #ad1a72;    --ga-color-pink-bg: #fce4ec;                      /* 핑크치환 | 디폴트: #ad1a72 / #fce4ec */
+
+  /* [3. 타이틀 시스템] */
+  /* H1 : 제목 1 */
+  --ga-h1-custom: on;          /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-h1-motion: on;          /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-h1-size: 40px;          /* 크기 | 디폴트: 40px */
+  --ga-h1-weight: 850;         /* 두께 | 디폴트: 850 | 선택: 100 ~ 900 */
+  --ga-h1-align: center;       /* 정렬 | 디폴트: center | 선택: left, center, right */
+  --ga-h1-delay: 0.08s;        /* 딜레이 | 디폴트: 0.08s */
+  --ga-h1-tracking: -0.04em;   /* 자간 | 디폴트: -0.04em */
+  --ga-h1-leading: 1.3;        /* 행간 | 디폴트: 1.3 */
+
+  /* H2 : 제목 2 */
+  --ga-h2-custom: on;          /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-h2-motion: on;          /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-h2-size: 32px;          /* 크기 | 디폴트: 32px */
+  --ga-h2-weight: 800;         /* 두께 | 디폴트: 800 */
+  --ga-h2-align: center;       /* 정렬 | 디폴트: center | 선택: left, center, right */
+  --ga-h2-delay: 0.18s;        /* 딜레이 | 디폴트: 0.18s */
+  --ga-h2-tracking: -0.03em;   /* 자간 | 디폴트: -0.03em */
+  --ga-h2-leading: 1.35;       /* 행간 | 디폴트: 1.35 */
+
+  /* H3 : 제목 3 */
+  --ga-h3-custom: on;          /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-h3-motion: on;          /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-h3-size: 28px;          /* 크기 | 디폴트: 28px */
+  --ga-h3-weight: 750;         /* 두께 | 디폴트: 750 */
+  --ga-h3-align: center;       /* 정렬 | 디폴트: center | 선택: left, center, right */
+  --ga-h3-delay: 0.24s;        /* 딜레이 | 디폴트: 0.24s */
+  --ga-h3-tracking: -0.02em;   /* 자간 | 디폴트: -0.02em */
+  --ga-h3-leading: 1.4;        /* 행간 | 디폴트: 1.4 */
+
+  /* H4 : 제목 4 / 상품명 */
+  --ga-h4-custom: on;          /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-h4-motion: on;          /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-h4-size: 24px;          /* 크기 | 디폴트: 24px */
+  --ga-h4-weight: 700;         /* 두께 | 디폴트: 700 */
+  --ga-h4-align: center;       /* 정렬 | 디폴트: center | 선택: left, center, right */
+  --ga-h4-delay: 0.28s;        /* 딜레이 | 디폴트: 0.28s */
+  --ga-h4-tracking: -0.01em;   /* 자간 | 디폴트: -0.01em */
+  --ga-h4-leading: 1.45;       /* 행간 | 디폴트: 1.45 */
+
+  /* H5 : 제목 5 / 소안내 */
+  --ga-h5-custom: on;          /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-h5-motion: on;          /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-h5-size: 18px;          /* 크기 | 디폴트: 18px */
+  --ga-h5-weight: 600;         /* 두께 | 디폴트: 600 */
+  --ga-h5-align: center;       /* 정렬 | 디폴트: center | 선택: left, center, right */
+  --ga-h5-delay: 0.36s;        /* 딜레이 | 디폴트: 0.36s */
+  --ga-h5-tracking: 0em;       /* 자간 | 디폴트: 0em */
+  --ga-h5-leading: 1.5;        /* 행간 | 디폴트: 1.5 */
+
+  /* [4. 본문 및 특수 블록] */
+  /* 일반 본문 텍스트 */
+  --ga-text-custom: on;        /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-text-motion: on;        /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-text-size: 16px;        /* 크기 | 디폴트: 16px */
+  --ga-text-weight: 400;       /* 두께 | 디폴트: 400 */
+  --ga-text-align: center;     /* 정렬 | 디폴트: center | 선택: left, center, right */
+  --ga-text-delay: 0.40s;      /* 딜레이 | 디폴트: 0.40s */
+  --ga-text-tracking: 0em;     /* 자간 | 디폴트: 0em */
+  --ga-text-leading: 1.6;      /* 행간 | 디폴트: 1.6 */
+
+  /* 인용 블록 */
+  --ga-quote-custom: on;       /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-quote-motion: on;       /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-quote-size: 24px;       /* 크기 | 디폴트: 24px */
+  --ga-quote-weight: 700;      /* 두께 | 디폴트: 700 */
+  --ga-quote-delay: 0.30s;     /* 딜레이 | 디폴트: 0.30s */
+  --ga-quote-tracking: 0.05em; /* 자간 | 디폴트: 0.05em */
+  --ga-quote-leading: 1.8;     /* 행간 | 디폴트: 1.8 */
+  --ga-quote-bg: rgba(173, 26, 114, 0.05);  /* 배경색 | 디폴트: 연한 핑크 음영 */
+  --ga-quote-border-style: 6px solid #ad1a72; /* 선형태 | 디폴트: 6px 실선 | 없애려면 none */
+  --ga-quote-align: center;    /* 정렬 | 디폴트: center | 선택: left, center, right */
+  --ga-quote-marker-sync: on;  /* 선동행 | 디폴트: on | 선택: on, off */
+  --ga-quote-marker-pos: left; /* 선위치 | 디폴트: left | 선택: left, right */
+
+  /* 글머리 기호 (•) */
+  --ga-bullet-custom: on;      /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-bullet-motion: on;      /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-bullet-size: 18px;      /* 크기 | 디폴트: 18px */
+  --ga-bullet-weight: 500;     /* 두께 | 디폴트: 500 */
+  --ga-bullet-delay: 0.32s;    /* 딜레이 | 디폴트: 0.32s */
+  --ga-bullet-tracking: -0.02em;/* 자간 | 디폴트: -0.02em */
+  --ga-bullet-leading: 1.5;    /* 행간 | 디폴트: 1.5 */
+  --ga-bullet-align: right;    /* 정렬 | 디폴트: right | 선택: left, center, right */
+  --ga-bullet-marker-sync: on; /* 기호동행 | 디폴트: on | 선택: on, off */
+  --ga-bullet-marker-pos: left;/* 기호위치 | 디폴트: left | 선택: left, right (독립모드 전용) */
+
+  /* 숫자 매기기 (1.) */
+  --ga-number-custom: on;      /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-number-motion: on;      /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-number-size: 18px;      /* 크기 | 디폴트: 18px */
+  --ga-number-weight: 500;     /* 두께 | 디폴트: 500 */
+  --ga-number-delay: 0.34s;    /* 딜레이 | 디폴트: 0.34s */
+  --ga-number-tracking: 0.02em;/* 자간 | 디폴트: 0.02em */
+  --ga-number-leading: 1.5;    /* 행간 | 디폴트: 1.5 */
+  --ga-number-align: right;    /* 정렬 | 디폴트: right | 선택: left, center, right */
+  --ga-number-marker-sync: on; /* 기호동행 | 디폴트: on | 선택: on, off */
+  --ga-number-marker-pos: left;/* 기호위치 | 디폴트: left | 선택: left, right (독립모드 전용) */
+
+  /* 할일 목록 ([ ]) */
+  --ga-todo-custom: on;        /* 커스텀 | 디폴트: on | 선택: on, off */
+  --ga-todo-motion: on;        /* 모션 | 디폴트: on | 선택: on, off */
+  --ga-todo-size: 16px;        /* 크기 | 디폴트: 16px */
+  --ga-todo-weight: 600;       /* 두께 | 디폴트: 600 */
+  --ga-todo-delay: 0.38s;      /* 딜레이 | 디폴트: 0.38s */
+  --ga-todo-tracking: 0em;     /* 자간 | 디폴트: 0em */
+  --ga-todo-leading: 1.5;      /* 행간 | 디폴트: 1.5 */
+  --ga-todo-align: right;      /* 정렬 | 디폴트: right | 선택: left, center, right */
+  --ga-todo-marker-sync: on;   /* 기호동행 | 디폴트: on | 선택: on, off */
+  --ga-todo-marker-pos: left;  /* 기호위치 | 디폴트: left | 선택: left, right (독립모드 전용) */
+  --ga-todo-strike-mode: underline; /* 취소선모드 | 디폴트: underline | 선택: underline (밑줄강조), line-through (순정) */
+}
+</style>
+
+<script src="https://내계정이름.github.io/레포지토리이름/oopy-typo-engine.js" defer></script>
+
+
+
+
+/* 아래는 정석 완전체 코드 */
+
 <style>
 :root {
   /* =========================================================================
