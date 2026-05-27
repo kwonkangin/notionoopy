@@ -1,8 +1,7 @@
 /* ==========================================================
-   [Ga-Navi Core v2.8] 하드웨어 가변형 복합 레이아웃 CSS 코어
+   [Ga-Navi Core v2.8] 타이포그래피 베이스라인 복합 레이아웃 CSS 코어
    ========================================================== */
 .ga-anchor-navi-container {
-  /* 🎯 대시보드의 유동 변수(위치 모드, 가로폭)를 전역 동기화 */
   position: var(--ga-nav-position-mode) !important; 
   width: var(--ga-nav-bg-width) !important;
   
@@ -10,23 +9,20 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s ease;
   background: var(--ga-nav-bg-color) !important; box-sizing: border-box !important;
   
-  /* 🎯 좌표 축 유동 변수 연동 */
   top: var(--ga-nav-offset-top) !important;
   bottom: var(--ga-nav-offset-bottom) !important;
   left: var(--ga-nav-offset-left) !important;
   right: var(--ga-nav-offset-right) !important;
   
-  /* PC/대화면용 중앙 정렬 마진 연산 구조 */
   margin-left: calc((var(--ga-nav-bg-width) - 100vw) / 2 * (1 - var(--ga-nav-is-box))) !important;
 }
 
 .ga-navi-inner {
-  display: flex !important; 
+  /* 🎯 [3차 검증 패치] 플렉스 격벽을 파괴하고 정밀 폰트 베이스라인 연산 레이어로 강제 전환 */
+  display: block !important; 
   box-sizing: border-box !important;
   margin: 0 auto !important; 
   height: var(--ga-nav-height) !important;
-  justify-content: var(--ga-nav-text-align) !important; 
-  gap: var(--ga-nav-item-gap) !important;
   overflow-x: auto !important; 
   white-space: nowrap !important; 
   -webkit-overflow-scrolling: touch; 
@@ -34,26 +30,37 @@
   padding-left: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
   padding-right: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
   
-  /* 🎯 [추가] 메뉴 아이템들끼리 세로축 기준 윗줄/중앙/아래를 맞추는 변수 연동 */
-  align-items: var(--ga-nav-vertical-align, center) !important; 
+  /* 덩어리 가로 배치를 위한 정렬 속성 매핑 */
+  text-align: var(--ga-nav-text-align, left) !important; 
 }
 .ga-navi-inner::-webkit-scrollbar { display: none !important; }
 
 .ga-navi-item {
+  /* 🎯 [3차 검증 패치] 상자 정렬이 아닌 인라인 블록 타이포그래피 정렬 축 활성화 */
+  display: inline-block !important; 
+  height: auto !important;
   background: transparent !important; border: none !important; cursor: pointer !important;
   position: relative !important; text-decoration: none !important; transition: color 0.25s ease;
-  display: inline-flex !important; 
-  align-items: center !important; 
-  height: 100% !important;
   color: var(--ga-nav-text-color) !important; 
   font-size: var(--ga-nav-font-size) !important;
   font-weight: var(--ga-nav-font-weight) !important; 
   padding: var(--ga-nav-item-padding) !important;
   
-  /* 🎯 [추가] 1번/2번 요구사항: 대시보드 변수를 통한 2줄 줄간격 및 개별 글자 정렬 전역 동기화 */
+  /* 2줄 행간 비율 및 글자 정렬 전역 동기화 */
   line-height: var(--ga-nav-line-height, 1.35) !important;
   text-align: var(--ga-nav-item-text-align, center) !important;
+
+  /* 🎯 [추가] 1줄/2줄 메뉴명이 정밀하게 정렬 축에 맞춰 연동되도록 마스터 스위치 주입 */
+  vertical-align: var(--ga-nav-vertical-align, middle) !important;
 }
+
+/* 🎯 내부 실제 텍스트 스팬 태그 상속 정렬 매퍼 */
+.ga-navi-item span {
+  display: inline-block !important;
+  vertical-align: inherit !important;
+  text-align: inherit !important;
+}
+
 .ga-navi-item.active { color: var(--ga-nav-text-color-active) !important; }
 .ga-navi-item.active::after {
   content: '' !important; position: absolute !important; bottom: 0 !important;
