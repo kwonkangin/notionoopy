@@ -1,6 +1,6 @@
 /**
  * =========================================================================
- * 🚀 [GitHub Master Core Engine v4.6] 실시간 완전체/독립 포지셔닝 하이브리드 엔진
+ * 🚀 [GitHub Master Core Engine v4.8] 실시간 싱크/독립 기호 제어 마스터 엔진
  * =========================================================================
  */
 (function() {
@@ -105,45 +105,30 @@
           ${sel} div { text-align: var(--ga-quote-align) !important; }
         `;
       } 
-      // 🎯 [특수 리스트 분기 체임버 알고리즘]
+      // 🎯 [완결 오버라이딩 리스트 연산 아키텍처] 
       else if (['bullet', 'number', 'to_do'].includes(key)) {
-        const syncVal = getVar(`--ga-${vKey}-marker-sync`);
-        const alignVal = getVar(`--ga-${vKey}-align`);
-        const posVal = getVar(`--ga-${vKey}-marker-pos`);
-
-        if (syncVal === 'on') {
-          // ─── A 모드: 기호가 텍스트 정렬을 완전체로 끈끈하게 추종 ───
-          if (alignVal === 'left') {
-            css += `
-              ${sel} > div { display: flex !important; flex-direction: row !important; justify-content: flex-start !important; width: 100% !important; margin: 0 !important; }
-              ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
-              ${sel} div[contenteditable] { text-align: left !important; }
-            `;
-          } else if (alignVal === 'center') {
-            css += `
-              ${sel} > div { display: flex !important; flex-direction: row !important; justify-content: center !important; width: 100% !important; margin: 0 !important; }
-              ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
-              ${sel} div[contenteditable] { text-align: center !important; }
-            `;
-          } else if (alignVal === 'right') {
-            css += `
-              ${sel} > div { display: flex !important; flex-direction: row-reverse !important; justify-content: flex-end !important; width: 100% !important; margin: 0 !important; }
-              ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
-              ${sel} div[contenteditable] { text-align: right !important; }
-            `;
-          }
-        } else {
-          // ─── B 모드: 기호는 독립 정렬(최좌측/최우측) 상태 유지, 텍스트는 프리 핸들링 ───
-          let flexDir = 'row';
-          if (['far-right', 'right'].includes(posVal)) {
-            flexDir = 'row-reverse';
-          }
-          css += `
-            ${sel} > div { display: flex !important; flex-direction: ${flexDir} !important; justify-content: flex-start !important; width: 100% !important; margin: 0 !important; }
-            ${sel} > div > div:nth-of-type(2) { flex: 1 1 0px !important; width: 100% !important; }
-            ${sel} div[contenteditable] { text-align: ${alignVal} !important; }
-          `;
-        }
+        css += `
+          ${sel} > div { display: flex !important; width: 100% !important; margin: 0 !important; }
+          ${sel} div[contenteditable] { text-align: var(--ga-${vKey}-align) !important; }
+          
+          /* ─── 시나리오 A : 기호가 글자 방향을 완전체로 끈질기게 따라다님 (marker-sync: on) ─── */
+          :root:has([style*="--ga-${vKey}-marker-sync: on"]) ${sel} > div { flex-direction: row !important; }
+          :root:has([style*="--ga-${vKey}-marker-sync: on"]) ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
+          
+          :root:has([style*="--ga-${vKey}-marker-sync: on"]):has([style*="--ga-${vKey}-align: left"]) ${sel} > div { justify-content: flex-start !important; }
+          :root:has([style*="--ga-${vKey}-marker-sync: on"]):has([style*="--ga-${vKey}-align: center"]) ${sel} > div { justify-content: center !important; }
+          :root:has([style*="--ga-${vKey}-marker-sync: on"]):has([style*="--ga-${vKey}-align: right"]) ${sel} > div { justify-content: flex-end !important; }
+          
+          /* ─── 시나리오 B : 기호가 글자 방향을 따르지 않고 완전 분리 독립 (marker-sync: off) ─── */
+          :root:has([style*="--ga-${vKey}-marker-sync: off"]) ${sel} > div > div:nth-of-type(2) { flex: 1 1 0px !important; }
+          
+          /* 독립 가동 분기 B-1 : 기호를 최좌측(left)에 고정 박제 */
+          :root:has([style*="--ga-${vKey}-marker-sync: off"]):has([style*="--ga-${vKey}-marker-pos: left"]) ${sel} > div { flex-direction: row !important; justify-content: flex-start !important; }
+          
+          /* 독립 가동 분기 B-2 : 기호를 최우측(right)에 고정 박제 */
+          :root:has([style*="--ga-${vKey}-marker-sync: off"]):has([style*="--ga-${vKey}-marker-pos: right"]) ${sel} > div { flex-direction: row-reverse !important; justify-content: flex-end !important; }
+          :root:has([style*="--ga-${vKey}-marker-sync: off"]):has([style*="--ga-${vKey}-marker-pos: right"]) ${sel} > div > div:nth-of-type(1) { margin-left: 8px !important; margin-right: 0px !important; }
+        `;
       } else {
         css += `${sel} { text-align: var(--ga-${vKey}-align) !important; }\n`;
       }
@@ -182,12 +167,14 @@
 
   compileAndInjectStyles();
 
+  // 대시보드 무새로고침 가시성 변화 감지 도청기
   const liveObserver = new MutationObserver((mutations) => {
     const isOwn = mutations.every(m => m.target.id === 'ga-core-compiled-engine' || (m.addedNodes.length && m.addedNodes[0].id === 'ga-core-compiled-engine'));
     if (!isOwn) compileAndInjectStyles();
   });
   liveObserver.observe(document.head, { childList: true, subtree: true, characterData: true });
 
+  // 스크롤 트래킹 센서
   function startCoreScrollSensor() {
     const selectors = ['h1', 'h2', 'h3', 'h4', 'h5', '.notion-text-block', '.notion-quote-block', '.notion-bulleted_list-block', '.notion-numbered_list-block', '.notion-to_do-block'];
     const targets = [];
