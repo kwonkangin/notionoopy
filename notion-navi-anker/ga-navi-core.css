@@ -1,5 +1,5 @@
 /* ==========================================================
-   [Ga-Navi Core v2.7] 하드웨어 가변형 복합 레이아웃 CSS 코어
+   [Ga-Navi Core v2.8] 하드웨어 가변형 복합 레이아웃 CSS 코어
    ========================================================== */
 .ga-anchor-navi-container {
   /* 🎯 대시보드의 유동 변수(위치 모드, 가로폭)를 전역 동기화 */
@@ -21,22 +21,38 @@
 }
 
 .ga-navi-inner {
-  display: flex !important; align-items: center !important; box-sizing: border-box !important;
-  margin: 0 auto !important; height: var(--ga-nav-height) !important;
-  justify-content: var(--ga-nav-text-align) !important; gap: var(--ga-nav-item-gap) !important;
-  overflow-x: auto !important; white-space: nowrap !important; -webkit-overflow-scrolling: touch; 
+  display: flex !important; 
+  box-sizing: border-box !important;
+  margin: 0 auto !important; 
+  height: var(--ga-nav-height) !important;
+  justify-content: var(--ga-nav-text-align) !important; 
+  gap: var(--ga-nav-item-gap) !important;
+  overflow-x: auto !important; 
+  white-space: nowrap !important; 
+  -webkit-overflow-scrolling: touch; 
   max-width: var(--page-max-width, 1400px) !important;
   padding-left: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
   padding-right: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
+  
+  /* 🎯 [추가] 메뉴 아이템들끼리 세로축 기준 윗줄/중앙/아래를 맞추는 변수 연동 */
+  align-items: var(--ga-nav-vertical-align, center) !important; 
 }
 .ga-navi-inner::-webkit-scrollbar { display: none !important; }
 
 .ga-navi-item {
   background: transparent !important; border: none !important; cursor: pointer !important;
   position: relative !important; text-decoration: none !important; transition: color 0.25s ease;
-  display: inline-flex !important; align-items: center !important; height: 100% !important;
-  color: var(--ga-nav-text-color) !important; font-size: var(--ga-nav-font-size) !important;
-  font-weight: var(--ga-nav-font-weight) !important; padding: var(--ga-nav-item-padding) !important;
+  display: inline-flex !important; 
+  align-items: center !important; 
+  height: 100% !important;
+  color: var(--ga-nav-text-color) !important; 
+  font-size: var(--ga-nav-font-size) !important;
+  font-weight: var(--ga-nav-font-weight) !important; 
+  padding: var(--ga-nav-item-padding) !important;
+  
+  /* 🎯 [추가] 1번/2번 요구사항: 대시보드 변수를 통한 2줄 줄간격 및 개별 글자 정렬 전역 동기화 */
+  line-height: var(--ga-nav-line-height, 1.35) !important;
+  text-align: var(--ga-nav-item-text-align, center) !important;
 }
 .ga-navi-item.active { color: var(--ga-nav-text-color-active) !important; }
 .ga-navi-item.active::after {
@@ -50,12 +66,10 @@
    ========================================================== */
 @media (max-width: 768px) {
   .ga-anchor-navi-container { 
-    /* ◀ 하드코딩된 100vw를 제거하고 대시보드 변수 값을 그대로 상속받습니다. */
     width: var(--ga-nav-bg-width) !important; 
     max-width: 100vw !important;
     position: var(--ga-nav-position-mode) !important;
     
-    /* 🛠️ 박스형(100%) 일 때는 여백 정렬 규칙을 따르고, 전체형(100vw) 일 때만 좌측에 밀착시킵니다. */
     margin-left: calc((var(--ga-nav-bg-width) - 100vw) / 2 * (1 - var(--ga-nav-is-box))) !important;
     left: calc(0px * var(--ga-nav-is-box)) !important;
     right: calc(0px * var(--ga-nav-is-box)) !important;
