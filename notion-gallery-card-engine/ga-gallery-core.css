@@ -1,29 +1,38 @@
 /* ==========================================================
-   [Ga-Gallery Core v2.0] 글로벌 갤러리 카드 뼈대 CSS
+   [Ga-Gallery Core v2.2] 글로벌 갤러리 카드 뼈대 CSS (그리드 압축 패치)
    ========================================================== */
 
-/* 갤러리 뷰 본문 반응형 그리드 단 수 동적 매핑 */
+/* 1. 기본 상태 (변수가 지정되지 않았을 때 작동하는 안전 가이드라인) */
 .notion-gallery-view .css-2axpky, 
 .notion-gallery-view .css-11gm33a {
     display: grid !important;
-    grid-template-columns: repeat(var(--grid-cols-pc, auto-fill), minmax(260px, 1fr)) !important; /* 🛠️ 무력화 분치 시 깨짐현상 방지 연산 보정 */
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
     gap: 24px 18px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
+/* 2. 🌟 [핵심 대개조] 열 개수가 직접 지정되었을 때 절대로 우측 본문을 이탈하지 않도록 압축 제어 */
+.notion-gallery-view .css-2axpky {
+    grid-template-columns: repeat(var(--grid-cols-pc), minmax(0, 1fr)) !important;
+}
+.notion-gallery-view .css-11gm33a {
+    grid-template-columns: repeat(var(--grid-cols-pc), minmax(0, 1fr)) !important;
+}
+
+/* 태블릿 환경 반응형 압축 오버라이드 */
 @media (max-width: 1024px) {
-    .notion-gallery-view .css-2axpky, 
-    .notion-gallery-view .css-11gm33a { 
-        grid-template-columns: repeat(var(--grid-cols-tab, auto-fill), minmax(220px, 1fr)) !important; 
-    }
+    .notion-gallery-view .css-2axpky { grid-template-columns: repeat(var(--grid-cols-tab), minmax(0, 1fr)) !important; }
+    .notion-gallery-view .css-11gm33a { grid-template-columns: repeat(var(--grid-cols-tab), minmax(0, 1fr)) !important; }
 }
 
+/* 모바일 환경 반응형 압축 오버라이드 */
 @media (max-width: 560px) {
-    .notion-gallery-view .css-2axpky, 
-    .notion-gallery-view .css-11gm33a { 
-        grid-template-columns: repeat(var(--grid-cols-mob, 2), minmax(0, 1fr)) !important; 
-    }
+    .notion-gallery-view .css-2axpky { grid-template-columns: repeat(var(--grid-cols-mob, 2), minmax(0, 1fr)) !important; }
+    .notion-gallery-view .css-11gm33a { grid-template-columns: repeat(var(--grid-cols-mob, 2), minmax(0, 1fr)) !important; }
 }
 
+/* 카드 껍데기 복구 고정 스펙 */
 .notion-gallery-view .notion-page-block.notion-collection-item {
   width: 100% !important; min-width: 0 !important; margin: 0 !important; position: relative !important;
 }
