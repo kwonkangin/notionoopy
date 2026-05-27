@@ -1,29 +1,43 @@
 <style>
 .ga-anchor-navi-container {
   /* ==========================================================
-     [가변 배치 스위치] 원하는 공간 배치를 여기서 커스텀하세요!
+     [가변 배치 스위치]
      ========================================================= */
   --ga-nav-bg-width: 100vw;              /* 100vw : 전체 화면 가득 / 100% : 본문 제한 */
   --ga-nav-is-box: 0;                    /* 100vw 세팅 시 0 / 100% 세팅 시 1 (중앙 맞춤) */
   --ga-nav-position-mode: sticky;        /* sticky : 중간 스크롤 고정 / fixed : 상단 즉시 고정 */
 
-  /* 📐 [좌표 가변 매퍼] 정렬 요구사항에 맞춰 값을 수정하세요 (기본값: 상단 딱붙음) */
-  --ga-nav-offset-top: 0px;              /* 상단 고정 높이 (공백을 주려면 '20px' 등으로 조절) */
-  --ga-nav-offset-bottom: auto;          /* 하단 고정 여부 (바닥에 붙이려면 이 값을 '0px' 주고 top을 'auto' 처리) */
-  --ga-nav-offset-left: auto;            /* 좌측 고정 여부 (왼쪽 정렬 정밀 세팅 시 사용, 기본: auto) */
-  --ga-nav-offset-right: auto;           /* 우측 고정 여부 (오른쪽 정렬 정밀 세팅 시 사용, 기본: auto) */
+  --ga-nav-offset-top: 0px;              
+  --ga-nav-offset-bottom: auto;          
+  --ga-nav-offset-left: auto;            
+  --ga-nav-offset-right: auto;           
 
   /* ==========================================================
-     [디자인 세부 설정]
+     🎯 [정렬 및 줄바꿈 신규 대시보드 변수 세팅 바]
+     ========================================================== */
+  /* 1. 개별 메뉴 글자 줄간격 (기본값: 1.35배) */
+  --ga-nav-line-height: 1.35;
+
+  /* 2. 각 메뉴 안에서 글자를 어디로 정렬할지 (left: 좌측정렬, center: 중앙정렬, right: 우측정렬) */
+  --ga-nav-item-text-align: center;
+
+  /* 3. 메뉴명 '끼리' 윗줄을 맞출지, 중앙을 맞출지, 바닥을 맞출지 정하는 전체 높이 정렬 
+     (flex-start: 윗선 맞춤 / center: 상하 정중앙 맞춤 / flex-end: 바닥선 맞춤) */
+  --ga-nav-vertical-align: center;
+
+  /* 4. 전체 메뉴바 안에서 메뉴 무리들을 어느 쪽에 배치할지 (flex-start: 왼쪽 치우침, center: 네비바 정중앙) */
+  --ga-nav-text-align: flex-start;      
+
+  /* ==========================================================
+     [디자인 세부 사양 설정]
      ========================================================== */
   --ga-nav-bg-color: #111111;           
-  --ga-nav-height: 54px;                
-  --ga-nav-font-size: 15px;             
+  --ga-nav-height: 66px;                 /* 2줄 메뉴명을 위해 66px로 확장 권장 */
+  --ga-nav-font-size: 14px;             
   --ga-nav-font-weight: 600;            
   --ga-nav-letter-spacing: -0.3px;      
-  --ga-nav-item-gap: 10px;              
+  --ga-nav-item-gap: 12px;              
   --ga-nav-item-padding: 0 16px;        
-  --ga-nav-text-align: flex-start;      
   
   --ga-nav-text-color: rgba(255, 255, 255, 0.4);   
   --ga-nav-text-color-hover: rgba(255, 255, 255, 0.8);  
