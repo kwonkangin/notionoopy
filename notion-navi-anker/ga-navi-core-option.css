@@ -14,19 +14,19 @@
   --ga-nav-line-height: 1.35;            /* [기본: 1.35]   2줄 메뉴 상하 행간 비율 (추천: 1.2 ~ 1.5) */
   --ga-nav-item-text-align: center;      /* [기본: center] 개별 메뉴 글자 정렬: center / left / right */
   
-  /* 🎯 [3차 검증 완료 스위치] 메뉴간 폰트 베이스라인 동기화 제어판 */
-  --ga-nav-vertical-align: baseline;     /* [기본: baseline] 1줄/2줄첫줄 완벽맞춤: baseline / 상하가운데: middle / 머리선맞춤: top / 바닥상자맞춤: bottom */
+  /* 📐 메뉴명들의 세로 정렬 가이드 (정량 맞춤) */
+  --ga-nav-vertical-align: center;       /* [기본: center] 상하정중앙: center / 상단맞춤: flex-start / 하단맞춤: flex-end */
   
-  --ga-nav-text-align: left;             /* [기본: left]   메뉴무리 가로 배치: left(왼쪽정렬) / center(가운데정렬) / right(우측정렬) */
+  --ga-nav-text-align: flex-start;       /* [기본: flex-start] 메뉴무리 가로 배치: flex-start / center / flex-end */
 
   /* [3. 디자인 세부 사양 세팅] */
   --ga-nav-bg-color: #111111;            /* [기본: #111111] 네비바 배경색 (#Hex / rgb / rgba) */
   --ga-nav-height: 66px;                 /* [기본: 66px]   바 세로높이 (1줄전용: 54px / 2줄포함: 64px~70px) */
   --ga-nav-font-size: 14px;              /* [기본: 14px]   메뉴 글자 크기 */
-  --ga-nav-font-weight: 600;             /* [기본: 600]    글자 두께: 400(Reg) / 500(Med) / 600(Semi) / 700(Bold) */
+  --ga-nav-font-weight: 600;             /* [기본: 600]    글자 두께: 400 / 500 / 600 / 700 */
   --ga-nav-letter-spacing: -0.3px;       /* [기본: -0.3px]  글자 자간 */
   --ga-nav-item-gap: 12px;               /* [기본: 12px]   메뉴 탭과 탭 사이 간격 */
-  --ga-nav-item-padding: 12px 16px 0;    /* [기본: 12px 16px 0] 인라인 정렬 특성에 맞춘 패딩 세팅 (상 좌우 하 순서) */
+  --ga-nav-item-padding: 0 16px;         /* [기본: 0 16px]  개별 탭 내부 패딩 여백 (기본 정비율 마감) */
   
   --ga-nav-text-color: rgba(255, 255, 255, 0.4);      /* [기본] 비활성 메뉴 글자 색상 */
   --ga-nav-text-color-hover: rgba(255, 255, 255, 0.8); /* [기본] 마우스 호버시 글자 색상 */
