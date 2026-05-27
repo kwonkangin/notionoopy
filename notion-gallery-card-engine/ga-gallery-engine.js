@@ -1,6 +1,7 @@
+<script>
 /**
  * ==========================================================
- * [Ga-Gallery Engine v2.1] 순수 데이터 추출 및 컬러 가로채기 JS
+ * [Ga-Gallery Engine v2.2] 순수 데이터 추출 및 컬러 가로채기 JS
  * ==========================================================
  */
 (function () {
@@ -399,3 +400,89 @@
     observer.observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 })();
+</script>
+
+<style>
+/* ==========================================================
+   [Ga-Gallery Core v2.2] 글로벌 갤러리 카드 뼈대 CSS (그리드 압축 패치)
+   ========================================================== */
+
+/* 1. 기본 상태 (변수가 지정되지 않았을 때 작동하는 안전 가이드라인) */
+.notion-gallery-view .css-2axpky, 
+.notion-gallery-view .css-11gm33a {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    gap: 24px 18px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* 2. 🌟 [핵심 대개조] 열 개수가 직접 지정되었을 때 절대로 우측 본문을 이탈하지 않도록 압축 제어 */
+.notion-gallery-view .css-2axpky {
+    grid-template-columns: repeat(var(--grid-cols-pc), minmax(0, 1fr)) !important;
+}
+.notion-gallery-view .css-11gm33a {
+    grid-template-columns: repeat(var(--grid-cols-pc), minmax(0, 1fr)) !important;
+}
+
+/* 태블릿 환경 반응형 압축 오버라이드 */
+@media (max-width: 1024px) {
+    .notion-gallery-view .css-2axpky { grid-template-columns: repeat(var(--grid-cols-tab), minmax(0, 1fr)) !important; }
+    .notion-gallery-view .css-11gm33a { grid-template-columns: repeat(var(--grid-cols-tab), minmax(0, 1fr)) !important; }
+}
+
+/* 모바일 환경 반응형 압축 오버라이드 */
+@media (max-width: 560px) {
+    .notion-gallery-view .css-2axpky { grid-template-columns: repeat(var(--grid-cols-mob, 2), minmax(0, 1fr)) !important; }
+    .notion-gallery-view .css-11gm33a { grid-template-columns: repeat(var(--grid-cols-mob, 2), minmax(0, 1fr)) !important; }
+}
+
+/* 카드 껍데기 복구 고정 스펙 */
+.notion-gallery-view .notion-page-block.notion-collection-item {
+  width: 100% !important; min-width: 0 !important; margin: 0 !important; position: relative !important;
+}
+.notion-gallery-view .notion-collection-item a { position: relative !important; }
+
+.notion-gallery-view .notion-collection-item > a[style*="height: 100%"], 
+.notion-gallery-view .notion-collection-item > div > a {
+  display: flex !important; flex-direction: column !important; height: 100% !important; width: 100% !important; min-width: 0 !important;
+  background: var(--ga-card-bg, transparent) !important;
+  border: var(--ga-card-border-width, 0px) solid var(--ga-card-border-color, transparent) !important;
+  border-radius: var(--ga-card-radius, 0px) !important; box-shadow: var(--ga-card-shadow, none) !important;
+  overflow: hidden !important; text-decoration: none !important; transition: transform .18s ease, box-shadow .18s ease !important; cursor: pointer !important;
+}
+.notion-gallery-view .notion-collection-item > a:hover, 
+.notion-gallery-view .notion-collection-item > div > a:hover {
+  background: var(--ga-card-bg-hover, transparent) !important; box-shadow: var(--ga-card-shadow-hover, none) !important; transform: translateY(-2px) !important;
+}
+
+.notion-gallery-view .notion-collection-item a > *:not(.cardShell_a1b) {
+  opacity: 0.001 !important; position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important; height: 100% !important; pointer-events: none !important; z-index: -1 !important; overflow: hidden !important;
+}
+
+.cardShell_a1b { display: flex !important; flex-direction: column; width: 100%; min-width: 0; position: relative; z-index: 2; }
+.thumbWrap_c2d { position: relative; padding: var(--ga-thumb-padding, 0px); padding-bottom: 0; margin: 0; }
+.thumbBox_e3f { width: 100%; aspect-ratio: var(--ga-thumb-ratio, 1 / 1); border-radius: var(--ga-thumb-radius, 0px); overflow: hidden; background: var(--ga-thumb-bg, #f0efed); position: relative; }
+.efc_clonedBg_g4h { position: absolute !important; inset: 0 !important; background-size: var(--ga-thumb-fit, cover) !important; background-position: center !important; background-repeat: no-repeat !important; transition: transform .28s ease !important; width: 100% !important; height: 100% !important; z-index: 1 !important; }
+.notion-gallery-view .notion-collection-item a:hover .efc_clonedBg_g4h { transform: scale(1.035); }
+
+.tagBadge_i5j {
+  position: absolute; top: calc(var(--ga-thumb-padding, 0px) + 8px); right: calc(var(--ga-thumb-padding, 0px) + 8px); z-index: 3; padding: var(--ga-tag-padding, 4px 8px); border-radius: var(--ga-tag-radius, 4px); font-size: var(--ga-tag-size, 11px); font-weight: 600; line-height: 1; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,0.06); background: var(--ga-tag-bg, #ffffff); color: var(--ga-tag-color, #333333);
+}
+
+.contentArea_k6l { display: flex; flex-direction: column; gap: 5px; padding: var(--ga-content-padding, 10px); min-width: 0; flex: 1; }
+.cardTitle_m7n { font-size: var(--ga-title-size, 15px); font-weight: var(--ga-title-weight, 600); color: var(--ga-title-color, #222222); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: var(--ga-title-lines, 2); -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; white-space: normal; margin: 0; }
+.cardDesc_o8p { font-size: var(--ga-desc-size, 13px); color: var(--ga-desc-color, #666666); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: var(--ga-desc-lines, 1); -webkit-box-orient: vertical; overflow: hidden; white-space: normal; font-weight: 500; margin: 1px 0 0 0; }
+.metaInfo_q9r { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; align-items: center; min-width: 0; }
+.metaItem_w2x { display: flex; align-items: center; gap: 4px; font-size: var(--ga-meta-size, 12px); color: var(--ga-meta-color, #888888); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.avatarImg_s0t { width: var(--ga-avatar-size, 18px); height: var(--ga-avatar-size, 18px); border-radius: 99px; object-fit: cover; flex: 0 0 auto; }
+.extraPills_u1v { display: flex; flex-wrap: wrap; gap: var(--ga-extra-gap, 4px); align-items: center; }
+
+.notion-gallery-view .extraItem_y3z:not(:has(.pillBadge_z4a)) {
+  font-size: var(--ga-extra-text-size, 13px) !important; color: var(--ga-extra-color, #777777) !important; display: -webkit-box !important; -webkit-line-clamp: var(--ga-extra-text-lines, 1) !important; -webkit-box-orient: vertical !important; overflow: hidden !important; white-space: normal !important; word-break: break-all !important;
+}
+.notion-gallery-view .pillBadge_z4a {
+  display: inline-flex !important; align-items: center !important; padding: 3px 8px !important; border-radius: 6px !important; font-size: var(--ga-select-pill-size, 11px) !important; font-weight: 500 !important; line-height: 1 !important; background: rgba(55,53,47,0.06); color: var(--ga-extra-color, #555555);
+}
+</style>
