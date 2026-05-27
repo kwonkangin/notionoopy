@@ -1,9 +1,7 @@
 /**
  * =========================================================================
- * 🚀 [GitHub Master Core Engine v4.5] 기호 포지셔닝 융합형 컴파일러 엔진
+ * 🚀 [GitHub Master Core Engine v4.6] 조건부 기호 방향성 추적 마스터 코어
  * =========================================================================
- * - 기호(불릿, 숫자, 체크박스)의 위치를 단독 분리하거나 한 몸으로 묶어 배치하는 
- * 3세대 다이내믹 플렉스 치환 알고리즘이 탑재된 실시간 반응형 마스터 코어입니다.
  */
 (function() {
   const getVar = (name) => {
@@ -107,13 +105,25 @@
           ${sel} div { text-align: var(--ga-quote-align) !important; }
         `;
       } 
-      // 🎯 [핵심] 리스트 블록 3차원 기호 포지셔닝 기하학 컴파일 레이어
+      // 🎯 [완결판] 리스트 블록 매트릭스 방향 정렬 연산 처리 파트
       else if (['bullet', 'number', 'to_do'].includes(key)) {
+        const txtAlign = getVar(`--ga-${vKey}-align`);
+        const followText = getVar(`--ga-${vKey}-marker-follow-text`);
+        const markerSide = getVar(`--ga-${vKey}-marker-side`);
+
+        // 텍스트 정렬 방향과 기호의 상호작용 매트릭스 공식 판정
+        let flexDir = 'row';
+        if (followText === 'on') {
+          flexDir = (txtAlign === 'right') ? 'row-reverse' : 'row';
+        } else {
+          flexDir = (markerSide === 'right') ? 'row-reverse' : 'row';
+        }
+
         css += `
-          ${sel} > div { display: flex !important; width: 100% !important; margin: 0 !important; }
-          ${sel} div[contenteditable] { text-align: var(--ga-${vKey}-align) !important; }
+          ${sel} > div { display: flex !important; width: 100% !important; margin: 0 !important; flex-direction: ${flexDir} !important; }
+          ${sel} div[contenteditable] { text-align: ${txtAlign} !important; }
           
-          /* 가변 조건 분기 A : box-position 설정에 따른 플렉스 융합 */
+          /* 전체 박스 바깥 포지셔닝 배치 공식 */
           :root:has([style*="--ga-${vKey}-box-position: left"]) ${sel} > div { justify-content: flex-start !important; }
           :root:has([style*="--ga-${vKey}-box-position: left"]) ${sel} > div > div:nth-of-type(2) { flex: 1 1 0px !important; }
           
@@ -122,11 +132,14 @@
           
           :root:has([style*="--ga-${vKey}-box-position: right-box"]) ${sel} > div { justify-content: flex-end !important; }
           :root:has([style*="--ga-${vKey}-box-position: right-box"]) ${sel} > div > div:nth-of-type(2) { flex: 0 1 auto !important; }
-          
-          /* 가변 조건 분기 B : marker-side 기호 위치 좌우 스위칭 반전 연산 */
-          :root:has([style*="--ga-${vKey}-marker-side: right"]) ${sel} > div { flex-direction: row-reverse !important; }
-          :root:has([style*="--ga-${vKey}-marker-side: right"]) ${sel} > div > div:nth-of-type(1) { margin-left: 6px !important; margin-right: 0px !important; }
         `;
+
+        // 가로축이 반전(row-reverse)될 때 노션 기호 상자의 간격을 자연스럽게 재교정
+        if (flexDir === 'row-reverse') {
+          css += `${sel} > div > div:nth-of-type(1) { margin-left: 10px !important; margin-right: 0px !important; }\n`;
+        } else {
+          css += `${sel} > div > div:nth-of-type(1) { margin-right: 10px !important; margin-left: 0px !important; }\n`;
+        }
       } else {
         css += `${sel} { text-align: var(--ga-${vKey}-align) !important; }\n`;
       }
@@ -165,14 +178,12 @@
 
   compileAndInjectStyles();
 
-  // 대시보드 갱신 실시간 도청 장치
   const liveObserver = new MutationObserver((mutations) => {
     const isOwn = mutations.every(m => m.target.id === 'ga-core-compiled-engine' || (m.addedNodes.length && m.addedNodes[0].id === 'ga-core-compiled-engine'));
     if (!isOwn) compileAndInjectStyles();
   });
   liveObserver.observe(document.head, { childList: true, subtree: true, characterData: true });
 
-  // 스크롤 상시 동기화 센서
   function startCoreScrollSensor() {
     const selectors = ['h1', 'h2', 'h3', 'h4', 'h5', '.notion-text-block', '.notion-quote-block', '.notion-bulleted_list-block', '.notion-numbered_list-block', '.notion-to_do-block'];
     const targets = [];
