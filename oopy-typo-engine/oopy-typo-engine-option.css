@@ -1,180 +1,148 @@
 <style>
 :root {
   /* =========================================================================
-   * ⚙️ [1. 마스터 메인 스위치]
+   * ⚙️ [1. 마스터 메인 제어 스위치 총괄 구역]
    * ========================================================================= */
-  /* * [전체 시스템 총괄 스위치]
-   * - 의미: 이 주입 소스 전체를 가동할지, 아니면 노션 순정 상태로 완전히 되돌릴지 결정합니다.
-   * - 디폴트: on
-   * - 선택 가능 값: on (전체 커스텀 가동), off (모든 코드 비활성화 및 순정 복구)
-   */
-  --ga-system-main-switch: on;
-
-  /* * [모션 무한 반복 스위치]
-   * - 의미: 스크롤을 위아래로 오르락내리락할 때마다 애니메이션을 계속 반복할지 결정합니다.
-   * - 디폴트: on
-   * - 선택 가능 값: on (무한 반복), off (페이지 로딩 후 최초 1회만 모션 후 고정)
-   */
-  --ga-motion-repeat: on;
-
-  /* * [글로벌 모션 디테일 수치]
-   * - 의미: 글자가 나타나는 총 시간 및 속도 감속 곡선입니다.
-   * - 디폴트: duration -> 1.05s / easing -> 자석 곡선
-   * - 선택 가능 값: duration(시간초 e.g. 0.8s, 1.2s), easing(linear, ease-in-out 등 cubic-bezier 수식)
-   */
-  --ga-motion-duration: 1.05s;
-  --ga-motion-easing: cubic-bezier(0.16, 1, 0.3, 1);
-
+  --ga-system-main-switch: on;    /* 시스템 가동 스위치 | 디폴트: on | 선택 가능 값: on (전체 커스텀 패치 가동), off (모든 코드 정지 및 노션 순정 복구) */
+  --ga-motion-repeat: on;         /* 모션 무한 반복 여부 | 디폴트: on | 선택 가능 값: on (오르락내리락 시 무한 반복), off (최초 로딩 시 딱 1번만 실행 후 박제) */
+  --ga-motion-duration: 1.05s;    /* 모션 실행 총 시간  | 디폴트: 1.05s | 선택 가능 값: 임의의 시간초 수치 (예: 0.8s, 1.2s, 1.5s 등) */
+  --ga-motion-easing: cubic-bezier(0.16, 1, 0.3, 1); /* 모션 탄성 감속 곡선 | 디폴트: cubic-bezier 자석 공식 | 선택 가능 값: linear, ease-in-out 등 */
 
   /* =========================================================================
-   * 🎨 [2. 노션 순정 컬러 브랜드 치환 시스템 (Color Override)]
+   * 🎨 [2. 노션 순정 컬러 브랜드 치환 및 정렬 구역 (Color Override)]
+   * 좌측은 글자색(Text), 우측은 배경색(BG) 레이아웃으로 직관적으로 매핑 정렬했습니다.
    * ========================================================================= */
-  /* * [컬러 치환 기능 스위치]
-   * - 의미: 노션에서 설정한 기본 색상들을 아래 지정한 커스텀 HEX 색상으로 강제 업그레이드할지 결정합니다.
-   * - 디폴트: on
-   * - 선택 가능 값: on (컬러 치환 적용), off (노션 순정 색상 그대로 노출)
-   */
-  --ga-color-override: on;
-
-  /* * [컬러별 매핑 보드]
-   * - 의미: 왼쪽은 글자색(text), 오른쪽은 배경색(bg)을 의미합니다. 원하는 브랜드 컬러(HEX)를 적으세요.
-   * - 선택 가능 값: 모든 컬러 코드값 (예: #ffffff, rgba(0,0,0,0.1), transparent)
-   */
-  --ga-color-default-text: #37352f;
-  --ga-color-gray-text: #9b9a97;    --ga-color-gray-bg: #f1f1f1;
-  --ga-color-blue-text: #0b6e99;    --ga-color-blue-bg: #e3f2fd;
-  --ga-color-red-text: #e03e3e;     --ga-color-red-bg: #fde8e8;
-  --ga-color-green-text: #00856a;   --ga-color-green-bg: #e2f5f1;
-  --ga-color-brown-text: #64473a;   --ga-color-brown-bg: #f4f0ec;
-  --ga-color-orange-text: #d9730d;  --ga-color-orange-bg: #f9ebd9;
-  --ga-color-yellow-text: #dfab01;  --ga-color-yellow-bg: #fbf3db;
-  --ga-color-purple-text: #6940a5;  --ga-color-purple-bg: #f3edf8;
-  --ga-color-pink-text: #ad1a72;    --ga-color-pink-bg: #fce4ec;
-
+  --ga-color-override: on;        /* 브랜드 컬러 치환 스위치 | 디폴트: on | 선택 가능 값: on (색상 오버라이드 가동), off (노션 순정 색상 원형 노출) */
+  
+  --ga-color-default-text: #37352f;                                                   /* 순정 기본 글자색 치환 | 디폴트: #37352f | 선택: 모든 HEX/RGB 컬러 코드 */
+  --ga-color-gray-text: #9b9a97;    --ga-color-gray-bg: #f1f1f1;                      /* 회색 서식 강제 치환 | 디폴트: text(#9b9a97), bg(#f1f1f1) */
+  --ga-color-blue-text: #0b6e99;    --ga-color-blue-bg: #e3f2fd;                      /* 파란색 서식 강제 치환 | 디폴트: text(#0b6e99), bg(#e3f2fd) */
+  --ga-color-red-text: #e03e3e;     --ga-color-red-bg: #fde8e8;                      /* 빨간색 서식 강제 치환 | 디폴트: text(#e03e3e), bg(#fde8e8) */
+  --ga-color-green-text: #00856a;   --ga-color-green-bg: #e2f5f1;                      /* 초록색 서식 강제 치환 | 디폴트: text(#00856a), bg(#e2f5f1) */
+  --ga-color-brown-text: #64473a;   --ga-color-brown-bg: #f4f0ec;                      /* 갈색 서식 강제 치환 | 디폴트: text(#64473a), bg(#f4f0ec) */
+  --ga-color-orange-text: #d9730d;  --ga-color-orange-bg: #f9ebd9;                      /* 주황색 서식 강제 치환 | 디폴트: text(#d9730d), bg(#f9ebd9) */
+  --ga-color-yellow-text: #dfab01;  --ga-color-yellow-bg: #fbf3db;                      /* 노란색 서식 강제 치환 | 디폴트: text(#dfab01), bg(#fbf3db) */
+  --ga-color-purple-text: #6940a5;  --ga-color-purple-bg: #f3edf8;                      /* 보라색 서식 강제 치환 | 디폴트: text(#6940a5), bg(#f3edf8) */
+  --ga-color-pink-text: #ad1a72;    --ga-color-pink-bg: #fce4ec;                      /* 핑크색 서식 강제 치환 | 디폴트: text(#ad1a72), bg(#fce4ec) */
 
   /* =========================================================================
-   * 📝 [3. 헤드라인 타이틀 블록 가이드 (H1 ~ H5)]
+   * 📝 [3. 헤드라인 타이틀 블록 아카이빙 구역 (H1 ~ H5)]
    * ========================================================================= */
   
-  /* ─── [H1 : 메인 대타이틀 / 제목 1] ─── */
-  --ga-h1-custom: on;          /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-h1-motion: on;          /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-h1-size: 40px;          /* 글자 크기     | 디폴트: 40px | 선택: 임의 수치(px, em, rem) */
-  --ga-h1-weight: 850;         /* 글자 두께     | 디폴트: 850  | 선택: 100 ~ 900 (100단위) */
-  --ga-h1-align: center;       /* 글자 정렬     | 디폴트: center | 선택: left, center, right */
-  --ga-h1-delay: 0.08s;        /* 모션 시차     | 디폴트: 0.08s | 선택: 시간초(s) */
-  --ga-h1-tracking: -0.04em;   /* 자간(글자간격)| 디폴트: -0.04em | 선택: 부하수치(em, px) */
-  --ga-h1-leading: 1.3;        /* 행간(줄간격)  | 디폴트: 1.3  | 선택: 배수 수치(단위없음), px */
+  /* ─── [H1 : 대타이틀 / 제목 1] ─── */
+  --ga-h1-custom: on;          /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on (적용), off (노션 순정 상태 복구) */
+  --ga-h1-motion: on;          /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on (진입 시 모션 가동), off (애니메이션 제거) */
+  --ga-h1-size: 40px;          /* 글자 크기 조정     | 디폴트: 40px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-h1-weight: 850;         /* 글자 두께 굵기     | 디폴트: 850  | 선택 가능 값: 100 ~ 900 (100단위 설정 가능) */
+  --ga-h1-align: center;       /* 글자 정렬 위치     | 디폴트: center | 선택 가능 값: left, center, right */
+  --ga-h1-delay: 0.08s;        /* 모션 시차 딜레이   | 디폴트: 0.08s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-h1-tracking: -0.04em;   /* 자간 (글자 간격)  | 디폴트: -0.04em | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-h1-leading: 1.3;        /* 행간 (줄바꿈 간격)  | 디폴트: 1.3  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
 
-  /* ─── [H2 : 섹션 대제목 / 제목 2] ─── */
-  --ga-h2-custom: on;          /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-h2-motion: on;          /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-h2-size: 32px;          /* 글자 크기     | 디폴트: 32px | 선택: 임의 수치(px, em) */
-  --ga-h2-weight: 800;         /* 글자 두께     | 디폴트: 800  | 선택: 100 ~ 900 */
-  --ga-h2-align: center;       /* 글자 정렬     | 디폴트: center | 선택: left, center, right */
-  --ga-h2-delay: 0.18s;        /* 모션 시차     | 디폴트: 0.18s | 선택: 시간초(s) */
-  --ga-h2-tracking: -0.03em;   /* 자간         | 디폴트: -0.03em | 선택: em, px */
-  --ga-h2-leading: 1.35;       /* 행간         | 디폴트: 1.35 | 선택: 배수수치 */
+  /* ─── [H2 : 섹션 제목 / 제목 2] ─── */
+  --ga-h2-custom: on;          /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h2-motion: on;          /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h2-size: 32px;          /* 글자 크기 조정     | 디폴트: 32px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-h2-weight: 800;         /* 글자 두께 굵기     | 디폴트: 800  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-h2-align: center;       /* 글자 정렬 위치     | 디폴트: center | 선택 가능 값: left, center, right */
+  --ga-h2-delay: 0.18s;        /* 모션 시차 딜레이   | 디폴트: 0.18s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-h2-tracking: -0.03em;   /* 자간 (글자 간격)  | 디폴트: -0.03em | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-h2-leading: 1.35;       /* 행간 (줄바꿈 간격)  | 디폴트: 1.35 | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
 
-  /* ─── [H3 : 중간 제목 / 제목 3] ─── */
-  --ga-h3-custom: on;          /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-h3-motion: on;          /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-h3-size: 28px;          /* 글자 크기     | 디폴트: 28px | 선택: 임의 수치(px, em) */
-  --ga-h3-weight: 750;         /* 글자 두께     | 디폴트: 750  | 선택: 100 ~ 900 */
-  --ga-h3-align: center;       /* 글자 정렬     | 디폴트: center | 선택: left, center, right */
-  --ga-h3-delay: 0.24s;        /* 모션 시차     | 디폴트: 0.24s (H2와 H4의 징검다리 박자) */
-  --ga-h3-tracking: -0.02em;   /* 자간         | 디폴트: -0.02em | 선택: em, px */
-  --ga-h3-leading: 1.4;        /* 행간         | 디폴트: 1.4  | 선택: 배수수치 */
+  /* ─── [H3 : 서브 소제목 / 제목 3] ─── */
+  --ga-h3-custom: on;          /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h3-motion: on;          /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h3-size: 28px;          /* 글자 크기 조정     | 디폴트: 28px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-h3-weight: 750;         /* 글자 두께 굵기     | 디폴트: 750  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-h3-align: center;       /* 글자 정렬 위치     | 디폴트: center | 선택 가능 값: left, center, right */
+  --ga-h3-delay: 0.24s;        /* 모션 시차 딜레이   | 디폴트: 0.24s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-h3-tracking: -0.02em;   /* 자간 (글자 간격)  | 디폴트: -0.02em | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-h3-leading: 1.4;        /* 행간 (줄바꿈 간격)  | 디폴트: 1.4  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
 
-  /* ─── [H4 : 중간 안내 / 상품명] ─── */
-  --ga-h4-custom: on;          /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-h4-motion: on;          /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-h4-size: 24px;          /* 글자 크기     | 디폴트: 24px | 선택: 임의 수치 */
-  --ga-h4-weight: 700;         /* 글자 두께     | 디폴트: 700  | 선택: 100 ~ 900 */
-  --ga-h4-align: center;       /* 글자 정렬     | 디폴트: center | 선택: left, center, right */
-  --ga-h4-delay: 0.28s;        /* 모션 시차     | 디폴트: 0.28s | 선택: 시간초(s) */
-  --ga-h4-tracking: -0.01em;   /* 자간         | 디폴트: -0.01em | 선택: em, px */
-  --ga-h4-leading: 1.45;       /* 행간         | 디폴트: 1.45 | 선택: 배수수치 */
+  /* ─── [H4 : 상품 안내 / 제목 4] ─── */
+  --ga-h4-custom: on;          /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h4-motion: on;          /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h4-size: 24px;          /* 글자 크기 조정     | 디폴트: 24px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-h4-weight: 700;         /* 글자 두께 굵기     | 디폴트: 700  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-h4-align: center;       /* 글자 정렬 위치     | 디폴트: center | 선택 가능 값: left, center, right */
+  --ga-h4-delay: 0.28s;        /* 모션 시차 딜레이   | 디폴트: 0.28s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-h4-tracking: -0.01em;   /* 자간 (글자 간격)  | 디폴트: -0.01em | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-h4-leading: 1.45;       /* 행간 (줄바꿈 간격)  | 디폴트: 1.45 | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
 
-  /* ─── [H5 : 소안내 타이틀] ─── */
-  --ga-h5-custom: on;          /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-h5-motion: on;          /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-h5-size: 18px;          /* 글자 크기     | 디폴트: 18px | 선택: 임의 수치 */
-  --ga-h5-weight: 600;         /* 글자 두께     | 디폴트: 600  | 선택: 100 ~ 900 */
-  --ga-h5-align: center;       /* 글자 정렬     | 디폴트: center | 선택: left, center, right */
-  --ga-h5-delay: 0.36s;        /* 모션 시차     | 디폴트: 0.36s | 선택: 시간초(s) */
-  --ga-h5-tracking: 0em;       /* 자간         | 디폴트: 0em   | 선택: em, px */
-  --ga-h5-leading: 1.5;        /* 행간         | 디폴트: 1.5  | 선택: 배수수치 */
-
+  /* ─── [H5 : 소안내 문구 / 제목 5] ─── */
+  --ga-h5-custom: on;          /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h5-motion: on;          /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-h5-size: 18px;          /* 글자 크기 조정     | 디폴트: 18px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-h5-weight: 600;         /* 글자 두께 굵기     | 디폴트: 600  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-h5-align: center;       /* 글자 정렬 위치     | 디폴트: center | 선택 가능 값: left, center, right */
+  --ga-h5-delay: 0.36s;        /* 모션 시차 딜레이   | 디폴트: 0.36s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-h5-tracking: 0em;       /* 자간 (글자 간격)  | 디폴트: 0em     | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-h5-leading: 1.5;        /* 행간 (줄바꿈 간격)  | 디폴트: 1.5  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
 
   /* =========================================================================
-   * 📋 [4. 일반 본문 및 노션 특수 서식 블록 제어판]
+   * 📋 [4. 일반 본문 및 특수 서식 블록 전역 아카이빙 구역]
    * ========================================================================= */
   
-  /* ─── [General Text : 일반 본문 텍스트] ─── */
-  --ga-text-custom: on;        /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-text-motion: on;        /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-text-size: 16px;        /* 글자 크기     | 디폴트: 16px */
-  --ga-text-weight: 400;       /* 글자 두께     | 디폴트: 400 (일반 본문 굵기) */
-  --ga-text-align: center;     /* 글자 정렬     | 디폴트: center | 선택: left, center, right */
-  --ga-text-delay: 0.40s;      /* 모션 시차     | 디폴트: 0.40s (타이틀이 모두 뜬 후 등장) */
-  --ga-text-tracking: 0em;     /* 자간         | 디폴트: 0em */
-  --ga-text-leading: 1.6;      /* 행간         | 디폴트: 1.6 (본문 가독성 최적화 수치) */
+  /* ─── [Text : 일반 본문 텍스트] ─── */
+  --ga-text-custom: on;        /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-text-motion: on;        /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-text-size: 16px;        /* 글자 크기 조정     | 디폴트: 16px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-text-weight: 400;       /* 글자 두께 굵기     | 디폴트: 400  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-text-align: center;     /* 글자 정렬 위치     | 디폴트: center | 선택 가능 값: left, center, right */
+  --ga-text-delay: 0.40s;      /* 모션 시차 딜레이   | 디폴트: 0.40s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-text-tracking: 0em;     /* 자간 (글자 간격)  | 디폴트: 0em     | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-text-leading: 1.6;      /* 행간 (줄바꿈 간격)  | 디폴트: 1.6  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
 
-  /* ─── [Quote : 큰 인용 / 기본 인용] ─── */
-  --ga-quote-custom: on;       /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-quote-motion: on;       /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-quote-size: 24px;       /* 글자 크기     | 디폴트: 24px */
-  --ga-quote-weight: 700;      /* 글자 두께     | 디폴트: 700 */
-  --ga-quote-align: center;    /* 글자 정렬     | 디폴트: center | 선택: left, center, right */
-  --ga-quote-delay: 0.30s;     /* 모션 시차     | 디폴트: 0.30s */
-  --ga-quote-tracking: 0.05em; /* 자간         | 디폴트: 0.05em */
-  --ga-quote-leading: 1.8;     /* 행간         | 디폴트: 1.8 */
-  /* [인용구 특화 레이아웃 옵션] */
-  --ga-quote-width: fit-content;            /* 프레임 폭   | 디폴트: fit-content (글자길이 압축) | 선택: 100% (전체폭) */
-  --ga-quote-box-position: center;          /* 블록의 위치 | 디폴트: center (화면중앙) | 선택: left, right */
-  --ga-quote-border-left: 6px solid #ad1a72; /* 왼쪽 선 형태 | 디폴트: 6px 실선 | 선택: 두께/종류/색상 혹은 none(삭제) */
-  --ga-quote-border-right: none;            /* 오른쪽 선 형태| 디폴트: none     | 선택: 6px solid #ad1a72 혹은 none */
-  --ga-quote-bg: rgba(173, 26, 114, 0.05);  /* 배경 음영   | 디폴트: 5% 투명 핑크 | 선택: 모든 색상코드 및 transparent */
+  /* ─── [Quote : 인용 블록 서식] ─── */
+  --ga-quote-custom: on;       /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-quote-motion: on;       /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-quote-size: 24px;       /* 글자 크기 조정     | 디폴트: 24px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-quote-weight: 700;      /* 글자 두께 굵기     | 디폴트: 700  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-quote-delay: 0.30s;     /* 모션 시차 딜레이   | 디폴트: 0.30s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-quote-tracking: 0.05em; /* 자간 (글자 간격)  | 디폴트: 0.05em | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-quote-leading: 1.8;     /* 행간 (줄바꿈 간격)  | 디폴트: 1.8  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
+  --ga-quote-bg: rgba(173, 26, 114, 0.05);  /* 인용구 박스 배경색 | 디폴트: 연한 핑크 투명 음영 | 선택 가능 값: 임의의 색상 코드 또는 transparent */
+  --ga-quote-border-style: 6px solid #ad1a72; /* 인용 수직 선 스타일| 디폴트: 6px 실선 핑크 | 선택 가능 값: 두께/종류/색상 수식 일괄 입력 */
+  --ga-quote-align: center;    /* 🌟글자 내부 정렬   | 디폴트: center | 선택 가능 값: left, center, right */
+  --ga-quote-marker-sync: on;  /* 🌟인용바 완전체 동행| 디폴트: on (인용선이 텍스트박스 옆에 딱 붙어 이동) | 선택 가능 값: on, off (인용선이 화면 끝에 고정) */
+  --ga-quote-marker-pos: left; /* 🌟인용바 위치 배치   | 디폴트: left (인용 바가 왼쪽에 위치) | 선택 가능 값: left (왼쪽 선), right (오른쪽 선) */
 
   /* ─── [Bulleted List : 글머리 기호 (•)] ─── */
-  /* 💡 주의: 리스트형 블록은 '기호'는 왼쪽에 유지되며, 오직 '우측의 글자 내용'만 지정한 방향으로 정렬됩니다. */
-  --ga-bullet-custom: on;      /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-bullet-motion: on;      /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-bullet-size: 18px;      /* 글자 크기     | 디폴트: 18px */
-  --ga-bullet-weight: 500;     /* 글자 두께     | 디폴트: 500 */
-  --ga-bullet-align: right;    /* 🌟글자 내용정렬| 디폴트: right | 선택: left, center, right */
-  --ga-bullet-delay: 0.32s;    /* 모션 시차     | 디폴트: 0.32s */
-  --ga-bullet-tracking: -0.02em;/* 자간        | 디폴트: -0.02em */
-  --ga-bullet-leading: 1.5;    /* 행간         | 디폴트: 1.5 */
+  --ga-bullet-custom: on;      /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-bullet-motion: on;      /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-bullet-size: 18px;      /* 글자 크기 조정     | 디폴트: 18px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-bullet-weight: 500;     /* 글자 두께 굵기     | 디폴트: 500  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-bullet-delay: 0.32s;    /* 모션 시차 딜레이   | 디폴트: 0.32s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-bullet-tracking: -0.02em;/* 자간 (글자 간격)  | 디폴트: -0.02em | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-bullet-leading: 1.5;    /* 행간 (줄바꿈 간격)  | 디폴트: 1.5  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
+  --ga-bullet-align: right;    /* 🌟글자 내용 정렬   | 디폴트: right | 선택 가능 값: left, center, right */
+  --ga-bullet-marker-sync: on; /* 🌟기호 완전체 동행  | 디폴트: on (글머리 기호가 글자 왼쪽에 바짝 동행) | 선택 가능 값: on, off */
+  --ga-bullet-marker-pos: left;/* 🌟독립 모드 기호위치 | 의미: sync가 off일 때만 적용 | 선택 가능 값: left (최좌측 고정), right (최우측 고정) */
 
   /* ─── [Numbered List : 숫자 매기기 (1.)] ─── */
-  --ga-number-custom: on;      /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-number-motion: on;      /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-number-size: 18px;      /* 글자 크기     | 디폴트: 18px */
-  --ga-number-weight: 500;     /* 글자 두께     | 디폴트: 500 */
-  --ga-number-align: center;   /* 🌟글자 내용정렬| 디폴트: center | 선택: left, center, right */
-  --ga-number-delay: 0.34s;    /* 모션 시차     | 디폴트: 0.34s */
-  --ga-number-tracking: 0.02em;/* 자간         | 디폴트: 0.02em */
-  --ga-number-leading: 1.5;    /* 행간         | 디폴트: 1.5 */
+  --ga-number-custom: on;      /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-number-motion: on;      /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-number-size: 18px;      /* 글자 크기 조정     | 디폴트: 18px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-number-weight: 500;     /* 글자 두께 굵기     | 디폴트: 500  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-number-delay: 0.34s;    /* 모션 시차 딜레이   | 디폴트: 0.34s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-number-tracking: 0.02em;/* 자간 (글자 간격)  | 디폴트: 0.02em | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-number-leading: 1.5;    /* 행간 (줄바꿈 간격)  | 디폴트: 1.5  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
+  --ga-number-align: right;    /* 🌟글자 내용 정렬   | 디폴트: right | 선택 가능 값: left, center, right */
+  --ga-number-marker-sync: on; /* 🌟숫자 완전체 동행  | 디폴트: on (숫자 기호가 글자 왼쪽에 바짝 동행) | 선택 가능 값: on, off */
+  --ga-number-marker-pos: left;/* 🌟독립 모드 기호위치 | 의미: sync가 off일 때만 적용 | 선택 가능 값: left (최좌측 고정), right (최우측 고정) */
 
   /* ─── [To-Do List : 할일 목록 ([ ] Checkbox)] ─── */
-  --ga-todo-custom: on;        /* 커스텀 스위치 | 디폴트: on | 선택: on, off */
-  --ga-todo-motion: on;        /* 모션 스위치   | 디폴트: on | 선택: on, off */
-  --ga-todo-size: 16px;        /* 글자 크기     | 디폴트: 16px */
-  --ga-todo-weight: 600;       /* 글자 두께     | 디폴트: 600 */
-  --ga-todo-align: right;      /* 🌟글자 내용정렬| 디폴트: right | 선택: left, center, right */
-  --ga-todo-delay: 0.38s;      /* 모션 시차     | 디폴트: 0.38s */
-  --ga-todo-tracking: 0em;     /* 자간         | 디폴트: 0em */
-  --ga-todo-leading: 1.5;      /* 행간         | 디폴트: 1.5 */
-  /* [취소선 특화 체임버 옵션] */
-  /* - 의미: 노션에서 본문에 '취소선' 서식을 입혔을 때 출력될 형태를 변경합니다.
-   * - 디폴트: underline
-   * - 선택 가능 값: 
-   * 1) line-through : 원래 취소선 원형 그대로 가로선 유지 출력
-   * 2) underline    : 취소선을 완전히 제거하고, 두꺼운 언더라인(밑줄 강조) 서식으로 치환출력
-   */
-  --ga-todo-strike-mode: underline;
+  --ga-todo-custom: on;        /* 커스텀 활성화 여부 | 디폴트: on | 선택 가능 값: on, off */
+  --ga-todo-motion: on;        /* 스크롤 모션 여부   | 디폴트: on | 선택 가능 값: on, off */
+  --ga-todo-size: 16px;        /* 글자 크기 조정     | 디폴트: 16px | 선택 가능 값: 임의 크기 수치 (px, em, rem) */
+  --ga-todo-weight: 600;       /* 글자 두께 굵기     | 디폴트: 600  | 선택 가능 값: 100 ~ 900 (100단위) */
+  --ga-todo-delay: 0.38s;      /* 모션 시차 딜레이   | 디폴트: 0.38s | 선택 가능 값: 원하는 지연 시간초 (s) */
+  --ga-todo-tracking: 0em;     /* 자간 (글자 간격)  | 디폴트: 0em     | 선택 가능 값: 음수/양수 수치 (em, px) */
+  --ga-todo-leading: 1.5;      /* 행간 (줄바꿈 간격)  | 디폴트: 1.5  | 선택 가능 값: 배수 수치 (단위 없음) 또는 px */
+  --ga-todo-align: right;      /* 🌟글자 내용 정렬   | 디폴트: right | 선택 가능 값: left, center, right */
+  --ga-todo-marker-sync: on;   /* 🌟체크박스 완전동행 | 디폴트: on (체크박스가 글자 왼쪽에 바짝 동행) | 선택 가능 값: on, off */
+  --ga-todo-marker-pos: left;  /* 🌟독립 모드 기호위치 | 의미: sync가 off일 때만 적용 | 선택 가능 값: left (최좌측 고정), right (최우측 고정) */
+  --ga-todo-strike-mode: underline; /* 🎯취소선 서식 치환 모드 | 디폴트: underline | 선택 가능 값: underline (취소선을 밑줄 강조로 변환), line-through (원래 가로 취소선 유지) */
 }
 </style>
 
