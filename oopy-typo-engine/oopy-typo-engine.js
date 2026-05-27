@@ -1,6 +1,6 @@
 /**
  * =========================================================================
- * 🚀 [GitHub Master Core Engine v5.0] 실시간 무새로고침 완전체 정렬 매스터 엔진
+ * 🚀 [GitHub Master Core Engine v5.2] 인용구 바 동기화 및 무새로고침 최종 마스터 엔진
  * =========================================================================
  */
 (function() {
@@ -97,52 +97,76 @@
         }
       `;
 
+      // 🎯 [인용 블록(Quote) 완전체 동행/독립 듀얼 알고리즘]
       if (key === 'quote') {
+        const qSync = getVar('--ga-quote-marker-sync') === 'on';
+        const qAlign = getVar('--ga-quote-align');
+        const qPos = getVar('--ga-quote-marker-pos');
+
         css += `
-          ${sel} { width: var(--ga-quote-width) !important; background-color: var(--ga-quote-bg) !important; padding: 15px 20px !important; }
+          ${sel} { 
+            background-color: var(--ga-quote-bg) !important; 
+            padding: 15px 20px !important;
+          }
           ${sel}[style*="margin"] { margin-top: 4px !important; margin-bottom: 4px !important; }
-          ${sel} > div > div { border-left: var(--ga-quote-border-left) !important; border-right: var(--ga-quote-border-right) !important; text-align: var(--ga-quote-align) !important; }
-          ${sel} div { text-align: var(--ga-quote-align) !important; }
+        `;
+
+        if (qSync) {
+          // 인용구 동행 모드 -> fit-content 형태로 상자가 긴밀하게 압축 연산 처리됨
+          let qMargin = 'margin-left: 0px !important; margin-right: auto !important;';
+          if (qAlign === 'center') qMargin = 'margin-left: auto !important; margin-right: auto !important;';
+          if (qAlign === 'right') qMargin = 'margin-left: auto !important; margin-right: 0px !important;';
+
+          css += `
+            ${sel} { width: fit-content !important; max-width: 100% !important; ${qMargin} }
+          `;
+        } else {
+          // 인용구 독립 모드 -> 100% 꽉 찬 전체 상자 유지
+          css += `
+            ${sel} { width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+          `;
+        }
+
+        // 인용구 선(Bar) 위치 분기 매핑 인터페이스
+        let bLeft = 'none', bRight = 'none';
+        let pLeft = '14px', pRight = '14px';
+        if (qPos === 'right') {
+          bRight = 'var(--ga-quote-border-style)'; pRight = '18px'; pLeft = '0px';
+        } else {
+          bLeft = 'var(--ga-quote-border-style)'; pLeft = '18px'; pRight = '0px';
+        }
+
+        css += `
+          ${sel} > div > div {
+            border-left: ${bLeft} !important;
+            border-right: ${bRight} !important;
+            padding-left: ${pLeft} !important;
+            padding-right: ${pRight} !important;
+            text-align: ${qAlign} !important;
+          }
+          ${sel} div, ${sel} span { text-align: ${qAlign} !important; }
         `;
       } 
-      // 🎯 [대개조 파트] 리스트 계열 싱크/독립 완벽 구동 제어 컴파일
+      // 🎯 [리스트형 블록 완전체 동행/독립 듀얼 알고리즘]
       else if (['bullet', 'number', 'to_do'].includes(key)) {
         const syncMode = getVar(`--ga-${vKey}-marker-sync`) === 'on';
         const alignVal = getVar(`--ga-${vKey}-align`);
         const posVal = getVar(`--ga-${vKey}-marker-pos`);
 
         if (syncMode) {
-          // [시나리오 1] 완전체 대동행 모드 (on) -> 기호는 무조건 왼쪽에 박제, 세트 전체가 이동
-          let marginRule = 'margin-left: 0px !important; margin-right: auto !important;'; // left 기본
+          let marginRule = 'margin-left: 0px !important; margin-right: auto !important;';
           if (alignVal === 'center') marginRule = 'margin-left: auto !important; margin-right: auto !important;';
           if (alignVal === 'right') marginRule = 'margin-left: auto !important; margin-right: 0px !important;';
 
           css += `
-            ${sel} {
-              width: fit-content !important;
-              max-width: 100% !important;
-              ${marginRule}
-            }
-            ${sel} > div {
-              display: flex !important;
-              flex-direction: row !important; /* 기호가 무조건 왼쪽순서 고정 */
-              width: 100% !important;
-            }
-            ${sel} div[contenteditable] {
-              text-align: left !important; /* 기호 오른쪽에 바짝 밀착되도록 격벽 해제 */
-            }
+            ${sel} { width: fit-content !important; max-width: 100% !important; ${marginRule} }
+            ${sel} > div { display: flex !important; flex-direction: row !important; width: 100% !important; }
+            ${sel} div[contenteditable] { text-align: left !important; }
           `;
         } else {
-          // [시나리오 2] 독립 배치 모드 (off) -> 텍스트는 100% 전체화면에서 정렬, 기호는 양 끝단 고정
           css += `
-            ${sel} {
-              width: 100% !important;
-              margin-left: 0 !important;
-              margin-right: 0 !important;
-            }
-            ${sel} div[contenteditable] {
-              text-align: ${alignVal} !important;
-            }
+            ${sel} { width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+            ${sel} div[contenteditable] { text-align: ${alignVal} !important; }
           `;
           if (posVal === 'right') {
             css += `
@@ -193,14 +217,14 @@
 
   compileAndInjectStyles();
 
-  // 대시보드 무새로고침 가시성 변화 감지 장치
+  // 대시보드 실시간 반응 변경 가시성 도청 레이어 가동
   const liveObserver = new MutationObserver((mutations) => {
     const isOwn = mutations.every(m => m.target.id === 'ga-core-compiled-engine' || (m.addedNodes.length && m.addedNodes[0].id === 'ga-core-compiled-engine'));
     if (!isOwn) compileAndInjectStyles();
   });
   liveObserver.observe(document.head, { childList: true, subtree: true, characterData: true });
 
-  // 스크롤 트래킹 센서
+  // 스크롤 상시 관측 센서
   function startCoreScrollSensor() {
     const selectors = ['h1', 'h2', 'h3', 'h4', 'h5', '.notion-text-block', '.notion-quote-block', '.notion-bulleted_list-block', '.notion-numbered_list-block', '.notion-to_do-block'];
     const targets = [];
