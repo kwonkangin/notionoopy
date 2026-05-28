@@ -1,0 +1,44 @@
+/* * =========================================================================
+ * 📝 [숏코드 사용 방법 및 가이드라인]
+ * =========================================================================
+ * 양식: [$ button | 버튼 문구 | 이동할 URL | 배경 색상 | 글자 색상 $]
+ * 예시: [$ button | 상품 구경 하기 | {% URL %} | #FF4600 | #ffffff $]
+ * * 💡 [기능 매개변수 설명]
+ * 1. 버튼 문구 : 버튼 내부에 노출될 텍스트 (예: 상품 구경 하기)
+ * 2. 이동할 URL : 클릭 시 연동될 주소 (노션 속성 치환 태그 {% URL %} 및 일반 주소 지원)
+ * 3. 배경 색상 : 버튼의 바탕색 (#HEX 코드 또는 영문 색상명 입력)
+ * 4. 글자 색상 : 버튼 내부 글자색 (#HEX 코드 또는 영문 색상명 입력)
+ * * ✨ [시각 효과 스펙]
+ * 평상시에는 애니메이션 움직임이 전혀 없이 본문 프레임 안에 깔끔하게 정지해 있으며,
+ * 마우스 커서를 가져다 대면(Hover) 부드러운 쿠션 효과와 함께 3% 확대(Zoom-in)되며 그림자가 짙어집니다.
+ */
+
+.full-width {
+    width: 100% !important;
+}
+
+/* 평상시 버튼 기본 디자인 구역 (움직임 없음) */
+.ga-dynamic-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    padding: 13px 16px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+    margin: 8px 0 !important;
+    transform: scale(1) !important;
+    /* 쫀득한 확대를 위해 cubic-bezier 자석 감속 공식 적용 */
+    transition: opacity 250ms, transform 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms !important;
+}
+
+/* 마우스를 올렸을 때(Hover) 변주 구역 */
+.ga-dynamic-btn:hover {
+    opacity: 0.95 !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
+    transform: scale(1.03) !important; /* 커서 배치 시 3% 부드러운 확대 */
+}
