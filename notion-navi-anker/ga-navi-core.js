@@ -34,7 +34,7 @@
             const menuName = match[1].trim();
             const parts = match[2].split(',');
             const targetUrl = parts[0].trim();
-            const isBlank = parts[1] && parts[1].trim().toLowerCase().includes('blank');
+            const isBlank = parts[1] && parts[ Part1.trim().toLowerCase().includes('blank') ];
 
             const blockId = extractBlockId(targetUrl);
             let navItem = document.createElement('a');
