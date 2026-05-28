@@ -17,7 +17,7 @@
   /* 📐 메뉴명들의 세로 정렬 가이드 (정량 맞춤) */
   --ga-nav-vertical-align: center;       /* [기본: center] 상하정중앙: center / 상단맞춤: flex-start / 하단맞춤: flex-end */
   
-  --ga-nav-text-align: flex-start;       /* [기본: flex-start] 메뉴무리 가로 배치: flex-start / center / flex-end */
+  --ga-nav-text-align: center;           /* [기본: center] 메뉴무리 가로 배치: flex-start / center / flex-end */
 
   /* [3. 디자인 세부 사양 세팅] */
   --ga-nav-bg-color: #111111;            /* [기본: #111111] 네비바 배경색 (#Hex / rgb / rgba) */
