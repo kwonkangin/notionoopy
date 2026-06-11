@@ -1,5 +1,56 @@
 /*
 
+<!-- 토글 디자인 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/toggle-master/toggle-master-core.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/toggle-master/toggle-master-core.js" defer></script>
+
+<!-- 토글 디자인 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@27f6aec22ed500cfeace1114f0c55c39e5817cc8/toggle-master/toggle-master-core.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@27f6aec22ed500cfeace1114f0c55c39e5817cc8/toggle-master/toggle-master-core.js" defer></script>
+
+
+<style>
+:root {
+  /* [1] 아이콘 모드 (1: 순정 ▶ / 2: +, - / 3: v, ㅅ) */
+  --tg-mode: 3;
+
+  /* [2] 아이콘 스타일 및 레이아웃 */
+  --tg-use-icon-auto-size: 1;       /* 1: 글자 크기 비례, 0: 고정 크기 */
+  --tg-icon-size: 20px;             /* 고정 크기일 때(0) 픽셀값 */
+  --tg-icon-color: #FF5500;         /* 아이콘 색상 */
+  --tg-position: row;               /* row: 좌측, row-reverse: 우측 */
+  --tg-icon-vertical-align: center; /* 수직 정렬: flex-start, center, flex-end */
+  --tg-text-align: left;            /* 텍스트 가로 정렬: left, center, right */
+
+  /* [3] 개별 서식 (1: 켬, 0: 끔-기본값) */
+  /* H1 제목 토글 */
+  --tg-use-h1: 1;
+  --tg-h1-size: 1.85em; --tg-h1-color: #111; --tg-h1-weight: 700;
+
+  /* H2 제목 토글 */
+  --tg-use-h2: 1;
+  --tg-h2-size: 1.5em; --tg-h2-color: #222; --tg-h2-weight: 700;
+
+  /* H3 제목 토글 */
+  --tg-use-h3: 1;
+  --tg-h3-size: 1.25em; --tg-h3-color: #333; --tg-h3-weight: 600;
+
+  /* H4 제목 토글 */
+  --tg-use-h4: 1;
+  --tg-h4-size: 1.15em; --tg-h4-color: #444; --tg-h4-weight: 600;
+
+  /* 일반 텍스트 토글 (제목) */
+  --tg-use-text-title: 1;
+  --tg-text-title-size: 1.05em; --tg-text-title-color: #37352f; --tg-text-title-weight: 500;
+
+  /* 일반 텍스트 토글 (본문) */
+  --tg-use-text-content: 1;
+  --tg-text-content-size: 0.95em; --tg-text-content-color: #666; --tg-text-content-weight: 400;
+}
+</style>
+
+
+
 <style>
 :root {
   /* 🎛️ [1] 토글 마스터 모드 선택 스위치 */
@@ -68,5 +119,6 @@
   --tg-text-content-weight: 400;
 }
 </style>
+
 
 */
