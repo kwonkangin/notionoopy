@@ -17,7 +17,7 @@
   /* [2] 아이콘 스타일 및 레이아웃 */
   --tg-use-icon-auto-size: 1;       /* 1: 글자 크기 비례, 0: 고정 크기 */
   --tg-icon-size: 20px;             /* 고정 크기일 때(0) 픽셀값 */
-  --tg-icon-color: #FF5500;         /* 아이콘 색상 */
+  --tg-icon-color: #37352f;         /* 아이콘 색상 기본 #37352f* */
   --tg-position: row;               /* row: 좌측, row-reverse: 우측 */
   --tg-icon-vertical-align: center; /* 수직 정렬: flex-start, center, flex-end */
   --tg-text-align: left;            /* 텍스트 가로 정렬: left, center, right */
@@ -68,7 +68,7 @@
   --tg-icon-size: 20px;        /* 수동(0) 모드일 때 적용되는 아이콘 픽셀 크기 */
 
   /* 🎨 [3] 토글 공통 디자인 서식 (모드 2, 3 전용) */
-  --tg-icon-color: #FF5500;    /* 아이콘 색상 (HEX, RGB 등 자유 입력) */
+  --tg-icon-color: #37352f;    /* 아이콘 색상 (HEX, RGB 등 자유 입력) 기본 #37352f*/
   --tg-position: row;          /* 아이콘 배치 방향 | row: 좌측 / row-reverse: 우측 */
   --tg-text-align: left;       /* 토글 전체 가로 정렬 | left, center, right */
   
