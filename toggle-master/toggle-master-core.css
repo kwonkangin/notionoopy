@@ -1,0 +1,142 @@
+/* ==========================================================
+  [Notion Toggle Master v1.0 - Core Render Engine]
+  * 설명: 브라우저 DOM 구조를 해석하여 토글 디자인을 렌더링하는 핵심 CSS 코어입니다.
+  * 경고: 구조가 파괴될 수 있으므로 이 파일은 임의로 수정하지 마세요.
+  ========================================================== 
+*/
+
+/* --------------------------------------------------------
+   [MODE 1] 노션 순정 모드: 오리지널 SVG 아이콘 복구 및 커스텀 기호 차단
+   -------------------------------------------------------- */
+html[data-tg-mode="1"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"] svg {
+    display: block !important;
+}
+html[data-tg-mode="1"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]::after {
+    display: none !important;
+}
+
+/* --------------------------------------------------------
+   [MODE 2 & 3 공통] 노션 순정 SVG 숨김 처리
+   -------------------------------------------------------- */
+html[data-tg-mode="2"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"] svg,
+html[data-tg-mode="3"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"] svg {
+    display: none !important;
+}
+
+/* --------------------------------------------------------
+   [SIZE 분기] 아이콘 픽셀 고정 크기 통일 모드 (스위치 0)
+   -------------------------------------------------------- */
+html[data-tg-icon-auto="0"] {
+  & :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"] {
+      position: relative !important; width: 24px !important; height: 24px !important;
+  }
+  & :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]::after {
+      font-size: var(--tg-icon-size) !important;
+      width: var(--tg-icon-size) !important; height: var(--tg-icon-size) !important;
+  }
+}
+
+/* --------------------------------------------------------
+   [SIZE 분기] 타이틀/텍스트 폰트 크기 자동 비례 매핑 모드 (스위치 1)
+   -------------------------------------------------------- */
+html[data-tg-icon-auto="1"] {
+  & :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"] {
+      position: relative !important; width: 1.2em !important; height: 1.2em !important;
+  }
+  & :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]::after {
+      font-size: 1em !important; width: 1em !important; height: 1em !important;
+  }
+}
+
+/* [MODE 2 & 3 공통] 아이콘 레이아웃 및 트랜지션 초기화 */
+html[data-tg-mode="2"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]::after,
+html[data-tg-mode="3"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]::after {
+    content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: var(--tg-icon-color); line-height: 1; display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+/* --------------------------------------------------------
+   [MODE 2] '+' / '-' 텍스트 기호 강제 바인딩 로직
+   -------------------------------------------------------- */
+/* 닫힘(+) 상태 매핑 */
+html[data-tg-mode="2"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]::after {
+    content: '+' !important; font-weight: 400 !important;
+}
+/* 열림(-) 상태 매핑 및 일반/제목 토글의 aria 상태 감지 추적 */
+html[data-tg-mode="2"] .notion-toggle-block div[role="button"][aria-label="접기"]::after,
+html[data-tg-mode="2"] :is(.notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]:has(svg[style*="rotateZ(180deg)"])::after {
+    content: '-' !important;
+}
+/* 모드 2 - 수동 크기 모드일 때의 (-) 기호 시각적 중앙 보정 */
+html[data-tg-mode="2"][data-tg-icon-auto="0"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"][aria-label="접기"]::after,
+html[data-tg-mode="2"][data-tg-icon-auto="0"] :is(.notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]:has(svg[style*="rotateZ(180deg)"])::after {
+    font-size: calc(var(--tg-icon-size) + 4px) !important; transform: translate(-50%, -54%) !important;
+}
+/* 모드 2 - 자동 크기 모드일 때의 (-) 기호 시각적 중앙 보정 */
+html[data-tg-mode="2"][data-tg-icon-auto="1"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"][aria-label="접기"]::after,
+html[data-tg-mode="2"][data-tg-icon-auto="1"] :is(.notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]:has(svg[style*="rotateZ(180deg)"])::after {
+    font-size: 1.2em !important; transform: translate(-50%, -54%) !important;
+}
+
+/* --------------------------------------------------------
+   [MODE 3] 커스텀 SVG (V / ㅅ) 고속 회전 바인딩 로직
+   -------------------------------------------------------- */
+/* 닫힘(V) 상태 매핑 및 마스크 URL 주입 */
+html[data-tg-mode="3"] :is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]::after {
+    background-color: var(--tg-icon-color) !important;
+    transform: translate(-50%, -50%) rotate(0deg);
+    -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolyline points='20,35 50,65 80,35' fill='none' stroke='black' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolyline points='20,35 50,65 80,35' fill='none' stroke='black' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+}
+/* 열림(ㅅ) 상태 매핑 (180도 애니메이션 회전) */
+html[data-tg-mode="3"] .notion-toggle-block div[role="button"][aria-label="접기"]::after,
+html[data-tg-mode="3"] :is(.notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) div[role="button"]:has(svg[style*="rotateZ(180deg)"])::after {
+    transform: translate(-50%, -50%) rotate(180deg) !important;
+}
+
+/* --------------------------------------------------------
+   📐 위치, 가로 정렬 및 수직 정렬 공통 바인딩 (배경 제외)
+   -------------------------------------------------------- */
+/* 방향(좌/우) 및 수직(위/가운데/아래) 정렬 연동 */
+.notion-toggle-block > div:first-child,
+:is(.notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) > div > div:first-child {
+    flex-direction: var(--tg-position) !important;
+    align-items: var(--tg-icon-vertical-align) !important; 
+    gap: 8px;
+}
+/* 전체 텍스트 가로 정렬 연동 */
+:is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) {
+    text-align: var(--tg-text-align) !important;
+}
+
+/* --------------------------------------------------------
+   🎨 각 타이틀 및 텍스트 폰트 서식 개별 ON/OFF 렌더링 엔진
+   -------------------------------------------------------- */
+/* [H1] 제목1 토글 서식 오버라이드 */
+html[data-tg-use-h1="1"] .notion-header-block h2 {
+    font-size: var(--tg-h1-size) !important; color: var(--tg-h1-color) !important; font-weight: var(--tg-h1-weight) !important;
+}
+/* [H2] 제목2 토글 서식 오버라이드 */
+html[data-tg-use-h2="1"] .notion-sub_header-block h3 {
+    font-size: var(--tg-h2-size) !important; color: var(--tg-h2-color) !important; font-weight: var(--tg-h2-weight) !important;
+}
+/* [H3] 제목3 토글 서식 오버라이드 */
+html[data-tg-use-h3="1"] .notion-sub_sub_header-block h4 {
+    font-size: var(--tg-h3-size) !important; color: var(--tg-h3-color) !important; font-weight: var(--tg-h3-weight) !important;
+}
+/* [H4] 제목4 토글 서식 오버라이드 */
+html[data-tg-use-h4="1"] .notion-header_4-block h5 {
+    font-size: var(--tg-h4-size) !important; color: var(--tg-h4-color) !important; font-weight: var(--tg-h4-weight) !important;
+}
+/* [Text-Title] 일반 텍스트 토글 제목 서식 오버라이드 */
+html[data-tg-use-text-title="1"] .notion-toggle-block > div > div:nth-child(2) > div:first-child [contenteditable] {
+    font-size: var(--tg-text-title-size) !important; color: var(--tg-text-title-color) !important; font-weight: var(--tg-text-title-weight) !important;
+}
+/* [Text-Content] 일반 텍스트 토글 내부 본문 서식 오버라이드 */
+html[data-tg-use-text-content="1"] .notion-toggle-block > div > div:nth-child(2) > div:nth-child(2) {
+    font-size: var(--tg-text-content-size) !important; color: var(--tg-text-content-color) !important; font-weight: var(--tg-text-content-weight) !important;
+}
