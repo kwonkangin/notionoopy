@@ -140,3 +140,19 @@ html[data-tg-use-text-title="1"] .notion-toggle-block > div > div:nth-child(2) >
 html[data-tg-use-text-content="1"] .notion-toggle-block > div > div:nth-child(2) > div:nth-child(2) {
     font-size: var(--tg-text-content-size) !important; color: var(--tg-text-content-color) !important; font-weight: var(--tg-text-content-weight) !important;
 }
+
+/* ==========================================================
+   ⚡ [렌더링 가속] 토글 하위 콘텐츠 펼침 애니메이션 지연 제거
+   ========================================================== */
+/* 일반 토글 및 제목(H1~H4) 토글의 하위 콘텐츠 래퍼를 정밀 타겟팅하여 애니메이션 강제 종료 */
+:is(.notion-toggle-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block) > div > div:nth-child(2) > div:nth-child(2) {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+}
+
+/* 우피(Oopy) 내부에서 생성하는 아코디언 확장 전용 클래스의 딜레이 추가 차단 */
+.notion-toggle-content,
+[class*="toggle-content"] {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+}
