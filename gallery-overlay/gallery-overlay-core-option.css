@@ -1,0 +1,181 @@
+/*
+
+<!-- 토글 디자인 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/gallery-overlay/gallery-overlay-core.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/gallery-overlay/gallery-overlay-core.js" defer></script>
+
+
+--------------------------------------
+
+<script>
+// 🎯 타겟 설정 (keyword: 갤러리/탭 이름, hideTitle: 제목숨김, hideTabs: 탭숨김)
+window.GA_GALLERY_TARGETS = [
+  { keyword: "흰반팔티 리스트", hideTitle: true, hideTabs: false },
+  { keyword: "갤러리", hideTitle: false, hideTabs: true }
+];
+</script>
+
+<style>
+:root {
+  /* 📐 1. 그리드 & 형태 */
+  --ga-cols-pc: 2; --ga-cols-tab: 3; --ga-cols-mob: 2; 
+  --ga-ratio: 3/4;           /* 썸네일 비율 (1/1, 16/9, 4/3, 3/4 등) */
+  --ga-grid-gap: 16px;       /* 카드 간 간격 */
+  --ga-card-radius: 0px;     /* 카드 모서리 라운드 */
+
+  /* 🎛️ 2. 위치 및 정렬 */
+  --ga-v-align: flex-start;  /* 상하정렬: flex-start, center, flex-end */
+  --ga-h-align: flex-start;  /* 좌우정렬: flex-start, center, flex-end */
+  --ga-t-align: flex-start;  /* 텍스트정렬: left, center, right */
+  --ga-text-width: 80%;      /* 텍스트 영역 가로폭 */
+  --ga-item-gap: 8px;        /* 요소 간 세로 간격 */
+
+  /* 🔄 3. 상하 배치 순서 (낮은 숫자가 위로) */
+  --ga-order-title: 2; --ga-order-prop1: 1; --ga-order-prop2: 3; --ga-order-prop3: 4;       
+
+  /* 🎨 4. 배경 딤(Dim) 필터 */
+  --ga-dim-hex: #000000; --ga-dim-opacity: 0.45; 
+  --ga-card-padding: 14px;   /* 카드 내부 여백 */
+
+  /* 📝 5. 텍스트 서식 (use: 1=켬, 0=끔-기본값 / color는 항상 적용) */
+  --ga-line-height: 1.4;     /* 텍스트 행간 */
+
+  /* 타이틀 */
+  --ga-title-color: #ffffff; 
+  --ga-use-title: 1; --ga-title-size: 1.2em; --ga-title-weight: 700;
+
+  /* 표시 속성 1번째 */
+  --ga-prop1-color: #f1f1f1; 
+  --ga-use-prop1: 1; --ga-prop1-size: 1.05em; --ga-prop1-weight: 400;
+
+  /* 표시 속성 2번째 */
+  --ga-prop2-color: rgba(255, 255, 255, 0.7); 
+  --ga-use-prop2: 1; --ga-prop2-size: 1.05em; --ga-prop2-weight: 600;
+
+  /* 표시 속성 3번째 */
+  --ga-prop3-color: rgba(255, 255, 255, 0.5); 
+  --ga-use-prop3: 0; --ga-prop3-size: 0.75em; --ga-prop3-weight: 400;
+}
+
+/* 💻 태블릿용 반응형 설정 (1024px 이하) */
+@media (max-width: 1024px) {
+  :root {
+    --ga-text-width: 90%;      
+    --ga-card-padding: 12px;   
+    --ga-title-size: 1.1em;    
+    --ga-prop1-size: 0.95em; --ga-prop2-size: 0.95em;
+  }
+}
+
+/* 📱 모바일용 반응형 설정 (768px 이하) */
+@media (max-width: 768px) {
+  :root {
+    --ga-text-width: 100%;     
+    --ga-card-padding: 10px;   
+    --ga-item-gap: 6px;        
+    --ga-title-size: 1em;      
+    --ga-prop1-size: 0.9em; --ga-prop2-size: 0.9em;
+  }
+}
+</style>
+
+------------------------------------------------------
+
+<script>
+window.GA_GALLERY_TARGETS = [
+  // keyword: 타겟으로 잡을 갤러리 제목 또는 탭 이름의 일부
+  // hideTitle: 갤러리 뷰 제목 숨김 여부 (true/false)
+  // hideTabs: 갤러리 뷰 탭 숨김 여부 (true/false)
+  { keyword: "흰반팔티 리스트", hideTitle: true, hideTabs: false },
+  { keyword: "갤러리", hideTitle: false, hideTabs: true }
+];
+</script>
+
+<style>
+/* ==========================================================
+   🖥️ 기본 (PC 데스크톱) 설정 영역
+   ========================================================== */
+:root {
+  /* 📐 1. 썸네일 그리드 & 형태 */
+  --ga-cols-pc: 2;           /* PC: 한 줄에 보일 썸네일 개수 */
+  --ga-cols-tab: 3;          /* 태블릿: 한 줄에 보일 썸네일 개수 */
+  --ga-cols-mob: 2;          /* 모바일: 한 줄에 보일 썸네일 개수 */
+  --ga-ratio: 3/4;           /* 썸네일 이미지 비율 (1/1, 16/9, 4/3 등) */
+  --ga-grid-gap: 16px;       /* 썸네일 간의 간격 (Gap) */
+  --ga-card-radius: 0px;     /* 썸네일 모서리 둥글기 (Radius) */
+
+  /* 🎛️ 2. 콘텐츠 위치 및 레이아웃 */
+  --ga-v-align: flex-start;  /* 상중하 정렬 (flex-start, center, flex-end) */
+  --ga-h-align: flex-start;  /* 좌중우 정렬 (flex-start, center, flex-end) */
+  --ga-t-align: flex-start;  /* 텍스트 정렬 (left, center, right) */
+  --ga-text-width: 80%;      /* 텍스트 영역의 넓이 (100%시 꽉 참) */
+  --ga-item-gap: 8px;        /* 타이틀과 속성 텍스트들 사이의 간격 */
+
+  /* 🔄 3. 상하 배치 순서 (번호가 작을수록 제일 위에 쌓임) */
+  --ga-order-title: 2;       /* 타이틀 */
+  --ga-order-prop1: 1;       /* 속성 1번째 */
+  --ga-order-prop2: 3;       /* 속성 2번째 */
+  --ga-order-prop3: 4;       /* 속성 3번째 */
+
+  /* 🎨 4. 이미지 배경 딤(Dim) 처리 */
+  --ga-dim-hex: #000000;     /* 딤 배경색 (기본 검정) */
+  --ga-dim-opacity: 0.45;    /* 투명도 (0.0 ~ 1.0) */
+  --ga-card-padding: 14px;   /* 카드 안쪽 여백 */
+
+  /* 📝 5. 텍스트 서식 스위치 (1: 커스텀 켬 / 0: 기본값) */
+  --ga-line-height: 1.4;     /* 전체 텍스트 행간 */
+
+  /* 타이틀 폰트 서식 */
+  --ga-title-color: #ffffff; 
+  --ga-use-title: 1; 
+  --ga-title-size: 1.2em; 
+  --ga-title-weight: 700;
+
+  /* 속성 1번째 폰트 서식 */
+  --ga-prop1-color: #f1f1f1; 
+  --ga-use-prop1: 1; 
+  --ga-prop1-size: 1.05em; 
+  --ga-prop1-weight: 400;
+
+  /* 속성 2번째 폰트 서식 */
+  --ga-prop2-color: rgba(255, 255, 255, 0.7); 
+  --ga-use-prop2: 1; 
+  --ga-prop2-size: 1.05em; 
+  --ga-prop2-weight: 600;
+
+  /* 속성 3번째 폰트 서식 */
+  --ga-prop3-color: rgba(255, 255, 255, 0.5); 
+  --ga-use-prop3: 0; 
+  --ga-prop3-size: 0.75em; 
+  --ga-prop3-weight: 400;
+}
+
+/* ==========================================================
+   💻 태블릿 (Tablet) 화면 반응형 설정 (화면폭 1024px 이하)
+   ========================================================== */
+@media (max-width: 1024px) {
+  :root {
+    --ga-text-width: 90%;      
+    --ga-card-padding: 12px;   
+    --ga-title-size: 1.1em;    
+    --ga-prop1-size: 0.95em;
+    --ga-prop2-size: 0.95em;
+  }
+}
+
+/* ==========================================================
+   📱 모바일 (Mobile) 화면 반응형 설정 (화면폭 768px 이하)
+   ========================================================== */
+@media (max-width: 768px) {
+  :root {
+    --ga-text-width: 100%;     
+    --ga-card-padding: 10px;   
+    --ga-item-gap: 6px;        
+    --ga-title-size: 1em;      
+    --ga-prop1-size: 0.9em;
+    --ga-prop2-size: 0.9em;
+  }
+}
+</style>
+
+*/
