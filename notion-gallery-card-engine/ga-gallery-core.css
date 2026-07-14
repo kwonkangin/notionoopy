@@ -38,7 +38,7 @@
   width: 100% !important; min-width: 0 !important; margin: 0 !important; position: relative !important;
 }
 .notion-gallery-view .notion-collection-item > div[role="button"],
-.notion-gallery-view .notion-collection-item > a { position: relative !important; }
+.notion-gallery-view .notion-collection-item a { position: relative !important; }
 
 /* ✨ [수정 사항] 글로벌 스위치가 1일 때만 우리가 디자인한 카드 가이드라인 배경, 선, 라운딩, 그림자 부여 */
 .notion-gallery-view:has(.notion-collection-item[style*="--ga-enable-custom: 1"]) .notion-collection-item refinement-zone,
