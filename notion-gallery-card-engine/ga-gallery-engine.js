@@ -81,11 +81,15 @@
 
   function getCardRoot(card) {
     try {
-      return card.querySelector(':scope > a > div[role="button"]') ||
+      // 🌟 [패치] 새롭게 바뀐 노션 앵커 태그(div[role="button"]) 탐색 루트 추가
+      return card.querySelector(':scope > div[role="button"]') ||
+             card.querySelector(':scope > div[aria-label="collection tile"]') ||
+             card.querySelector(':scope > a > div[role="button"]') ||
              card.querySelector(':scope > a > div') ||
              card.querySelector('a > div[role="button"]') ||
              card.querySelector('a > div') ||
-             card.querySelector('a');
+             card.querySelector('a') ||
+             card.querySelector(':scope > div');
     } catch (e) { return null; }
   }
 
@@ -220,6 +224,12 @@
       var cardRoot = getCardRoot(card);
       if (!cardRoot) return [];
       var children = Array.from(cardRoot.children).filter(function (el) { return el && el.nodeType === 1 && !el.classList.contains('cardShell_a1b'); });
+      
+      // 🌟 [패치] 노션 새 구조: 1뎁스 래퍼가 한 겹 더 생겼으므로 뚫고 들어갑니다.
+      if (children.length === 1 && children[0].tagName.toLowerCase() === 'div') {
+          children = Array.from(children[0].children).filter(function(el) { return el && el.nodeType === 1 && !el.classList.contains('cardShell_a1b'); });
+      }
+      
       if (!children.length) return [];
       var title = getTitle(cardRoot);
       var propArea = null;
@@ -372,8 +382,13 @@
       if (extrasEl.children.length) content.appendChild(extrasEl);
       shell.appendChild(thumbWrap); shell.appendChild(content);
 
-      if(cardRoot.tagName && cardRoot.tagName.toLowerCase() === 'a') { cardRoot.appendChild(shell); } 
-      else { var actualAnchor = cardRoot.closest('a') || cardRoot.querySelector('a'); actualAnchor ? actualAnchor.appendChild(shell) : cardRoot.appendChild(shell); }
+      // 🌟 [패치] <a> 태그가 없어도 cardRoot(div[role="button"])에 가상 카드를 직접 Append 하도록 수정
+      if(cardRoot.tagName && (cardRoot.tagName.toLowerCase() === 'a' || cardRoot.getAttribute('role') === 'button' || cardRoot.hasAttribute('tabindex'))) { 
+          cardRoot.appendChild(shell); 
+      } else { 
+          var actualAnchor = cardRoot.closest('a') || cardRoot.querySelector('a'); 
+          actualAnchor ? actualAnchor.appendChild(shell) : cardRoot.appendChild(shell); 
+      }
       card.dataset.gaBuilt = '1';
     } catch (e) { try { card.dataset.gaBuilt = 'err'; } catch (e2) {} }
   }
