@@ -1,6 +1,6 @@
 /**
  * ==========================================================
- * [Ga-Gallery Engine v2.2] 순수 데이터 추출 및 컬러 가로채기 JS
+ * [Ga-Gallery Engine v2.4] 순수 데이터 추출 및 컬러 가로채기 JS
  * ==========================================================
  */
 (function () {
@@ -81,13 +81,15 @@
 
   function getCardRoot(card) {
     try {
+      // 🌟 [패치] <a>가 지워지고 생긴 div[role="button"] 루트 추가
       return card.querySelector(':scope > div[role="button"]') ||
              card.querySelector(':scope > div[aria-label="collection tile"]') ||
              card.querySelector(':scope > a > div[role="button"]') ||
              card.querySelector(':scope > a > div') ||
              card.querySelector('a > div[role="button"]') ||
              card.querySelector('a > div') ||
-             card.querySelector('a');
+             card.querySelector('a') ||
+             card.querySelector(':scope > div');
     } catch (e) { return null; }
   }
 
@@ -223,10 +225,11 @@
       if (!cardRoot) return [];
       var children = Array.from(cardRoot.children).filter(function (el) { return el && el.nodeType === 1 && !el.classList.contains('cardShell_a1b'); });
       
+      // 🌟 [패치] 노션 1뎁스 래퍼가 한 겹 더 생겼을 경우 뚫고 들어가는 로직
       if (children.length === 1 && children[0].tagName.toLowerCase() === 'div') {
         children = Array.from(children[0].children).filter(function(el) { return el && el.nodeType === 1 && !el.classList.contains('cardShell_a1b'); });
       }
-      
+
       if (!children.length) return [];
       var title = getTitle(cardRoot);
       var propArea = null;
@@ -307,6 +310,10 @@
       var cssUseColorVar = (readCssVar(card, '--ga-use-notion-color', '1')).trim();
       var useColorTrigger = cssUseColorVar === '1';
 
+      // 🌟 [패치] CSS 변수를 읽어내어 커스텀 도장(Class)을 찍어주는 스마트 스위치 로직
+      var enableCustom = (readCssVar(card, '--ga-enable-custom', '1')).trim();
+      if (enableCustom === '1') { card.classList.add('ga-custom-mode'); }
+
       var shell = document.createElement('article'); shell.className = 'cardShell_a1b';
       var thumbWrap = document.createElement('figure'); thumbWrap.className = 'thumbWrap_c2d';
       var thumbBox = document.createElement('div'); thumbBox.className = 'thumbBox_e3f';
@@ -379,7 +386,8 @@
       if (extrasEl.children.length) content.appendChild(extrasEl);
       shell.appendChild(thumbWrap); shell.appendChild(content);
 
-      if(cardRoot.tagName && (cardRoot.tagName.toLowerCase() === 'a' || cardRoot.getAttribute('role') === 'button')) { 
+      // 🌟 [패치] <a> 태그 대신 바뀐 노션 구조(div[role="button"])에도 카드가 붙도록 예외 처리
+      if(cardRoot.tagName && (cardRoot.tagName.toLowerCase() === 'a' || cardRoot.getAttribute('role') === 'button' || cardRoot.hasAttribute('tabindex'))) { 
         cardRoot.appendChild(shell); 
       } else { 
         var actualAnchor = cardRoot.closest('a') || cardRoot.querySelector('a'); 
