@@ -4,178 +4,218 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/gallery-overlay/gallery-overlay-core.css">
 <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/gallery-overlay/gallery-overlay-core.js" defer></script>
 
-
+*/
 --------------------------------------
 
+
+/* 20260721 기준 */
+
+/*  에픽션 노션 갤러리 제어 엔진 - 전체 설정 코드 백업
+  적용 방법: 아래 :root 구역 전체를 복사하여 노션 또는 우피의 커스텀 CSS 최상단에 붙여넣기 하세요. */
+
 <script>
-// 🎯 타겟 설정 (keyword: 갤러리/탭 이름, hideTitle: 제목숨김, hideTabs: 탭숨김)
+// 에픽션 노션 갤러리 타겟 및 속성 설정
+// 파일명: epiction-user-config.js
+
+// 갤러리 뷰 적용 대상 지정. 
+// keyword 입력값: 갤러리 제목이나 탭에 포함된 텍스트
+// hideTitle 입력값: true 숨김, false 노출. 기본값 true
+// hideTabs 입력값: true 숨김, false 노출. 기본값 true
 window.GA_GALLERY_TARGETS = [
-  { keyword: "흰반팔티 리스트", hideTitle: true, hideTabs: false },
-  { keyword: "갤러리", hideTitle: false, hideTabs: true }
+  { keyword: "흰반팔티", hideTitle: true, hideTabs: true },
+  { keyword: "갤러리", hideTitle: true, hideTabs: true }
+];
+
+// 통합 관리 속성명 자동 맵핑 배열
+// 데이터베이스에 등록된 속성 순서대로 이름을 기입합니다.
+// 기본값 아래 명시된 16개 항목
+window.GA_PROP_NAMES = [
+  "추천 대상", "브랜드명", "생성 일시", "NO.", "순위", "디자인", "총 기장", 
+  "실루엣", "넥라인", "비침정도", "화이트 톤", "텍스쳐", "관계된 흰반팔티", 
+  "URL", "생성자", "BEST 20"
 ];
 </script>
 
 <style>
-:root {
-  /* 📐 1. 그리드 & 형태 */
-  --ga-cols-pc: 2; --ga-cols-tab: 3; --ga-cols-mob: 2; 
-  --ga-ratio: 3/4;           /* 썸네일 비율 (1/1, 16/9, 4/3, 3/4 등) */
-  --ga-grid-gap: 16px;       /* 카드 간 간격 */
-  --ga-card-radius: 0px;     /* 카드 모서리 라운드 */
-
-  /* 🎛️ 2. 위치 및 정렬 */
-  --ga-v-align: flex-start;  /* 상하정렬: flex-start, center, flex-end */
-  --ga-h-align: flex-start;  /* 좌우정렬: flex-start, center, flex-end */
-  --ga-t-align: flex-start;  /* 텍스트정렬: left, center, right */
-  --ga-text-width: 80%;      /* 텍스트 영역 가로폭 */
-  --ga-item-gap: 8px;        /* 요소 간 세로 간격 */
-
-  /* 🔄 3. 상하 배치 순서 (낮은 숫자가 위로) */
-  --ga-order-title: 2; --ga-order-prop1: 1; --ga-order-prop2: 3; --ga-order-prop3: 4;       
-
-  /* 🎨 4. 배경 딤(Dim) 필터 */
-  --ga-dim-hex: #000000; --ga-dim-opacity: 0.45; 
-  --ga-card-padding: 14px;   /* 카드 내부 여백 */
-
-  /* 📝 5. 텍스트 서식 (use: 1=켬, 0=끔-기본값 / color는 항상 적용) */
-  --ga-line-height: 1.4;     /* 텍스트 행간 */
-
-  /* 타이틀 */
-  --ga-title-color: #ffffff; 
-  --ga-use-title: 1; --ga-title-size: 1.2em; --ga-title-weight: 700;
-
-  /* 표시 속성 1번째 */
-  --ga-prop1-color: #f1f1f1; 
-  --ga-use-prop1: 1; --ga-prop1-size: 1.05em; --ga-prop1-weight: 400;
-
-  /* 표시 속성 2번째 */
-  --ga-prop2-color: rgba(255, 255, 255, 0.7); 
-  --ga-use-prop2: 1; --ga-prop2-size: 1.05em; --ga-prop2-weight: 600;
-
-  /* 표시 속성 3번째 */
-  --ga-prop3-color: rgba(255, 255, 255, 0.5); 
-  --ga-use-prop3: 0; --ga-prop3-size: 0.75em; --ga-prop3-weight: 400;
-}
-
-/* 💻 태블릿용 반응형 설정 (1024px 이하) */
-@media (max-width: 1024px) {
-  :root {
-    --ga-text-width: 90%;      
-    --ga-card-padding: 12px;   
-    --ga-title-size: 1.1em;    
-    --ga-prop1-size: 0.95em; --ga-prop2-size: 0.95em;
-  }
-}
-
-/* 📱 모바일용 반응형 설정 (768px 이하) */
-@media (max-width: 768px) {
-  :root {
-    --ga-text-width: 100%;     
-    --ga-card-padding: 10px;   
-    --ga-item-gap: 6px;        
-    --ga-title-size: 1em;      
-    --ga-prop1-size: 0.9em; --ga-prop2-size: 0.9em;
-  }
-}
-</style>
-
-------------------------------------------------------
-
-<script>
-window.GA_GALLERY_TARGETS = [
-  // keyword: 타겟으로 잡을 갤러리 제목 또는 탭 이름의 일부
-  // hideTitle: 갤러리 뷰 제목 숨김 여부 (true/false)
-  // hideTabs: 갤러리 뷰 탭 숨김 여부 (true/false)
-  { keyword: "흰반팔티 리스트", hideTitle: true, hideTabs: false },
-  { keyword: "갤러리", hideTitle: false, hideTabs: true }
-];
-</script>
-
-<style>
-/* ==========================================================
-   🖥️ 기본 (PC 데스크톱) 설정 영역
-   ========================================================== */
-:root {
-  /* 📐 1. 썸네일 그리드 & 형태 */
-  --ga-cols-pc: 2;           /* PC: 한 줄에 보일 썸네일 개수 */
-  --ga-cols-tab: 3;          /* 태블릿: 한 줄에 보일 썸네일 개수 */
-  --ga-cols-mob: 2;          /* 모바일: 한 줄에 보일 썸네일 개수 */
-  --ga-ratio: 3/4;           /* 썸네일 이미지 비율 (1/1, 16/9, 4/3 등) */
-  --ga-grid-gap: 16px;       /* 썸네일 간의 간격 (Gap) */
-  --ga-card-radius: 0px;     /* 썸네일 모서리 둥글기 (Radius) */
-
-  /* 🎛️ 2. 콘텐츠 위치 및 레이아웃 */
-  --ga-v-align: flex-start;  /* 상중하 정렬 (flex-start, center, flex-end) */
-  --ga-h-align: flex-start;  /* 좌중우 정렬 (flex-start, center, flex-end) */
-  --ga-t-align: flex-start;  /* 텍스트 정렬 (left, center, right) */
-  --ga-text-width: 80%;      /* 텍스트 영역의 넓이 (100%시 꽉 참) */
-  --ga-item-gap: 8px;        /* 타이틀과 속성 텍스트들 사이의 간격 */
-
-  /* 🔄 3. 상하 배치 순서 (번호가 작을수록 제일 위에 쌓임) */
-  --ga-order-title: 2;       /* 타이틀 */
-  --ga-order-prop1: 1;       /* 속성 1번째 */
-  --ga-order-prop2: 3;       /* 속성 2번째 */
-  --ga-order-prop3: 4;       /* 속성 3번째 */
-
-  /* 🎨 4. 이미지 배경 딤(Dim) 처리 */
-  --ga-dim-hex: #000000;     /* 딤 배경색 (기본 검정) */
-  --ga-dim-opacity: 0.45;    /* 투명도 (0.0 ~ 1.0) */
-  --ga-card-padding: 14px;   /* 카드 안쪽 여백 */
-
-  /* 📝 5. 텍스트 서식 스위치 (1: 커스텀 켬 / 0: 기본값) */
-  --ga-line-height: 1.4;     /* 전체 텍스트 행간 */
-
-  /* 타이틀 폰트 서식 */
-  --ga-title-color: #ffffff; 
-  --ga-use-title: 1; 
-  --ga-title-size: 1.2em; 
-  --ga-title-weight: 700;
-
-  /* 속성 1번째 폰트 서식 */
-  --ga-prop1-color: #f1f1f1; 
-  --ga-use-prop1: 1; 
-  --ga-prop1-size: 1.05em; 
-  --ga-prop1-weight: 400;
-
-  /* 속성 2번째 폰트 서식 */
-  --ga-prop2-color: rgba(255, 255, 255, 0.7); 
-  --ga-use-prop2: 1; 
-  --ga-prop2-size: 1.05em; 
-  --ga-prop2-weight: 600;
-
-  /* 속성 3번째 폰트 서식 */
-  --ga-prop3-color: rgba(255, 255, 255, 0.5); 
-  --ga-use-prop3: 0; 
-  --ga-prop3-size: 0.75em; 
-  --ga-prop3-weight: 400;
-}
-
-/* ==========================================================
-   💻 태블릿 (Tablet) 화면 반응형 설정 (화면폭 1024px 이하)
-   ========================================================== */
-@media (max-width: 1024px) {
-  :root {
-    --ga-text-width: 90%;      
-    --ga-card-padding: 12px;   
-    --ga-title-size: 1.1em;    
-    --ga-prop1-size: 0.95em;
-    --ga-prop2-size: 0.95em;
-  }
-}
-
-/* ==========================================================
-   📱 모바일 (Mobile) 화면 반응형 설정 (화면폭 768px 이하)
-   ========================================================== */
-@media (max-width: 768px) {
-  :root {
-    --ga-text-width: 100%;     
-    --ga-card-padding: 10px;   
-    --ga-item-gap: 6px;        
-    --ga-title-size: 1em;      
-    --ga-prop1-size: 0.9em;
-    --ga-prop2-size: 0.9em;
-  }
-}
-</style>
-
+/* 
+   에픽션 노션 갤러리 시각 제어 변수
+   파일명: epiction-user-config.css
+   사용법: 아래 루트 구역의 값을 변경하여 전체 디자인을 통제합니다.
 */
+:root {
+  /* 1. 텍스트 입력 제어 파트 */
+  /* 너비 제어 적용 범위. 설정값 0 모든 구역 적용, 1 상단 구역 한정 적용. 기본값 1 */
+  --ga-text-width-scope: 1;
+  /* 데스크톱 텍스트 영역 너비. 설정값 퍼센트 단위 0%부터 100%. 기본값 80% */
+  --ga-text-width-pc: 80%;
+  /* 태블릿 텍스트 영역 너비. 설정값 퍼센트 단위 0%부터 100%. 기본값 80% */
+  --ga-text-width-tab: 80%;
+  /* 모바일 텍스트 영역 너비. 설정값 퍼센트 단위 0%부터 100%. 기본값 80% */
+  --ga-text-width-mob: 80%;
+  
+  /* 상단 배치 속성 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 2 title 1 */
+  --ga-section-top: 2 title 1;
+  /* 중단 배치 속성 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 3 15 */
+  --ga-section-center: 3 15;
+  /* 하단 배치 속성 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 4 5 6 7 8 9 10 11 12 13 14 */
+  --ga-section-bottom: 4 5 6 7 8 9 10 11 12 13 14;
+  
+  /* 라벨 상단 노출 지정 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 0 */
+  --ga-label-top-props: 0;
+  /* 데스크톱 라벨 숨김 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 0 */
+  --ga-label-hide-pc: 0;
+  /* 태블릿 라벨 숨김 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 0 */
+  --ga-label-hide-tab: 0;
+  /* 모바일 라벨 숨김 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 6 7 8 9 10 11 12 */
+  --ga-label-hide-mob: 6 7 8 9 10 11 12;
+  /* 태블릿 칩 전체 숨김 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 1 3 15 4 5 */
+  --ga-hide-props-tab: 1 3 15 4 5;
+  /* 모바일 칩 전체 숨김 번호. 설정값 속성순번 띄어쓰기로 구분. 기본값 13 14 */
+  --ga-hide-props-mob: 13 14;
+  
+  /* BEST 태그 고정 번호. 설정값 속성순번 숫자. 기본값 16 */
+  --ga-next-tag-num: 16;
+  /* 썸네일 이미지 비율. 설정값 1/1 3/4 4/3 16/9 9/16 등. 기본값 3/4 */
+  --ga-ratio: 3/4;
+
+  /* 2. 공통 칩 크기 및 모양 */
+  /* 칩 테두리 둥글기. 설정값 픽셀 단위 숫자. 기본값 0px */
+  --ga-chip-radius: 0px;
+  /* 칩 전체 높이. 설정값 픽셀 단위 숫자. 기본값 20px */
+  --ga-chip-height: 20px;
+  /* 칩 좌우 여백. 설정값 픽셀 단위 숫자. 기본값 6px */
+  --ga-chip-pad-x: 6px;
+  /* 칩 상하 여백. 설정값 픽셀 단위 숫자. 기본값 0px */
+  --ga-chip-pad-y: 0px;
+  /* 칩 나열 방식. 설정값 inline-flex 내용 크기만큼 차지, flex 가로 꽉 채우기. 기본값 inline-flex */
+  --ga-prop-all-display: inline-flex;
+
+  /* 3. 공통 속성 색상 및 서식 */
+  /* 공통 서식 강제 적용. 설정값 1 활성화, 0 비활성화. 기본값 1 */
+  --ga-use-prop-all: 1;
+  /* 공통 색상 모드. 설정값 1 지정 색상 사용, 0 투명 배경 사용. 기본값 1 */
+  --ga-prop-all-color-mode: 1;
+  /* 칩 배경 색상. 설정값 헥스 컬러 코드. 기본값 #2f48a1 */
+  --ga-prop-all-custom-bg: #2f48a1;
+  /* 칩 배경 투명도. 설정값 0부터 1 사이 소수. 기본값 0.9 */
+  --ga-prop-all-custom-bg-op: 0.9;
+  /* 칩 글자 색상. 설정값 헥스 컬러 코드. 기본값 #0f0f0f */
+  --ga-prop-all-color: #0f0f0f;
+  /* 칩 글자 크기. 설정값 em 단위 숫자. 기본값 1.05em */
+  --ga-prop-all-size: 1.05em;
+  /* 칩 글자 굵기. 설정값 100부터 900 사이 백단위 숫자. 기본값 400 */
+  --ga-prop-all-weight: 400;
+
+  /* 4. 갤러리 구조 및 여백 */
+  /* 데스크톱 열 개수. 설정값 1부터 6 사이 숫자. 기본값 2 */
+  --ga-cols-pc: 2;
+  /* 태블릿 열 개수. 설정값 1부터 6 사이 숫자. 기본값 2 */
+  --ga-cols-tab: 2;
+  /* 모바일 열 개수. 설정값 1부터 4 사이 숫자. 기본값 2 */
+  --ga-cols-mob: 2;
+  /* 카드 테두리 둥글기. 설정값 픽셀 단위 숫자. 기본값 10px */
+  --ga-card-radius: 10px;
+  /* 카드 안쪽 가장자리 여백. 설정값 픽셀 단위 숫자. 기본값 20px */
+  --ga-card-padding: 20px;
+  /* 카드 사이 간격. 설정값 픽셀 단위 숫자. 기본값 16px */
+  --ga-grid-gap: 16px;
+  
+  /* 같은 구역 속성 줄 사이 간격. 설정값 픽셀 단위 음수 가능. 기본값 8px */
+  --ga-item-gap: 8px;
+  /* 나란히 배치된 칩 사이 간격. 설정값 픽셀 단위 음수 가능. 기본값 12px */
+  --ga-group-gap: 12px;
+  /* 상중하 구역 사이 간격. 설정값 픽셀 단위 음수 가능. 기본값 24px */
+  --ga-section-gap: 24px;
+  /* 줄 간격 비율. 설정값 소수. 기본값 1.4 */
+  --ga-line-height: 1.4;
+  
+  /* 구역 세로 정렬 위치. 설정값 1 하단 고정, 0 사진 바로 아래 고정. 기본값 1 */
+  --ga-absolute-position: 1;
+  /* 구역 가로 정렬 위치. 설정값 flex-start 좌측, center 중앙, flex-end 우측. 기본값 flex-start */
+  --ga-h-align: flex-start;
+  /* 라벨 가로 정렬 위치. 설정값 left 좌측, center 중앙, right 우측. 기본값 left */
+  --ga-lbl-align: left;
+  /* 속성값 가로 정렬 위치. 설정값 left 좌측, center 중앙, right 우측. 기본값 left */
+  --ga-val-align: left;
+  /* 일반 텍스트 가로 정렬 위치. 설정값 left 좌측, center 중앙, right 우측. 기본값 left */
+  --ga-t-align: left;
+  
+  /* 카드 배경 썬팅 색상. 설정값 헥스 컬러 코드. 기본값 #000000 */
+  --ga-dim-hex: #000000;
+  /* 카드 배경 썬팅 투명도. 설정값 0부터 1 사이 소수. 기본값 0.2 */
+  --ga-dim-opacity: 0.2;
+
+  /* 5. 라벨 및 제목 서식 */
+  /* 라벨 전체 노출 스위치. 설정값 1 모두 표시, 0 모두 숨김. 기본값 1 */
+  --ga-show-label: 1;
+  /* 라벨 글자 크기. 설정값 em 단위 숫자. 기본값 1.05em */
+  --ga-lbl-size: 1.05em;
+  /* 라벨 글자 색상. 설정값 헥스 컬러 코드. 기본값 #ffffff */
+  --ga-lbl-color: #ffffff;
+  /* 라벨 글자 굵기. 설정값 100부터 900 사이 백단위 숫자. 기본값 700 */
+  --ga-lbl-weight: 700;
+  /* 라벨과 속성값 사이 간격. 설정값 픽셀 단위 음수 가능. 기본값 8px */
+  --ga-lbl-space: 8px;
+  
+  /* 제목 서식 커스텀 적용 스위치. 설정값 1 활성화, 0 비활성화. 기본값 1 */
+  --ga-use-title: 1;
+  /* 제목 글자 크기. 설정값 em 단위 숫자. 기본값 1.2em */
+  --ga-title-size: 1.2em;
+  /* 제목 글자 굵기. 설정값 100부터 900 사이 백단위 숫자. 기본값 700 */
+  --ga-title-weight: 700;
+  /* 제목 글자 색상. 설정값 헥스 컬러 코드. 기본값 #ffffff */
+  --ga-title-color: #ffffff;
+
+  /* 6. 링크 및 관계형 속성 */
+  /* 링크 표시 방식. 설정값 0 원본, 1 전체 주소, 2 길이 제한. 기본값 0 */
+  --ga-url-format: 0;
+  /* 링크 자르기 길이. 설정값 남길 글자 수. 기본값 12 */
+  --ga-url-cut-length: 12;
+  /* 링크 색상 모드. 설정값 0 투명, 1 공통 칩 색상, 2 단독 색상. 기본값 0 */
+  --ga-url-color-mode: 0;
+  /* 링크 단독 배경 색상. 설정값 헥스 컬러 코드. 기본값 #660223 */
+  --ga-url-custom-bg: #660223;
+  /* 링크 단독 배경 투명도. 설정값 0부터 1 사이 소수. 기본값 0 */
+  --ga-url-custom-bg-op: 0;
+  /* 링크 단독 텍스트 색상. 설정값 헥스 컬러 코드. 기본값 #ffffff */
+  --ga-url-color: #ffffff;
+  /* 링크 텍스트 밑줄 노출. 설정값 none 없음, underline 표시. 기본값 none */
+  --ga-url-underline: none;
+  
+  /* 관계형 색상 모드. 설정값 0 투명, 1 단독 색상. 기본값 1 */
+  --ga-relation-color-mode: 1;
+  /* 관계형 단독 배경 색상. 설정값 헥스 컬러 코드. 기본값 #660223 */
+  --ga-relation-custom-bg: #660223;
+  /* 관계형 단독 배경 투명도. 설정값 0부터 1 사이 소수. 기본값 0.4 */
+  --ga-relation-custom-bg-op: 0.4;
+  /* 관계형 화살표 아이콘 노출. 설정값 block 표시, none 숨김. 기본값 block */
+  --ga-relation-icon: block;
+  /* 관계형 텍스트 줄바꿈 허용. 설정값 1 전체 표시, 0 말줄임표 처리. 기본값 1 */
+  --ga-relation-full-text: 1;
+
+  /* 7. BEST 태그 및 프로필 사진 */
+  /* 작성자 사진 노출 스위치. 설정값 block 표시, none 완벽 숨김. 기본값 block */
+  --ga-prop-profile-img: block;
+  
+  /* BEST 태그 디자인 모드. 설정값 1 공통 칩 적용, 0 단독 적용, 2 노션 기본 투명 유지. 기본값 1 */
+  --ga-best-use-global-shape: 1;
+  /* BEST 태그 배경 색상. 설정값 헥스 컬러 코드. 기본값 #2b4cdb */
+  --ga-best-bg: #2b4cdb;
+  /* BEST 태그 배경 투명도. 설정값 0부터 1 사이 소수. 기본값 1 */
+  --ga-best-bg-op: 1;
+  /* BEST 태그 텍스트 색상. 설정값 헥스 컬러 코드. 기본값 #ffffff */
+  --ga-best-color: #ffffff;
+  /* BEST 태그 텍스트 크기. 설정값 em 단위 숫자. 기본값 1.05em */
+  --ga-best-size: 1.05em;
+  /* BEST 태그 텍스트 굵기. 설정값 100부터 900 사이 백단위 숫자. 기본값 700 */
+  --ga-best-weight: 700;
+  /* BEST 태그 단독 디자인 전체 높이. 설정값 픽셀 단위 숫자 혹은 auto. 기본값 auto */
+  --ga-best-height: auto;
+  /* BEST 태그 단독 디자인 좌우 여백. 설정값 픽셀 단위 음수 가능. 기본값 10px */
+  --ga-best-pad-x: 10px;
+  /* BEST 태그 단독 디자인 상하 여백. 설정값 픽셀 단위 음수 가능. 기본값 4px */
+  --ga-best-pad-y: 4px;
+  /* BEST 태그 단독 디자인 테두리 둥글기. 설정값 픽셀 단위 숫자. 기본값 4px */
+  --ga-best-radius: 4px;
+}
+</style>
