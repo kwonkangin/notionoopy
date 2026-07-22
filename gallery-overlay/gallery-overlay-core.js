@@ -11,6 +11,11 @@
    파일명: epiction-gallery-engine.js
 */
 
+/* 
+  ========================================================================
+  [자바스크립트 코어 엔진] DOM 파싱 및 렌더링 동기화 모듈
+  ========================================================================
+*/
 (function() {
   'use strict';
   
@@ -38,7 +43,7 @@
     return isNaN(num) ? '0,0,0' : `${num >> 16}, ${(num >> 8) & 255}, ${num & 255}`;
   };
 
-  // 모의 폼 제출 및 콘솔 출력 로직 구축
+  // 모의 폼 제출 및 콘솔 출력 로직 구축 (efc_ prefix)
   window.efc_mockSubmit_j8p = function(formData) {
     if (!formData) { console.warn("입력 데이터가 비어 있습니다."); return; }
     console.log("[모의 제출 성공] 서버 전송 생략, 폼 데이터:", formData);
@@ -51,7 +56,7 @@
     });
   }, { threshold: 0.1 });
 
-  // 특성 요소 감지 함수
+  // 노션의 특정 블록 구조 감지 헬퍼 함수
   const hasRelation = el => !!el.querySelector('[class*="GalleryRelationProperty"]');
   const hasUrl = el => !!el.querySelector('a[href]');
   const hasPerson = el => !!el.querySelector('img'); 
@@ -70,7 +75,7 @@
     if (labels.length > 1) { for (let i = 1; i < labels.length; i++) labels[i].remove(); }
   };
 
-  // 노션 데이터 배열 구조와 사용자 설정 속성을 매핑하는 앵커 함수
+  // 노션 데이터 배열 구조와 사용자 설정 속성을 매핑하는 앵커 할당 로직
   function mapPropertiesWithAnchors(children, propNames) {
     let urlIdx = 0, personIdx = 0, relationIdx = 0, bestIdx = 0, cleanBestName = "";
     propNames.forEach((n, idx) => {
@@ -96,7 +101,7 @@
     return children.map((el, domIdx) => ({ el, domIdx, propNum: assigned[domIdx], hasRelation: hasRelation(el), hasUrl: hasUrl(el), hasChip: hasChip(el) }));
   }
 
-  // 상태 해시값 생성하여 불필요한 렌더링 부하 방지
+  // DOM 렌더링 최적화를 위한 상태 해시값(Hash) 생성 로직
   let lastStateHash = "";
   function getGalleryStateHash(rs) {
     const w = window.innerWidth;
@@ -117,7 +122,7 @@
     const currentHash = getGalleryStateHash(rs);
     if (currentHash === lastStateHash) return; 
 
-    // HTML 속성 매핑을 통한 CSS 통신 구간
+    // HTML 루트 객체에 data 속성 주입 (CSS 통신 구간)
     ["title", "prop-all"].forEach(k => { htmlRoot.setAttribute(`data-ga-use-${k}`, rs.getPropertyValue(`--ga-use-${k}`).trim() || "0"); });
     htmlRoot.setAttribute("data-ga-width-scope", rs.getPropertyValue("--ga-text-width-scope").trim() || "1");
     htmlRoot.setAttribute("data-ga-top", rs.getPropertyValue("--ga-section-top").trim());
@@ -144,6 +149,7 @@
     const dimOpacity = rs.getPropertyValue('--ga-dim-opacity').trim() || "0.2";
     const dimRgb = hexToRgb(dimHexRaw);
 
+    // 사용자가 입력한 갤러리 탭/타이틀을 기반으로 타겟 추적
     document.querySelectorAll('.notion-collection_view-block:not(.ga-configured)').forEach(block => {
       const titleEl = block.querySelector('.css-11vqqno span') || block.querySelector('.css-fox54z span');
       const tabEls = block.querySelectorAll('.css-ymcnjv');
@@ -180,6 +186,7 @@
     const items = document.querySelectorAll('.ga_overlay_u4b .notion-collection-item');
     const itemDataList = [];
 
+    // 개별 갤러리 아이템 순회 및 렌더링
     items.forEach(item => {
       try {
         const container = item.querySelector('.css-1yjhumr');
@@ -319,6 +326,7 @@
           else if (bottomSeq.includes(propNum)) finalOrder = 300 + bottomSeq.indexOf(propNum);
           child.style.setProperty('order', finalOrder, 'important');
 
+          // 너비 분할을 위한 상단/중하단 클래스 동적 주입
           if (!child.classList.contains('ga_oppTag_l2x')) {
             if (finalOrder > highestOrder) { highestOrder = finalOrder; visualLastChild = child; }
             if (finalOrder >= 100 && finalOrder < 199) {
@@ -403,7 +411,7 @@
     lastStateHash = currentHash;
   }
 
-  // 과부하를 막기 위해 requestAnimationFrame 활용하여 렌더링 호출
+  // 렌더링 과부하 및 무한 루프 방지 로직 (requestAnimationFrame 활용)
   let isUpdating = false;
   let syncTimeout = null;
   const triggerSync = () => {
@@ -415,7 +423,7 @@
     });
   };
 
-  // 문서 변화를 감지하는 옵저버 세팅
+  // 노션의 DOM 변화를 감지하여 엔진 재호출
   const observer = new MutationObserver((mutations) => {
     const hasRelevantChanges = mutations.some(m => 
       !m.target.classList?.contains('ga_structural_spacer') &&
@@ -427,7 +435,12 @@
     }
   });
   observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  
+  // 브라우저 크기 변경 감지
   const resizeObserver = new ResizeObserver(() => triggerSync());
   resizeObserver.observe(document.body);
+  
+  // 강제 동기화 보험
   setInterval(triggerSync, 800);
+
 })();

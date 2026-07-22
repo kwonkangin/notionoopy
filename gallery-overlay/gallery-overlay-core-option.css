@@ -1,8 +1,9 @@
 /*
 
-<!-- 토글 디자인 -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/gallery-overlay/gallery-overlay-core.css">
-<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/gallery-overlay/gallery-overlay-core.js" defer></script>
+<!-- 갤러리 오버레이 디자인 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@8ef03bab5e087d4bf131dcc1faa08b7a78e3efee/gallery-overlay/gallery-overlay-core.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@8ef03bab5e087d4bf131dcc1faa08b7a78e3efee/gallery-overlay/gallery-overlay-core.js" defer></script>
+
 
 */
 --------------------------------------
@@ -13,7 +14,8 @@
 /*  에픽션 노션 갤러리 제어 엔진 - 전체 설정 코드 백업
   적용 방법: 아래 :root 구역 전체를 복사하여 노션 또는 우피의 커스텀 CSS 최상단에 붙여넣기 하세요. */
 
-<script>
+<script><body>
+
 // 에픽션 노션 갤러리 타겟 및 속성 설정
 // 파일명: epiction-user-config.js
 
