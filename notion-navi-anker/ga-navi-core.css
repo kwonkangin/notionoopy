@@ -1,46 +1,77 @@
-/* ==========================================================
-   [Ga-Navi Core v2.9.1] 모바일 중앙정렬 오버플로우 버그 픽스본
-   ========================================================== */
+/* 
+  에픽션 반응형 네비게이션 고정 구조 스타일 
+  파일명: epiction-navi-style.css
+*/
+
+html[data-ga-nav-pos="fixed"] body .ga-anchor-navi-container {
+  margin-left: 0 !important;
+  left: 0 !important;
+}
+
+html[data-ga-nav-pos="sticky"] body .ga-anchor-navi-container,
+html[data-ga-nav-pos="relative"] body .ga-anchor-navi-container {
+  margin-left: var(--ga-nav-exact-left, 0px) !important;
+  left: auto !important; 
+}
+
 .ga-anchor-navi-container {
   position: var(--ga-nav-position-mode) !important; 
-  width: var(--ga-nav-bg-width) !important;
+  width: var(--ga-vw-px, 100vw) !important;
+  max-width: var(--ga-vw-px, 100vw) !important;
   z-index: 999992 !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s ease;
+  box-shadow: 
+    calc(var(--ga-nav-shadow-x) * var(--ga-nav-shadow-switch)) 
+    calc(var(--ga-nav-shadow-y) * var(--ga-nav-shadow-switch)) 
+    calc(var(--ga-nav-shadow-blur) * var(--ga-nav-shadow-switch)) 
+    calc(var(--ga-nav-shadow-spread) * var(--ga-nav-shadow-switch)) 
+    var(--ga-nav-shadow-color) !important;
+  transition: all 0.2s ease;
   background: var(--ga-nav-bg-color) !important; box-sizing: border-box !important;
   top: var(--ga-nav-offset-top) !important;
   bottom: var(--ga-nav-offset-bottom) !important;
-  left: var(--ga-nav-offset-left) !important;
   right: var(--ga-nav-offset-right) !important;
-  margin-left: calc((var(--ga-nav-bg-width) - 100vw) / 2 * (1 - var(--ga-nav-is-box))) !important;
 }
 
 .ga-navi-inner {
   display: flex !important; 
   box-sizing: border-box !important;
   margin: 0 auto !important; 
+  width: 100% !important;
   height: var(--ga-nav-height) !important;
-  justify-content: var(--ga-nav-text-align) !important; 
   gap: var(--ga-nav-item-gap) !important;
   overflow-x: auto !important; 
   white-space: nowrap !important; 
   -webkit-overflow-scrolling: touch; 
-  max-width: var(--page-max-width, 1400px) !important;
-  padding-left: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
-  padding-right: calc((var(--page-max-width) - var(--content-max-width)) / 2 * (1 - var(--ga-nav-is-box))) !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
 }
+
 .ga-navi-inner::-webkit-scrollbar { display: none !important; }
+
+html[data-ga-nav-layout="limit"] body .ga-navi-inner,
+body .ga-navi-inner {
+  max-width: var(--ga-final-content-width, 1200px) !important;
+  justify-content: var(--ga-nav-text-align) !important;
+}
+
+html[data-ga-nav-layout="full"] body .ga-navi-inner {
+  max-width: 100% !important;
+  justify-content: space-evenly !important;
+}
 
 .ga-navi-item {
   display: inline-flex !important; 
   height: 100% !important;
   position: relative !important; 
   background: transparent !important; border: none !important; cursor: pointer !important;
-  text-decoration: none !important; transition: color 0.25s ease;
+  text-decoration: none !important; transition: color 0.25s ease, background 0.2s ease;
   color: var(--ga-nav-text-color) !important; 
   font-size: var(--ga-nav-font-size) !important;
   font-weight: var(--ga-nav-font-weight) !important; 
-  padding: var(--ga-nav-item-padding) !important;
+  letter-spacing: var(--ga-nav-letter-spacing) !important;
+  padding: var(--ga-nav-pad-y) var(--ga-nav-pad-x) !important;
   align-items: var(--ga-nav-vertical-align, center) !important;
+  flex-shrink: 0 !important;
 }
 
 .ga-navi-item span {
@@ -52,6 +83,12 @@
 
 .ga-navi-item.active { color: var(--ga-nav-text-color-active) !important; }
 
+html[data-ga-nav-bg-switch="1"] body .ga-navi-item.active { 
+  background: var(--ga-nav-active-bg-color) !important;
+  border-radius: var(--ga-nav-active-radius) !important;
+}
+
+html[data-ga-nav-line-switch="0"] body .ga-navi-item.active::after { display: none !important; }
 .ga-navi-item.active::after {
   content: '' !important; 
   position: absolute !important; 
@@ -62,24 +99,6 @@
   background: var(--ga-nav-active-line-color) !important;
 }
 
-/* ==========================================================
-   ⚙️ [모바일 가변형 완전 동기화 구역 - 정렬 교정 완료]
-   ========================================================== */
-@media (max-width: 768px) {
-  .ga-anchor-navi-container { 
-    width: var(--ga-nav-bg-width) !important; 
-    max-width: 100vw !important;
-    position: var(--ga-nav-position-mode) !important;
-    margin-left: calc((var(--ga-nav-bg-width) - 100vw) / 2 * (1 - var(--ga-nav-is-box))) !important;
-    left: calc(0px * var(--ga-nav-is-box)) !important;
-    right: calc(0px * var(--ga-nav-is-box)) !important;
-    top: var(--ga-nav-offset-top) !important;
-    bottom: var(--ga-nav-offset-bottom) !important;
-  }
-  .ga-navi-inner { 
-    justify-content: flex-start !important; /* 🌟 [핵심 수정] 모바일에서는 정중앙 정렬을 파괴하고 무조건 왼쪽 정렬로 고정해 첫 메뉴 잘림 방지 */
-    padding-left: 20px !important; 
-    padding-right: 20px !important; 
-    padding-bottom: 0px !important; 
-  }
+@media screen and (max-width: 768px) {
+  html[data-ga-nav-layout] body .ga-navi-inner { justify-content: flex-start !important; }
 }

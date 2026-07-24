@@ -1,0 +1,428 @@
+/* Ga-Navi 전문가용 팝업 QA 대시보드 v3.3 (버튼형 활성 모드 & 폰트 굵기 확장) */
+(function efc_launchNaviDashboard_n4v() {
+  const popup = window.open('', 'GaNaviQADashboard', 'width=520,height=900,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!popup) { alert('팝업 창 차단을 해제해 주십시오.'); return; }
+  
+  const scriptContent = `
+    const html = window.opener.document.documentElement;
+
+    const efc_parseColorStr_c9m = str => {
+      str = str.trim();
+      if (str.startsWith('#')) {
+        let r=0, g=0, b=0, a=1;
+        if(str.length === 4) { r=parseInt(str[1]+str[1],16); g=parseInt(str[2]+str[2],16); b=parseInt(str[3]+str[3],16); }
+        else if(str.length === 7) { r=parseInt(str.substring(1,3),16); g=parseInt(str.substring(3,5),16); b=parseInt(str.substring(5,7),16); }
+        else if(str.length === 9) { r=parseInt(str.substring(1,3),16); g=parseInt(str.substring(3,5),16); b=parseInt(str.substring(5,7),16); a=parseInt(str.substring(7,9),16)/255; }
+        return { hex: \`#\${(1<<24|r<<16|g<<8|b).toString(16).slice(1)}\`, a: Math.round(a*100)/100 };
+      } else if (str.startsWith('rgb')) {
+        let parts = str.match(/[\\d.]+/g);
+        if (!parts || parts.length < 3) return { hex: '#000000', a: 1 };
+        let r=parseInt(parts[0]), g=parseInt(parts[1]), b=parseInt(parts[2]), a=parts.length>3?parseFloat(parts[3]):1;
+        return { hex: \`#\${(1<<24|r<<16|g<<8|b).toString(16).slice(1)}\`, a: Math.round(a*100)/100 };
+      }
+      return { hex: '#000000', a: 1 };
+    };
+
+    const efc_buildRgba_x2l = (hex, a) => {
+      let r = parseInt(hex.substring(1,3), 16), g = parseInt(hex.substring(3,5), 16), b = parseInt(hex.substring(5,7), 16);
+      if(a >= 1) return hex;
+      return \`rgba(\${r}, \${g}, \${b}, \${a})\`;
+    };
+
+    // 🌟 신규: 100~900 웨이트 옵션 확장
+    const weights = {"100":"100 아주 얇음", "200":"200 얇음", "300":"300 약간 얇음", "400":"400 보통", "500":"500 중간", "600":"600 약간 두꺼움", "700":"700 두꺼움", "800":"800 아주 두꺼움", "900":"900 가장 두꺼움"};
+
+    const qaConfig = [
+      {
+        group: "1. 배치 및 넓이 설정",
+        items: [
+          { var: "--ga-nav-layout-mode", label: "너비 제한 스위치", type: "select", opts: {"limit":"본문 넓이 내 제한", "full":"화면 가득 메뉴 분배"}, def: "limit", tip: "배경색은 무조건 전체화면을 꽉 채웁니다" },
+          { var: "--ga-nav-content-width", label: "데스크톱 본문 넓이 제어", type: "width-control", def: "auto", tip: "모바일 태블릿은 레이아웃 보호를 위해 무시됩니다" },
+          { var: "--ga-nav-position-mode", label: "스크롤 고정 방식", type: "select", opts: {"sticky":"중간 대기 후 고정", "fixed":"상단 즉시 고정", "relative":"일반 배치"}, def: "sticky", tip: "화면 이동 시 바깥 배치 동작" },
+          { var: "--ga-nav-offset-top", label: "상단 여백 수치", type: "offset", def: "0px", tip: "상단 천장 고정 시 여백" },
+          { var: "--ga-nav-offset-bottom", label: "하단 여백 수치", type: "offset", def: "auto", tip: "바닥에 고정할 경우 밀착 지정" },
+          { var: "--ga-nav-offset-left", label: "좌측 여백 수치", type: "offset", def: "auto", tip: "좌측 강제 밀착 시 지정" },
+          { var: "--ga-nav-offset-right", label: "우측 여백 수치", type: "offset", def: "auto", tip: "우측 강제 밀착 시 지정" }
+        ]
+      },
+      {
+        group: "2. 타이틀 및 여백 세팅",
+        items: [
+          { var: "--ga-nav-height", label: "네비바 세로 높이", type: "range", min: 40, max: 120, unit: "px", def: "66", tip: "바의 전체 세로 두께" },
+          { var: "--ga-nav-pad-y", label: "상하 탭 내부 여백", type: "range", min: 0, max: 50, unit: "px", def: "0", tip: "개별 버튼 위아래 여백" },
+          { var: "--ga-nav-pad-x", label: "좌우 탭 내부 여백", type: "range", min: 0, max: 50, unit: "px", def: "16", tip: "개별 버튼 좌우 여백" },
+          { var: "--ga-nav-item-gap", label: "메뉴 탭 사이 간격", type: "range", min: 0, max: 100, unit: "px", def: "12", tip: "버튼과 버튼 사이 띄어쓰기" }
+        ]
+      },
+      {
+        group: "3. 글자 및 폰트 세팅",
+        items: [
+          { var: "--ga-nav-font-size", label: "메뉴 글자 크기", type: "range", min: 10, max: 30, unit: "px", def: "14", tip: "폰트 크기 조절" },
+          { var: "--ga-nav-font-weight", label: "글자 굵기", type: "select", opts: weights, def: "600", tip: "폰트 두께 조절" },
+          { var: "--ga-nav-line-height", label: "2줄 메뉴 상하 행간", type: "range", min: 1, max: 2.5, step: 0.05, unit: "", def: "1.35", tip: "줄바꿈된 글씨 상하 간격" },
+          { var: "--ga-nav-letter-spacing", label: "글자 자간", type: "range", min: -5, max: 5, step: 0.1, unit: "px", def: "-0.3", tip: "글씨 좌우 자간" },
+          { var: "--ga-nav-item-text-align", label: "개별 메뉴 글자 정렬", type: "select", opts: {"left":"좌측", "center":"중앙", "right":"우측"}, def: "center", tip: "버튼 내부 텍스트 정렬" },
+          { var: "--ga-nav-vertical-align", label: "메뉴 세로 정렬 가이드", type: "select", opts: {"flex-start":"상단 맞춤", "center":"상하 정중앙", "flex-end":"하단 맞춤"}, def: "center", tip: "버튼을 세로축 어디에 붙일지 결정" },
+          // 🌟 신규: 균등 분배(space-evenly), 양끝 정렬(space-between) 옵션 추가
+          { var: "--ga-nav-text-align", label: "전체 메뉴 가로 배치", type: "select", opts: {"flex-start":"좌측부터", "center":"중앙 모음", "flex-end":"우측부터", "space-between":"양끝 정렬", "space-evenly":"균등 분배"}, def: "center", tip: "전체 버튼 무리를 어디로 정렬할지 결정" }
+        ]
+      },
+      {
+        group: "4. 디자인 색상 및 활성 스타일",
+        items: [
+          { var: "--ga-nav-bg-color", label: "네비바 배경색", type: "color-rgba", def: "#111111", tip: "바탕 컬러" },
+          { var: "--ga-nav-text-color", label: "비활성 글자색", type: "color-rgba", def: "rgba(255, 255, 255, 0.4)", tip: "선택되지 않은 기본 글자색" },
+          { var: "--ga-nav-text-color-hover", label: "마우스 호버 글자색", type: "color-rgba", def: "rgba(255, 255, 255, 0.8)", tip: "마우스 올렸을 때 색상" },
+          { var: "--ga-nav-text-color-active", label: "활성 메뉴 글자색", type: "color-rgba", def: "#ffffff", tip: "현재 보고 있는 구역의 글자색" },
+          // 🌟 신규: 버튼형 배경 및 언더라인 스위치
+          { var: "--ga-nav-active-line-switch", label: "언더라인 켜기/끄기", type: "select", opts: {"1":"활성화 (표시)", "0":"숨김"}, def: "1", tip: "하단 활성 표시선 스위치" },
+          { var: "--ga-nav-active-line-color", label: "언더라인 색상", type: "color-rgba", def: "#ffffff", tip: "표시선의 색상 설정" },
+          { var: "--ga-nav-active-line-height", label: "언더라인 선 두께", type: "range", min: 1, max: 10, unit: "px", def: "3", tip: "표시 선의 굵기" },
+          { var: "--ga-nav-active-line-gap", label: "선 양끝 축소 여백", type: "range", min: 0, max: 50, unit: "px", def: "16", tip: "선의 길이를 조절하는 좌우 여백" },
+          { var: "--ga-nav-active-bg-switch", label: "버튼형 배경 켜기/끄기", type: "select", opts: {"1":"활성화 (표시)", "0":"숨김"}, def: "0", tip: "현재 메뉴를 버튼 배경색으로 강조" },
+          { var: "--ga-nav-active-bg-color", label: "버튼 배경 색상", type: "color-rgba", def: "rgba(255, 255, 255, 0.15)", tip: "버튼 형태의 배경색 및 투명도" },
+          { var: "--ga-nav-active-radius", label: "버튼 배경 모서리", type: "range", min: 0, max: 50, unit: "px", def: "8", tip: "버튼 배경 둥글기 곡률 조절" }
+        ]
+      },
+      {
+        group: "5. 그림자 전문가 설정",
+        items: [
+          { var: "--ga-nav-shadow-switch", label: "그림자 노출 스위치", type: "select", opts: {"1":"활성화", "0":"숨김"}, def: "1", tip: "하단 그림자 효과 켜기 끄기" },
+          { var: "--ga-nav-shadow-x", label: "그림자 좌우 위치", type: "range", min: -50, max: 50, unit: "px", def: "0", tip: "가로축 이동 거리" },
+          { var: "--ga-nav-shadow-y", label: "그림자 상하 위치", type: "range", min: -50, max: 50, unit: "px", def: "4", tip: "세로축 이동 거리" },
+          { var: "--ga-nav-shadow-blur", label: "그림자 흐림 정도", type: "range", min: 0, max: 100, unit: "px", def: "12", tip: "퍼지는 흐림 효과 크기" },
+          { var: "--ga-nav-shadow-spread", label: "그림자 확장 크기", type: "range", min: -50, max: 50, unit: "px", def: "0", tip: "그림자 고유의 면적" },
+          { var: "--ga-nav-shadow-color", label: "그림자 색상", type: "color-rgba", def: "rgba(0,0,0,0.15)", tip: "색상 및 투명도 지정" }
+        ]
+      }
+    ];
+
+    let innerHTML = \`
+      <div style="padding: 16px 20px; border-bottom: 1px solid #2a2a2a; background: #1a1a1a; position: sticky; top: 0; z-index: 10;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <h3 style="margin: 0 0 4px 0; color: #10b981; font-size: 18px; font-weight: 800;">Ga-Navi Dashboard v3.3</h3>
+          </div>
+          <button id="efc_globalResetBtn_x2k" style="background: transparent; border: 1px solid #444; color: #aaa; border-radius: 6px; cursor: pointer; padding: 6px 10px; transition: all 0.2s; display: flex; align-items: center;" title="전체 초기화">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+          </button>
+        </div>
+        
+        <div style="background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333;">
+          <div style="display: flex; gap: 6px;">
+            <label style="flex:1; text-align:center; padding:6px; background:#3b82f6; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px; border:1px solid #444;">
+              <input type="radio" name="efc_viewMode_m1r" value="pc" checked style="display:none;"> 데스크톱
+            </label>
+            <label style="flex:1; text-align:center; padding:6px; background:#222; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px; border:1px solid #444;">
+              <input type="radio" name="efc_viewMode_m1r" value="tablet" style="display:none;"> 태블릿
+            </label>
+            <label style="flex:1; text-align:center; padding:6px; background:#222; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px; border:1px solid #444;">
+              <input type="radio" name="efc_viewMode_m1r" value="mobile" style="display:none;"> 모바일
+            </label>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 12px 20px;" id="efc_dashScrollArea_h7b">\`;
+
+    window.efc_currentNavStyles_v9b = {};
+
+    qaConfig.forEach((group) => {
+      innerHTML += \`<details style="margin-bottom: 12px; background: #1a1a1a; border-radius: 8px; border: 1px solid #2a2a2a; overflow: hidden;" open>
+        <summary style="font-weight: 700; cursor: pointer; color: #38bdf8; outline: none; padding: 12px; background: #222; font-size: 14px;">\${group.group}</summary>
+        <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">\`;
+      
+      group.items.forEach(item => {
+        let rawVal = item.def;
+        let navEl = window.opener.document.querySelector('.ga-anchor-navi-container');
+        if (navEl) {
+           let computed = window.opener.getComputedStyle(navEl).getPropertyValue(item.var).trim();
+           if(computed) {
+               if(item.type === 'range') rawVal = parseFloat(computed).toString();
+               else rawVal = computed;
+           }
+        }
+        window.efc_currentNavStyles_v9b[item.var] = rawVal + (item.unit || "");
+        
+        innerHTML += \`<div class="efc_itemContainer_j3v">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div style="width: 100%;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                <label style="color: #eee; font-weight: 600; font-size: 13px;">\${item.label}</label>
+                <span style="font-family: monospace; background: #333; color: #a1a1aa; padding: 2px 6px; border-radius: 4px; font-size: 10px;">\${item.var}</span>
+              </div>
+              <div style="font-size: 11px; color: #888; background: #111; padding: 4px 6px; border-radius: 4px; border-left: 2px solid #38bdf8;">\${item.tip}</div>
+            </div>
+            <button class="efc_resetSingleBtn_k2n" data-var="\${item.var}" data-def="\${item.def}" style="margin-left: 8px; margin-top: 2px;" title="초기화">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            </button>
+          </div>\`;
+        
+        if (item.type === 'color-rgba') {
+          let cObj = efc_parseColorStr_c9m(rawVal);
+          innerHTML += \`<div style="display:flex; gap:6px; align-items:center;">
+            <input type="color" class="efc_colorPicker_n5s" data-var="\${item.var}" value="\${cObj.hex}">
+            <div style="display:flex; flex-direction:column; flex:1; gap:2px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:10px; color:#aaa;">투명도</span>
+                <input type="range" class="efc_opacitySlider_m2z" data-var="\${item.var}" min="0" max="1" step="0.05" value="\${cObj.a}" style="flex:1; accent-color:#10b981; height:4px;">
+                <span style="font-size:11px; color:#10b981; width:28px; text-align:right;" class="efc_opLabel_k9n">\${cObj.a}</span>
+              </div>
+            </div>
+            <input type="text" class="efc_colorTxt_m8r" data-var="\${item.var}" value="\${rawVal}">
+          </div>\`;
+        } else if (item.type === 'select') {
+          innerHTML += \`<select class="efc_basicSel_h7k" data-var="\${item.var}">\`;
+          for (let [val, text] of Object.entries(item.opts)) { innerHTML += \`<option value="\${val}" \${rawVal === val ? 'selected' : ''}>\${text}</option>\`; }
+          innerHTML += \`</select>\`;
+        } else if (item.type === 'range') {
+          let numVal = parseFloat(rawVal); if(isNaN(numVal)) numVal = 0;
+          innerHTML += \`<div style="display: flex; gap: 10px; align-items: center;">
+            <input type="range" class="efc_inputRange_x8p" data-var="\${item.var}" data-unit="\${item.unit}" min="\${item.min}" max="\${item.max}" step="\${item.step||1}" value="\${numVal}">
+            <input type="number" class="efc_inputNum_c4m" data-var="\${item.var}" data-unit="\${item.unit}" step="\${item.step||1}" value="\${numVal}">
+          </div>\`;
+        } else if (item.type === 'offset') {
+          let isAutoOrZero = rawVal === 'auto' || rawVal === '0px';
+          innerHTML += \`<div style="display: flex; gap: 8px;">
+            <select class="efc_offsetSel_o9a" data-var="\${item.var}">
+              <option value="auto" \${rawVal === 'auto' ? 'selected' : ''}>자동 감지</option>
+              <option value="0px" \${rawVal === '0px' ? 'selected' : ''}>화면 끝 밀착</option>
+              <option value="custom" \${!isAutoOrZero ? 'selected' : ''}>수동 픽셀 입력</option>
+            </select>
+            <input type="text" class="efc_offsetTxt_p3b" data-var="\${item.var}" value="\${rawVal}" style="\${isAutoOrZero ? 'display:none;' : ''}">
+          </div>\`;
+        } else if (item.type === 'width-control') {
+          let isAuto = rawVal === 'auto';
+          innerHTML += \`<div style="display: flex; gap: 8px;">
+            <select class="efc_offsetSel_o9a" data-var="\${item.var}">
+              <option value="auto" \${isAuto ? 'selected' : ''}>자동 감지 적용</option>
+              <option value="custom" \${!isAuto ? 'selected' : ''}>수동 픽셀 입력</option>
+            </select>
+            <input type="text" class="efc_offsetTxt_p3b" data-var="\${item.var}" value="\${isAuto ? '1200px' : rawVal}" style="\${isAuto ? 'display:none;' : ''}">
+          </div>\`;
+        } else if (item.type === 'text') {
+          innerHTML += \`<input type="text" class="efc_basicTxt_z1p" data-var="\${item.var}" value="\${rawVal}">\`;
+        }
+        innerHTML += \`</div>\`;
+      });
+      innerHTML += \`</div></details>\`;
+    });
+
+    innerHTML += \`</div>
+      <div id="efc_exportArea_w9c" style="display: none; padding: 16px 20px; border-top: 1px solid #2a2a2a; background: #1a1a1a;">
+        <textarea id="efc_exportTextarea_f4v" placeholder="코드를 적용하세요."></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="efc_copyBtn_l8x" style="flex: 1; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer;">복사하기</button>
+          <button id="efc_importBtn_k9q" style="flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer;">적용하기</button>
+        </div>
+      </div>
+      <div style="padding: 16px 20px; border-top: 1px solid #2a2a2a; background: #1a1a1a; position: sticky; bottom: 0;">
+        <button id="efc_exportTriggerBtn_j2m" style="width: 100%; padding: 12px; background: #eab308; color: #000; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">설정 입출력</button>
+      </div>\`;
+    
+    document.getElementById('app').innerHTML = innerHTML;
+
+    const efc_applyChange_p9m = (v, val) => {
+      window.efc_currentNavStyles_v9b[v] = val;
+      if (v === '--ga-nav-layout-mode') {
+         window.opener.document.documentElement.setAttribute('data-ga-nav-layout', val);
+      }
+      
+      let styleTag = window.opener.document.getElementById('efc_qa_dynamic_nav_style_z8c');
+      if (!styleTag) {
+          styleTag = window.opener.document.createElement('style');
+          styleTag.id = 'efc_qa_dynamic_nav_style_z8c';
+          window.opener.document.head.appendChild(styleTag);
+      }
+      
+      let cssRules = ':root {\\n';
+      for(let key in window.efc_currentNavStyles_v9b) {
+          cssRules += \`  \${key}: \${window.efc_currentNavStyles_v9b[key]} !important;\\n\`;
+      }
+      cssRules += '}';
+      styleTag.innerHTML = cssRules;
+      window.opener.dispatchEvent(new Event('resize'));
+    };
+
+    const efc_setViewport_d4k = (mode) => {
+      const radios = document.querySelectorAll('input[name="efc_viewMode_m1r"]');
+      radios.forEach(r => { r.parentElement.style.background = (r.value === mode) ? '#3b82f6' : '#222'; });
+      const targetApp = window.opener.document.querySelector('.notion-app') || window.opener.document.body;
+      
+      if (mode === 'pc') {
+        targetApp.style.removeProperty('max-width');
+        targetApp.style.removeProperty('margin');
+        targetApp.style.removeProperty('box-shadow');
+        targetApp.style.removeProperty('border');
+      } else {
+        targetApp.style.setProperty('max-width', mode === 'tablet' ? '768px' : '390px', 'important');
+        targetApp.style.setProperty('margin', '0 auto', 'important');
+        targetApp.style.setProperty('box-shadow', '0 0 50px rgba(0,0,0,0.5)', 'important');
+        targetApp.style.setProperty('border', '1px solid #333', 'important');
+      }
+      window.opener.dispatchEvent(new Event('resize'));
+    };
+    document.querySelectorAll('input[name="efc_viewMode_m1r"]').forEach(r => { r.addEventListener('change', (e) => efc_setViewport_d4k(e.target.value)); });
+
+    document.querySelectorAll('.efc_colorPicker_n5s, .efc_opacitySlider_m2z, .efc_colorTxt_m8r').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const container = e.target.closest('div.efc_itemContainer_j3v');
+        const v = e.target.getAttribute('data-var');
+        let picker = container.querySelector('.efc_colorPicker_n5s');
+        let slider = container.querySelector('.efc_opacitySlider_m2z');
+        let txt = container.querySelector('.efc_colorTxt_m8r');
+        let lbl = container.querySelector('.efc_opLabel_k9n');
+
+        if(e.target.classList.contains('efc_colorTxt_m8r')) {
+           let cObj = efc_parseColorStr_c9m(e.target.value);
+           picker.value = cObj.hex;
+           slider.value = cObj.a;
+           lbl.innerText = cObj.a;
+           efc_applyChange_p9m(v, e.target.value);
+        } else if(e.target.classList.contains('efc_opacitySlider_m2z') || e.target.classList.contains('efc_colorPicker_n5s')) {
+           let finalRgba = efc_buildRgba_x2l(picker.value, parseFloat(slider.value));
+           lbl.innerText = slider.value;
+           txt.value = finalRgba;
+           efc_applyChange_p9m(v, finalRgba);
+        }
+      });
+    });
+
+    document.querySelectorAll('.efc_inputRange_x8p, .efc_inputNum_c4m').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const v = e.target.getAttribute('data-var');
+        const unit = e.target.getAttribute('data-unit');
+        let val = e.target.value;
+        if (e.target.classList.contains('efc_inputRange_x8p')) { e.target.nextElementSibling.value = val; } 
+        else { e.target.previousElementSibling.value = val; }
+        efc_applyChange_p9m(v, val + unit);
+      });
+    });
+
+    document.querySelectorAll('.efc_offsetSel_o9a').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const txt = e.target.nextElementSibling;
+        const v = txt.getAttribute('data-var');
+        if (e.target.value === 'custom') { 
+          txt.style.display = 'block'; 
+          if(v === '--ga-nav-content-width') efc_applyChange_p9m(v, '1200px');
+          else efc_applyChange_p9m(v, txt.value || '10px');
+        } else { 
+          txt.style.display = 'none'; 
+          efc_applyChange_p9m(v, e.target.value);
+        }
+      });
+    });
+
+    document.querySelectorAll('.efc_offsetTxt_p3b, .efc_basicSel_h7k, .efc_basicTxt_z1p').forEach(input => {
+      input.addEventListener('input', (e) => efc_applyChange_p9m(e.target.getAttribute('data-var'), e.target.value));
+    });
+
+    document.querySelectorAll('.efc_resetSingleBtn_k2n').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const btnEl = e.currentTarget;
+        const v = btnEl.getAttribute('data-var'); const def = btnEl.getAttribute('data-def');
+        efc_applyChange_p9m(v, def);
+        const container = btnEl.closest('.efc_itemContainer_j3v');
+        
+        container.querySelectorAll('input, select').forEach(inp => {
+          if (inp.classList.contains('efc_colorPicker_n5s')) { 
+            let cObj = efc_parseColorStr_c9m(def); inp.value = cObj.hex; 
+            container.querySelector('.efc_opacitySlider_m2z').value = cObj.a;
+            container.querySelector('.efc_opLabel_k9n').innerText = cObj.a;
+          } else if (inp.classList.contains('efc_colorTxt_m8r') || inp.classList.contains('efc_basicTxt_z1p') || inp.classList.contains('efc_basicSel_h7k') || inp.classList.contains('efc_offsetTxt_p3b')) { 
+            inp.value = def; 
+            if(inp.classList.contains('efc_offsetTxt_p3b')) {
+              const sel = container.querySelector('.efc_offsetSel_o9a');
+              if (def === 'auto' || def === '0px') { sel.value = def; inp.style.display = 'none'; }
+              else { sel.value = 'custom'; inp.style.display = 'block'; }
+            }
+          } else if(inp.classList.contains('efc_inputRange_x8p') || inp.classList.contains('efc_inputNum_c4m')) {
+            inp.value = parseFloat(def) || 0;
+          }
+        });
+      });
+    });
+
+    document.getElementById('efc_globalResetBtn_x2k').addEventListener('click', () => {
+      if(confirm('모든 설정을 초기화하시겠습니까?')) { document.querySelectorAll('.efc_resetSingleBtn_k2n').forEach(btn => btn.click()); }
+    });
+
+    document.getElementById('efc_exportTriggerBtn_j2m').addEventListener('click', () => {
+      let exportText = ":root {\\n";
+      qaConfig.forEach(g => g.items.forEach(i => { if(i.var) exportText += \`  \${i.var}: \${window.efc_currentNavStyles_v9b[i.var] || i.def};\\n\`; }));
+      exportText += "}";
+      document.getElementById('efc_exportTextarea_f4v').value = exportText;
+      const area = document.getElementById('efc_exportArea_w9c');
+      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('efc_copyBtn_l8x').addEventListener('click', () => {
+      document.getElementById('efc_exportTextarea_f4v').select(); document.execCommand('copy'); alert('복사되었습니다.');
+    });
+
+    document.getElementById('efc_importBtn_k9q').addEventListener('click', () => {
+      const code = document.getElementById('efc_exportTextarea_f4v').value;
+      const regex = /(--[\\w-]+):\\s*([^;!]+)(?:!important)?;/g;
+      let match, appliedCount = 0;
+      while ((match = regex.exec(code)) !== null) {
+        const varName = match[1].trim(), varValue = match[2].trim();
+        efc_applyChange_p9m(varName, varValue);
+        const input = document.querySelector(\`[data-var="\${varName}"]\`);
+        if (input) {
+          const container = input.closest('.efc_itemContainer_j3v');
+          container.querySelectorAll('input, select').forEach(inp => {
+            if (inp.classList.contains('efc_colorPicker_n5s')) { 
+              let cObj = efc_parseColorStr_c9m(varValue); inp.value = cObj.hex; 
+              container.querySelector('.efc_opacitySlider_m2z').value = cObj.a;
+              container.querySelector('.efc_opLabel_k9n').innerText = cObj.a;
+            } else if (inp.classList.contains('efc_colorTxt_m8r') || inp.classList.contains('efc_basicTxt_z1p') || inp.classList.contains('efc_basicSel_h7k') || inp.classList.contains('efc_offsetTxt_p3b')) { 
+              inp.value = varValue; 
+              if(inp.classList.contains('efc_offsetTxt_p3b')) {
+                const sel = container.querySelector('.efc_offsetSel_o9a');
+                if (varValue === 'auto' || varValue === '0px') { sel.value = varValue; inp.style.display = 'none'; }
+                else { sel.value = 'custom'; inp.style.display = 'block'; }
+              }
+            } else if(inp.classList.contains('efc_inputRange_x8p') || inp.classList.contains('efc_inputNum_c4m')) {
+              inp.value = parseFloat(varValue) || 0;
+            }
+          });
+        }
+        appliedCount++;
+      }
+      if (appliedCount > 0) { alert(\`\${appliedCount}개의 설정이 동기화되었습니다.\`); } 
+      else { alert('코드 양식이 다릅니다.'); }
+    });
+  `;
+
+  popup.document.open();
+  popup.document.write(`
+  <!DOCTYPE html>
+  <html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <title>Ga-Navi QA Dashboard</title>
+    <style>
+      body { margin: 0; background: #121212; color: #e5e5e5; font-family: Pretendard, sans-serif; font-size: 13px; }
+      .efc_itemContainer_j3v { display: flex; flex-direction: column; gap: 8px; padding-bottom: 10px; border-bottom: 1px dashed #333; }
+      .efc_resetSingleBtn_k2n { background: transparent; border: 1px solid #444; color: #aaa; border-radius: 4px; cursor: pointer; padding: 4px 6px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+      .efc_resetSingleBtn_k2n:hover { background: #333; color: #fff; }
+      .efc_basicSel_h7k, .efc_offsetSel_o9a { padding: 6px; background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; width: 100%; outline: none;}
+      .efc_basicTxt_z1p, .efc_colorTxt_m8r, .efc_offsetTxt_p3b { background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 6px 10px; box-sizing: border-box; outline:none;}
+      .efc_colorPicker_n5s { width: 36px; height: 32px; padding: 0; border: none; border-radius: 4px; background: transparent; cursor: pointer; }
+      .efc_inputRange_x8p { flex: 1; accent-color: #10b981; cursor: pointer; }
+      .efc_inputNum_c4m { width: 75px; padding: 6px; background: #111; color: #10b981; border: 1px solid #444; border-radius: 6px; font-weight: 700; text-align: center; outline:none;}
+      #efc_exportTextarea_f4v { width: 100%; height: 120px; background: #000; color: #10b981; border: 1px solid #444; border-radius: 8px; padding: 10px; font-family: monospace; resize: vertical; outline:none;}
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #1a1a1a; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>${scriptContent}<\/script>
+  </body>
+  </html>
+  `);
+  popup.document.close();
+})();
