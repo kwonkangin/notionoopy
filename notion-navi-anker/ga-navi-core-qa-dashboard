@@ -1,4 +1,4 @@
-/* Ga-Navi 전문가용 팝업 QA 대시보드 v3.3 (버튼형 활성 모드 & 폰트 굵기 확장) */
+/* Ga-Navi 전문가용 팝업 QA 대시보드 v3.4 (압축 코드 출력 토글 기능 탑재) */
 (function efc_launchNaviDashboard_n4v() {
   const popup = window.open('', 'GaNaviQADashboard', 'width=520,height=900,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
   if (!popup) { alert('팝업 창 차단을 해제해 주십시오.'); return; }
@@ -29,7 +29,6 @@
       return \`rgba(\${r}, \${g}, \${b}, \${a})\`;
     };
 
-    // 🌟 신규: 100~900 웨이트 옵션 확장
     const weights = {"100":"100 아주 얇음", "200":"200 얇음", "300":"300 약간 얇음", "400":"400 보통", "500":"500 중간", "600":"600 약간 두꺼움", "700":"700 두꺼움", "800":"800 아주 두꺼움", "900":"900 가장 두꺼움"};
 
     const qaConfig = [
@@ -63,7 +62,6 @@
           { var: "--ga-nav-letter-spacing", label: "글자 자간", type: "range", min: -5, max: 5, step: 0.1, unit: "px", def: "-0.3", tip: "글씨 좌우 자간" },
           { var: "--ga-nav-item-text-align", label: "개별 메뉴 글자 정렬", type: "select", opts: {"left":"좌측", "center":"중앙", "right":"우측"}, def: "center", tip: "버튼 내부 텍스트 정렬" },
           { var: "--ga-nav-vertical-align", label: "메뉴 세로 정렬 가이드", type: "select", opts: {"flex-start":"상단 맞춤", "center":"상하 정중앙", "flex-end":"하단 맞춤"}, def: "center", tip: "버튼을 세로축 어디에 붙일지 결정" },
-          // 🌟 신규: 균등 분배(space-evenly), 양끝 정렬(space-between) 옵션 추가
           { var: "--ga-nav-text-align", label: "전체 메뉴 가로 배치", type: "select", opts: {"flex-start":"좌측부터", "center":"중앙 모음", "flex-end":"우측부터", "space-between":"양끝 정렬", "space-evenly":"균등 분배"}, def: "center", tip: "전체 버튼 무리를 어디로 정렬할지 결정" }
         ]
       },
@@ -74,7 +72,6 @@
           { var: "--ga-nav-text-color", label: "비활성 글자색", type: "color-rgba", def: "rgba(255, 255, 255, 0.4)", tip: "선택되지 않은 기본 글자색" },
           { var: "--ga-nav-text-color-hover", label: "마우스 호버 글자색", type: "color-rgba", def: "rgba(255, 255, 255, 0.8)", tip: "마우스 올렸을 때 색상" },
           { var: "--ga-nav-text-color-active", label: "활성 메뉴 글자색", type: "color-rgba", def: "#ffffff", tip: "현재 보고 있는 구역의 글자색" },
-          // 🌟 신규: 버튼형 배경 및 언더라인 스위치
           { var: "--ga-nav-active-line-switch", label: "언더라인 켜기/끄기", type: "select", opts: {"1":"활성화 (표시)", "0":"숨김"}, def: "1", tip: "하단 활성 표시선 스위치" },
           { var: "--ga-nav-active-line-color", label: "언더라인 색상", type: "color-rgba", def: "#ffffff", tip: "표시선의 색상 설정" },
           { var: "--ga-nav-active-line-height", label: "언더라인 선 두께", type: "range", min: 1, max: 10, unit: "px", def: "3", tip: "표시 선의 굵기" },
@@ -101,7 +98,7 @@
       <div style="padding: 16px 20px; border-bottom: 1px solid #2a2a2a; background: #1a1a1a; position: sticky; top: 0; z-index: 10;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <div>
-            <h3 style="margin: 0 0 4px 0; color: #10b981; font-size: 18px; font-weight: 800;">Ga-Navi Dashboard v3.3</h3>
+            <h3 style="margin: 0 0 4px 0; color: #10b981; font-size: 18px; font-weight: 800;">Ga-Navi Dashboard v3.4</h3>
           </div>
           <button id="efc_globalResetBtn_x2k" style="background: transparent; border: 1px solid #444; color: #aaa; border-radius: 6px; cursor: pointer; padding: 6px 10px; transition: all 0.2s; display: flex; align-items: center;" title="전체 초기화">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
@@ -209,6 +206,12 @@
 
     innerHTML += \`</div>
       <div id="efc_exportArea_w9c" style="display: none; padding: 16px 20px; border-top: 1px solid #2a2a2a; background: #1a1a1a;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; color: #aaa; font-weight: bold;">출력 코드</span>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: #10b981; font-weight: bold;">
+            <input type="checkbox" id="efc_minifyToggle_y7t" style="accent-color: #10b981;"> 압축 코드로 변환
+          </label>
+        </div>
         <textarea id="efc_exportTextarea_f4v" placeholder="코드를 적용하세요."></textarea>
         <div style="display: flex; gap: 10px; margin-top: 10px;">
           <button id="efc_copyBtn_l8x" style="flex: 1; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer;">복사하기</button>
@@ -241,6 +244,17 @@
       cssRules += '}';
       styleTag.innerHTML = cssRules;
       window.opener.dispatchEvent(new Event('resize'));
+    };
+
+    const efc_generateExportCode_m3p = () => {
+      let exportText = ":root {\\n";
+      qaConfig.forEach(g => g.items.forEach(i => { if(i.var) exportText += \`  \${i.var}: \${window.efc_currentNavStyles_v9b[i.var] || i.def};\\n\`; }));
+      exportText += "}";
+      
+      if (document.getElementById('efc_minifyToggle_y7t').checked) {
+        exportText = exportText.replace(/\\n/g, '').replace(/\\s{2,}/g, ' ').replace(/:\\s/g, ':').replace(/;\\s/g, ';').replace(/{\\s/g, '{').replace(/\\s}/g, '}');
+      }
+      return exportText;
     };
 
     const efc_setViewport_d4k = (mode) => {
@@ -348,12 +362,14 @@
     });
 
     document.getElementById('efc_exportTriggerBtn_j2m').addEventListener('click', () => {
-      let exportText = ":root {\\n";
-      qaConfig.forEach(g => g.items.forEach(i => { if(i.var) exportText += \`  \${i.var}: \${window.efc_currentNavStyles_v9b[i.var] || i.def};\\n\`; }));
-      exportText += "}";
-      document.getElementById('efc_exportTextarea_f4v').value = exportText;
+      document.getElementById('efc_exportTextarea_f4v').value = efc_generateExportCode_m3p();
       const area = document.getElementById('efc_exportArea_w9c');
       area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    // 🌟 신규: 토글 변경 시 출력 코드 실시간 업데이트
+    document.getElementById('efc_minifyToggle_y7t').addEventListener('change', () => {
+      document.getElementById('efc_exportTextarea_f4v').value = efc_generateExportCode_m3p();
     });
 
     document.getElementById('efc_copyBtn_l8x').addEventListener('click', () => {
