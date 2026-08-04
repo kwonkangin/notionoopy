@@ -1,0 +1,928 @@
+<!-- 단독/우피버튼 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/oopy-button/oopy-button.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@bcdced59b504b0bc1f26a2ac916dc0f9274f2f32/oopy-button/oopy-button.js" defer></script>
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>에픽션 스마트 대시보드 V11.1</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* 최상위 테마 변수 통일 */
+:root {
+    --bg-main_b1a: #121212;
+    --bg-panel_p2b: #1e1e1e;
+    --text-main_t3c: #e5e5e5;
+    --text-muted_m4d: #999999;
+    --border-color_b5e: #333333;
+    --accent-color_a6f: #FF4500;
+    --radius-sm_r8h: 6px;
+    --radius-md_m9i: 12px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Pretendard', sans-serif;
+    background-color: var(--bg-main_b1a);
+    color: var(--text-main_t3c);
+    line-height: 1.5;
+}
+
+/* 시맨틱 헤더 고정 영역 */
+header.headerWrap_h1w {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: var(--bg-panel_p2b);
+    border-bottom: 1px solid var(--border-color_b5e);
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.topBar_t2b {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.controlsWrap_c3w {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    font-size: 13px;
+}
+
+/* 캔버스 배경 구역 */
+.previewCanvas_p4n {
+    width: 100%;
+    min-height: 140px;
+    border-radius: var(--radius-sm_r8h);
+    border: 1px dashed var(--border-color_b5e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-main_b1a);
+    transition: background-color 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 스위치 토글 디자인 공통화 */
+.toggleWrap_t5w {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+}
+.toggleWrap_t5w input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggleSlider_t6s {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-color_b5e);
+    transition: 0.3s;
+    border-radius: 22px;
+}
+.toggleSlider_t6s:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+input:checked + .toggleSlider_t6s {
+    background-color: var(--accent-color_a6f);
+}
+input:checked + .toggleSlider_t6s:before {
+    transform: translateX(18px);
+}
+.toggleRow_t7r {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-muted_m4d);
+}
+
+/* 동적 버튼 렌더링 스타일 종속 */
+.ga-dynamic-btn {
+    display: inline-flex !important;
+    flex-direction: var(--btn-dir, row) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    font-size: var(--btn-fs, 16px) !important;
+    font-weight: var(--btn-fw, 700) !important;
+    padding: 13px 16px !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    margin: 8px 0 !important;
+    background: var(--btn-bg, #FF4500) !important;
+    color: var(--btn-color, #ffffff) !important;
+    width: var(--btn-w, auto) !important;
+    border-radius: var(--btn-rad, 14px) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+    transform: scale(1) !important;
+    transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.ga-dynamic-btn:hover {
+    background: var(--btn-h-bg, var(--btn-bg)) !important;
+    color: var(--btn-h-color, var(--btn-color)) !important;
+    transform: scale(var(--btn-h-scale, 1.03)) !important;
+    box-shadow: var(--btn-h-shadow, 0 6px 20px rgba(0, 0, 0, 0.12)) !important;
+}
+.ga-btn-icon_k9m {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: var(--btn-is, 1.2em) !important;
+}
+img.ga-btn-icon_k9m {
+    width: var(--btn-is, 1.2em) !important;
+    height: var(--btn-is, 1.2em) !important;
+    object-fit: contain !important;
+}
+.full-width { width: 100% !important; }
+
+/* 시맨틱 메인 레이아웃 */
+main.mainLayout_m8l {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+@media (max-width: 1000px) {
+    main.mainLayout_m8l { grid-template-columns: 1fr; }
+}
+
+/* 섹션 패널 및 애니메이션 효과 */
+section.panelSection_p9s {
+    background-color: var(--bg-panel_p2b);
+    border: 1px solid var(--border-color_b5e);
+    border-radius: var(--radius-md_m9i);
+    padding: 24px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+section.panelSection_p9s.visible_v0v {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.panelTitle_p1t {
+    font-size: 16px;
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color_b5e);
+    color: var(--accent-color_a6f);
+}
+
+.inputGroup_i2g {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.inputLabel_l3l {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text-muted_m4d);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.textInput_t4t, .selectInput_s5s {
+    background-color: var(--bg-main_b1a);
+    border: 1px solid var(--border-color_b5e);
+    color: var(--text-main_t3c);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm_r8h);
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.textInput_t4t:focus, .selectInput_s5s:focus {
+    border-color: var(--accent-color_a6f);
+}
+
+.colorFlex_c6f {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.colorPicker_c7p {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--border-color_b5e);
+    border-radius: var(--radius-sm_r8h);
+    cursor: pointer;
+    background: none;
+}
+
+.sliderFlex_s8f {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.rangeInput_r9r {
+    flex: 1;
+    cursor: pointer;
+}
+.numberInput_n0n {
+    width: 70px;
+}
+
+/* 아이콘 그리드 컨테이너 */
+.iconGridWrap_i1w {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 5px;
+    align-content: start;
+}
+.iconCell_i2c {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-main_b1a);
+    border: 1px solid var(--border-color_b5e);
+    border-radius: var(--radius-sm_r8h);
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    position: relative;
+    box-sizing: border-box;
+}
+.iconCell_i2c:hover {
+    border-color: var(--accent-color_a6f);
+    color: var(--accent-color_a6f);
+}
+.iconCell_i2c.draggable_d3d {
+    cursor: grab;
+    border-color: var(--accent-color_a6f);
+}
+.iconCell_i2c.draggable_d3d:active {
+    cursor: grabbing;
+}
+.deleteBtn_d4b {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    display: none;
+    z-index: 10;
+}
+.iconCell_i2c:hover .deleteBtn_d4b {
+    display: flex;
+}
+.sectionDiv_s5d {
+    font-size: 12px;
+    color: var(--text-muted_m4d);
+    grid-column: 1 / -1;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px dashed var(--border-color_b5e);
+    padding-bottom: 4px;
+}
+
+/* 텍스트 영역 출력부 */
+.codeWrap_c6w {
+    position: relative;
+    margin-bottom: 20px;
+}
+.codeArea_c7a {
+    width: 100%;
+    height: 80px;
+    background-color: var(--bg-main_b1a);
+    color: #10b981;
+    border: 1px solid var(--border-color_b5e);
+    border-radius: var(--radius-sm_r8h);
+    padding: 12px;
+    padding-right: 40px;
+    font-family: monospace;
+    font-size: 13px;
+    box-sizing: border-box;
+    resize: vertical;
+    line-height: 1.4;
+}
+.copyIconBtn_c8b {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-muted_m4d);
+    cursor: pointer;
+    font-size: 18px;
+    transition: color 0.2s;
+}
+.copyIconBtn_c8b:hover {
+    color: var(--accent-color_a6f);
+}
+
+.toastBox_t9b {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background-color: var(--accent-color_a6f);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 9999;
+}
+.toastBox_t9b.show_s0s {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.primaryBtn_p1b {
+    background-color: var(--accent-color_a6f);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm_r8h);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<header class="headerWrap_h1w">
+    <div class="topBar_t2b">
+        <h1 style="margin:0; font-size: 18px; color: var(--accent-color_a6f);">버튼 렌더링 미리보기</h1>
+        <div class="controlsWrap_c3w">
+            <div class="toggleRow_t7r">
+                <span>미리보기 라이트 모드</span>
+                <label class="toggleWrap_t5w">
+                    <input type="checkbox" class="efc_themeToggle_t1a">
+                    <span class="toggleSlider_t6s"></span>
+                </label>
+            </div>
+            <label style="display:flex; align-items:center; gap:6px;">
+                배경색 <input type="color" class="efc_bgColor_b2b" value="#121212" style="padding:0; border:none; width:24px; height:24px; cursor:pointer;" aria-label="배경색 선택">
+            </label>
+            <label style="display:flex; align-items:center; gap:6px;">
+                투명도 <input type="range" class="efc_bgOpacity_b3c" min="0" max="1" step="0.1" value="1" style="width:80px;" aria-label="배경 투명도">
+            </label>
+        </div>
+    </div>
+    <div class="previewCanvas_p4n efc_canvasArea_c4d">
+        <div class="ga-dynamic-btn efc_mockBtn_m5e" role="button" tabindex="0" aria-label="미리보기 버튼">
+            <i class="fa-solid fa-house ga-btn-icon_k9m" aria-hidden="true"></i><span>상품구경하기</span>
+        </div>
+    </div>
+</header>
+
+<main class="mainLayout_m8l">
+    <section class="panelSection_p9s efc_observerSec_o6f">
+        <h2 class="panelTitle_p1t">1. 텍스트 및 레이아웃 설정</h2>
+        
+        <div class="inputGroup_i2g">
+            <label class="inputLabel_l3l">버튼 문구 (TXT)</label>
+            <input type="text" class="textInput_t4t efc_inpTxt_i7g" value="상품구경하기" aria-label="버튼 문구">
+        </div>
+        
+        <div class="inputGroup_i2g">
+            <label class="inputLabel_l3l">이동할 URL (URL)</label>
+            <input type="text" class="textInput_t4t efc_inpUrl_i8h" value="https://daisomall.co.kr" aria-label="이동할 URL">
+        </div>
+
+        <div class="inputGroup_i2g" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div>
+                <label class="inputLabel_l3l" style="margin-bottom:8px;">가로 너비 (W)</label>
+                <select class="selectInput_s5s efc_inpW_i9i" aria-label="너비 설정">
+                    <option value="F">Fit (글자 맞춤)</option>
+                    <option value="W">Wide (100% 꽉 채움)</option>
+                </select>
+            </div>
+            <div>
+                <label class="inputLabel_l3l" style="margin-bottom:8px;">호버 효과 끄기 (HBC none)</label>
+                <div class="toggleRow_t7r" style="height:38px;">
+                    <label class="toggleWrap_t5w">
+                        <input type="checkbox" class="efc_hoverToggle_h0j" aria-label="호버 효과 끄기">
+                        <span class="toggleSlider_t6s"></span>
+                    </label>
+                    <span>마우스 변주 제거</span>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="panelTitle_p1t" style="margin-top:24px;">2. 색상 설정</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="inputGroup_i2g">
+                <label class="inputLabel_l3l">평상시 배경 (BC)</label>
+                <div class="colorFlex_c6f">
+                    <input type="color" class="colorPicker_c7p efc_bcPick_p1k" value="#FF4600" aria-label="평상시 배경색">
+                    <input type="text" class="textInput_t4t efc_bcTxt_t2l" value="#FF4600" aria-label="평상시 배경 텍스트">
+                </div>
+            </div>
+            <div class="inputGroup_i2g">
+                <label class="inputLabel_l3l">평상시 글자 (TC)</label>
+                <div class="colorFlex_c6f">
+                    <input type="color" class="colorPicker_c7p efc_tcPick_p3m" value="#ffffff" aria-label="평상시 글자색">
+                    <input type="text" class="textInput_t4t efc_tcTxt_t4n" value="#ffffff" aria-label="평상시 글자 텍스트">
+                </div>
+            </div>
+            <div class="inputGroup_i2g">
+                <label class="inputLabel_l3l">호버 배경 (HBC)</label>
+                <div class="colorFlex_c6f">
+                    <input type="color" class="colorPicker_c7p efc_hbcPick_p5o" value="#2f48a0" aria-label="호버 배경색">
+                    <input type="text" class="textInput_t4t efc_hbcTxt_t6p" value="#2f48a0" aria-label="호버 배경 텍스트">
+                </div>
+            </div>
+            <div class="inputGroup_i2g">
+                <label class="inputLabel_l3l">호버 글자 (HTC)</label>
+                <div class="colorFlex_c6f">
+                    <input type="color" class="colorPicker_c7p efc_htcPick_p7q" value="#af2536" aria-label="호버 글자색">
+                    <input type="text" class="textInput_t4t efc_htcTxt_t8r" value="#af2536" aria-label="호버 글자 텍스트">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panelSection_p9s efc_observerSec_o6f">
+        <h2 class="panelTitle_p1t">3. 수치 제어 패널 (슬라이더)</h2>
+
+        <div class="inputGroup_i2g">
+            <label class="inputLabel_l3l">모서리 둥글기 (R)</label>
+            <div class="sliderFlex_s8f">
+                <input type="range" class="rangeInput_r9r efc_rSlide_r9s" min="0" max="80" value="14" aria-label="둥글기 슬라이더">
+                <input type="number" class="textInput_t4t numberInput_n0n efc_rNum_r0t" min="0" max="80" value="14" aria-label="둥글기 수치">
+                <span style="font-size:13px; color:var(--text-muted_m4d);">px</span>
+            </div>
+        </div>
+
+        <div class="inputGroup_i2g">
+            <label class="inputLabel_l3l">
+                글자 크기 (FS)
+                <div class="toggleRow_t7r">
+                    <span style="font-size:11px;">커스텀 활성화</span>
+                    <label class="toggleWrap_t5w" style="transform: scale(0.8);">
+                        <input type="checkbox" class="efc_fsToggle_f1u" aria-label="글자 크기 커스텀 토글">
+                        <span class="toggleSlider_t6s"></span>
+                    </label>
+                </div>
+            </label>
+            <div class="sliderFlex_s8f">
+                <input type="range" class="rangeInput_r9r efc_fsSlide_f2v" min="0" max="100" value="16" disabled aria-label="글자 크기 슬라이더">
+                <input type="number" class="textInput_t4t numberInput_n0n efc_fsNum_f3w" min="0" max="100" value="16" disabled aria-label="글자 크기 수치">
+                <span style="font-size:13px; color:var(--text-muted_m4d);">px</span>
+            </div>
+        </div>
+
+        <div class="inputGroup_i2g">
+            <label class="inputLabel_l3l">
+                글자 굵기 (FW)
+                <div class="toggleRow_t7r">
+                    <span style="font-size:11px;">커스텀 활성화</span>
+                    <label class="toggleWrap_t5w" style="transform: scale(0.8);">
+                        <input type="checkbox" class="efc_fwToggle_f4x" aria-label="글자 굵기 커스텀 토글">
+                        <span class="toggleSlider_t6s"></span>
+                    </label>
+                </div>
+            </label>
+            <div class="sliderFlex_s8f">
+                <input type="range" class="rangeInput_r9r efc_fwSlide_f5y" min="100" max="900" step="100" value="700" disabled aria-label="글자 굵기 슬라이더">
+                <input type="number" class="textInput_t4t numberInput_n0n efc_fwNum_f6z" min="100" max="900" step="100" value="700" disabled aria-label="글자 굵기 수치">
+            </div>
+        </div>
+
+        <div class="inputGroup_i2g">
+            <label class="inputLabel_l3l">
+                아이콘 크기 (IS)
+                <div class="toggleRow_t7r">
+                    <span style="font-size:11px;">커스텀 활성화</span>
+                    <label class="toggleWrap_t5w" style="transform: scale(0.8);">
+                        <input type="checkbox" class="efc_isToggle_i7a" aria-label="아이콘 크기 커스텀 토글">
+                        <span class="toggleSlider_t6s"></span>
+                    </label>
+                </div>
+            </label>
+            <div class="sliderFlex_s8f">
+                <input type="range" class="rangeInput_r9r efc_isSlide_i8b" min="0" max="100" value="20" disabled aria-label="아이콘 크기 슬라이더">
+                <input type="number" class="textInput_t4t numberInput_n0n efc_isNum_i9c" min="0" max="100" value="20" disabled aria-label="아이콘 크기 수치">
+                <span style="font-size:13px; color:var(--text-muted_m4d);">px</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="panelSection_p9s efc_observerSec_o6f" style="grid-column: 1 / -1;">
+        <h2 class="panelTitle_p1t">4. 아이콘 설정 및 선택기</h2>
+        
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px;">
+            <div>
+                <div class="inputGroup_i2g">
+                    <label class="inputLabel_l3l">아이콘 데이터 입력창 (IC)</label>
+                    <input type="text" class="textInput_t4t efc_inpIc_i0d" value="fa-solid fa-house" placeholder="HTML 붙여넣기 시 클래스명 추출" aria-label="아이콘 데이터">
+                    <a href="https://fontawesome.com/search?ic=free-collection" target="_blank" style="font-size:12px; color:var(--accent-color_a6f); margin-top:6px; display:inline-block;" aria-label="폰트어썸 검색">FontAwesome 무료 아이콘 검색 ↗</a>
+                </div>
+            </div>
+            <div>
+                <div class="inputGroup_i2g">
+                    <label class="inputLabel_l3l">아이콘 방향 (IP)</label>
+                    <select class="selectInput_s5s efc_inpIp_i1e" aria-label="아이콘 방향">
+                        <option value="L">Left (문구 왼쪽)</option>
+                        <option value="R">Right (문구 오른쪽)</option>
+                        <option value="T">Top (문구 위쪽)</option>
+                        <option value="B">Bottom (문구 아래쪽)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="inputGroup_i2g" style="margin-top:10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color_b5e); padding-bottom:10px;">
+                <label class="inputLabel_l3l" style="margin:0;">아이콘 보관함 (즐겨찾기 드래그 앤 드롭 지원)</label>
+                <button class="primaryBtn_p1b efc_addIconBtn_a2f" aria-label="현재 아이콘 즐겨찾기 추가">현재 아이콘 즐겨찾기에 추가</button>
+            </div>
+            <div class="iconGridWrap_i1w efc_iconGrid_i3g"></div>
+            <button class="primaryBtn_p1b efc_moreIconsBtn_m4h" style="margin-top:12px; background:var(--bg-main_b1a); color:var(--text-main_t3c); border:1px solid var(--border-color_b5e); width:100%;" aria-label="나머지 아이콘 불러오기">나머지 40개 아이콘 불러오기</button>
+        </div>
+    </section>
+
+    <section class="panelSection_p9s efc_observerSec_o6f" style="grid-column: 1 / -1;">
+        <h2 class="panelTitle_p1t">5. 숏코드 출력 및 복사</h2>
+        
+        <label class="inputLabel_l3l" style="margin-bottom: 8px;">표준 숏코드 (안정적인 양식)</label>
+        <div class="codeWrap_c6w">
+            <textarea class="codeArea_c7a efc_outFull_o5i" spellcheck="false" aria-label="표준 숏코드 결과"></textarea>
+            <button class="copyIconBtn_c8b efc_copyFullBtn_c6j" aria-label="표준 숏코드 복사" title="복사하기"><i class="fas fa-copy"></i></button>
+        </div>
+
+        <label class="inputLabel_l3l" style="margin-bottom: 8px;">스마트 압축 숏코드 (이름표 필수 방식)</label>
+        <div class="codeWrap_c6w">
+            <textarea class="codeArea_c7a efc_outCompact_o7k" spellcheck="false" aria-label="압축 숏코드 결과"></textarea>
+            <button class="copyIconBtn_c8b efc_copyCompactBtn_c8l" aria-label="압축 숏코드 복사" title="복사하기"><i class="fas fa-copy"></i></button>
+        </div>
+
+        <!-- 새롭게 추가된 순서 기반 축약 숏코드 양식 -->
+        <label class="inputLabel_l3l" style="margin-bottom: 8px;">순서 기반 축약 숏코드 (이름표 생략, 빈칸 유지)</label>
+        <div class="codeWrap_c6w" style="margin-bottom: 0;">
+            <textarea class="codeArea_c7a efc_outPositional_o8p" spellcheck="false" aria-label="순서 기반 축약 숏코드 결과"></textarea>
+            <button class="copyIconBtn_c8b efc_copyPositionalBtn_c9q" aria-label="순서 기반 숏코드 복사" title="복사하기"><i class="fas fa-copy"></i></button>
+        </div>
+    </section>
+</main>
+
+<div class="toastBox_t9b efc_toastBox_t9m">숏코드가 클립보드에 복사되었습니다!</div>
+
+<script>
+/* 
+  =========================================================================
+  숏코드 대시보드 로직 제어 자바스크립트
+  =========================================================================
+*/
+document.addEventListener('DOMContentLoaded', function efc_initDashboardLogic() {
+    'use strict';
+
+    /* DOM 식별자 맵핑 */
+    var els = {
+        themeChk: document.querySelector('.efc_themeToggle_t1a'), bgCol: document.querySelector('.efc_bgColor_b2b'),
+        bgOp: document.querySelector('.efc_bgOpacity_b3c'), canvas: document.querySelector('.efc_canvasArea_c4d'),
+        mockBtn: document.querySelector('.efc_mockBtn_m5e'),
+        txt: document.querySelector('.efc_inpTxt_i7g'), url: document.querySelector('.efc_inpUrl_i8h'),
+        w: document.querySelector('.efc_inpW_i9i'), hoverChk: document.querySelector('.efc_hoverToggle_h0j'),
+        rSlide: document.querySelector('.efc_rSlide_r9s'), rNum: document.querySelector('.efc_rNum_r0t'),
+        bcPick: document.querySelector('.efc_bcPick_p1k'), bcTxt: document.querySelector('.efc_bcTxt_t2l'),
+        tcPick: document.querySelector('.efc_tcPick_p3m'), tcTxt: document.querySelector('.efc_tcTxt_t4n'),
+        hbcPick: document.querySelector('.efc_hbcPick_p5o'), hbcTxt: document.querySelector('.efc_hbcTxt_t6p'),
+        htcPick: document.querySelector('.efc_htcPick_p7q'), htcTxt: document.querySelector('.efc_htcTxt_t8r'),
+        fsToggle: document.querySelector('.efc_fsToggle_f1u'), fsSlide: document.querySelector('.efc_fsSlide_f2v'), fsNum: document.querySelector('.efc_fsNum_f3w'),
+        fwToggle: document.querySelector('.efc_fwToggle_f4x'), fwSlide: document.querySelector('.efc_fwSlide_f5y'), fwNum: document.querySelector('.efc_fwNum_f6z'),
+        isToggle: document.querySelector('.efc_isToggle_i7a'), isSlide: document.querySelector('.efc_isSlide_i8b'), isNum: document.querySelector('.efc_isNum_i9c'),
+        ic: document.querySelector('.efc_inpIc_i0d'), ip: document.querySelector('.efc_inpIp_i1e'),
+        iconGrid: document.querySelector('.efc_iconGrid_i3g'), addIconBtn: document.querySelector('.efc_addIconBtn_a2f'), moreIconsBtn: document.querySelector('.efc_moreIconsBtn_m4h'),
+        
+        outFull: document.querySelector('.efc_outFull_o5i'), 
+        outCompact: document.querySelector('.efc_outCompact_o7k'),
+        outPositional: document.querySelector('.efc_outPositional_o8p'), /* 추가된 요소 매핑 */
+        
+        copyFull: document.querySelector('.efc_copyFullBtn_c6j'), 
+        copyCompact: document.querySelector('.efc_copyCompactBtn_c8l'),
+        copyPositional: document.querySelector('.efc_copyPositionalBtn_c9q'), /* 추가된 요소 매핑 */
+        toast: document.querySelector('.efc_toastBox_t9m')
+    };
+
+    /* 기초 데이터 및 로컬 상태 구조 */
+    var defaultIcons = [
+        "fa-solid fa-house","fa-solid fa-link","fa-solid fa-arrow-right","fa-solid fa-check","fa-solid fa-download",
+        "fa-solid fa-cart-shopping","fa-solid fa-magnifying-glass","fa-solid fa-envelope","fa-solid fa-user","fa-solid fa-star",
+        "fa-solid fa-bell","fa-solid fa-gear","fa-solid fa-pen","fa-solid fa-trash","fa-solid fa-camera",
+        "fa-solid fa-video","fa-solid fa-music","fa-solid fa-play","fa-solid fa-pause","fa-solid fa-stop",
+        "fa-solid fa-forward","fa-solid fa-backward","fa-solid fa-image","fa-solid fa-share","fa-solid fa-reply",
+        "fa-solid fa-comment","fa-solid fa-heart","fa-solid fa-thumbs-up","fa-solid fa-thumbs-down","fa-solid fa-flag",
+        "fa-solid fa-bookmark","fa-solid fa-calendar","fa-solid fa-clock","fa-solid fa-globe","fa-solid fa-location-dot",
+        "fa-solid fa-phone","fa-solid fa-mobile","fa-solid fa-desktop","fa-solid fa-laptop","fa-solid fa-tablet",
+        "fa-solid fa-wifi","fa-solid fa-bluetooth","fa-solid fa-battery-full","fa-solid fa-power-off","fa-solid fa-lock",
+        "fa-solid fa-unlock","fa-solid fa-key","fa-solid fa-shield","fa-solid fa-award","fa-solid fa-gift"
+    ];
+    var customIconsArr = JSON.parse(localStorage.getItem('ep_icons_v11') || '[]');
+    var isAllIconsVisible = false;
+    var dragSourceIndex = null;
+
+    /* 교차 관찰자 기능 패널 페이드인 스크롤 애니메이션 추가 */
+    var sectionObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible_v0v');
+                sectionObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    document.querySelectorAll('.efc_observerSec_o6f').forEach(function(sec) {
+        sectionObserver.observe(sec);
+    });
+
+    /* 아이콘 목록 UI 생성 논리 */
+    function efc_drawIcons() {
+        els.iconGrid.innerHTML = '';
+        var top10List = defaultIcons.slice(0, 10);
+        var rest40List = defaultIcons.slice(10);
+        
+        function appendTitle(msg) {
+            var el = document.createElement('div');
+            el.className = 'sectionDiv_s5d';
+            el.textContent = msg;
+            els.iconGrid.appendChild(el);
+        }
+
+        if(customIconsArr.length > 0) appendTitle('내 즐겨찾기 (드래그하여 순서 변경)');
+        
+        customIconsArr.forEach(function(iconCls, idx) {
+            var div = document.createElement('div');
+            div.className = 'iconCell_i2c draggable_d3d';
+            div.title = iconCls;
+            div.draggable = true;
+            div.innerHTML = '<i class="' + iconCls + '"></i>';
+            
+            var delBtn = document.createElement('div');
+            delBtn.className = 'deleteBtn_d4b';
+            delBtn.innerHTML = '<i class="fas fa-times"></i>';
+            delBtn.onclick = function(ev) {
+                ev.stopPropagation();
+                customIconsArr.splice(idx, 1);
+                localStorage.setItem('ep_icons_v11', JSON.stringify(customIconsArr));
+                efc_drawIcons();
+            };
+            div.appendChild(delBtn);
+            div.onclick = function() { els.ic.value = iconCls; efc_syncData(); };
+            
+            div.addEventListener('dragstart', function(ev) { dragSourceIndex = idx; });
+            div.addEventListener('dragover', function(ev) { ev.preventDefault(); });
+            div.addEventListener('drop', function(ev) {
+                ev.preventDefault();
+                if(dragSourceIndex !== null && dragSourceIndex !== idx) {
+                    var movedItem = customIconsArr.splice(dragSourceIndex, 1)[0];
+                    customIconsArr.splice(idx, 0, movedItem);
+                    localStorage.setItem('ep_icons_v11', JSON.stringify(customIconsArr));
+                    efc_drawIcons();
+                }
+            });
+            els.iconGrid.appendChild(div);
+        });
+
+        appendTitle('자주 쓰는 아이콘 상위 10개');
+        top10List.forEach(function(iconCls) {
+            var div = document.createElement('div');
+            div.className = 'iconCell_i2c';
+            div.title = iconCls;
+            div.innerHTML = '<i class="' + iconCls + '"></i>';
+            div.onclick = function() { els.ic.value = iconCls; efc_syncData(); };
+            els.iconGrid.appendChild(div);
+        });
+
+        if (isAllIconsVisible) {
+            appendTitle('나머지 기본 아이콘 40개');
+            rest40List.forEach(function(iconCls) {
+                var div = document.createElement('div');
+                div.className = 'iconCell_i2c';
+                div.title = iconCls;
+                div.innerHTML = '<i class="' + iconCls + '"></i>';
+                div.onclick = function() { els.ic.value = iconCls; efc_syncData(); };
+                els.iconGrid.appendChild(div);
+            });
+        }
+        
+        els.moreIconsBtn.style.display = isAllIconsVisible ? 'none' : 'block';
+    }
+    
+    els.moreIconsBtn.onclick = function() { isAllIconsVisible = true; efc_drawIcons(); };
+
+    els.addIconBtn.onclick = function() {
+        var val = els.ic.value.trim();
+        if (val && customIconsArr.indexOf(val) === -1) {
+            customIconsArr.unshift(val);
+            localStorage.setItem('ep_icons_v11', JSON.stringify(customIconsArr));
+            efc_drawIcons();
+        }
+    };
+
+    /* 미리보기 배경 제어 로직 */
+    function efc_handleBgColor() {
+        if (els.themeChk.checked) els.bgCol.value = '#ffffff';
+        else els.bgCol.value = '#121212';
+        efc_paintCanvas();
+    }
+    function efc_paintCanvas() {
+        var hex = els.bgCol.value;
+        var r = parseInt(hex.slice(1,3), 16), g = parseInt(hex.slice(3,5), 16), b = parseInt(hex.slice(5,7), 16);
+        els.canvas.style.backgroundColor = 'rgba(' + r + ',' + g + ',' + b + ',' + els.bgOp.value + ')';
+    }
+    els.themeChk.addEventListener('change', efc_handleBgColor);
+    els.bgCol.addEventListener('input', efc_paintCanvas);
+    els.bgOp.addEventListener('input', efc_paintCanvas);
+
+    /* 양방향 바인딩 지원 유틸리티 */
+    function efc_bindSlider(slider, num) {
+        slider.addEventListener('input', function() { num.value = slider.value; efc_syncData(); });
+        num.addEventListener('input', function() { slider.value = num.value; efc_syncData(); });
+    }
+    function efc_bindColor(pick, txt) {
+        pick.addEventListener('input', function() { txt.value = pick.value; efc_syncData(); });
+        txt.addEventListener('input', function() { if(/^#[0-9A-Fa-f]{6}$/i.test(txt.value)) pick.value = txt.value; efc_syncData(); });
+    }
+    function efc_bindToggle(toggle, slider, num) {
+        toggle.addEventListener('change', function() {
+            var active = toggle.checked;
+            slider.disabled = !active;
+            num.disabled = !active;
+            efc_syncData();
+        });
+    }
+
+    efc_bindSlider(els.rSlide, els.rNum);
+    efc_bindSlider(els.fsSlide, els.fsNum);
+    efc_bindSlider(els.fwSlide, els.fwNum);
+    efc_bindSlider(els.isSlide, els.isNum);
+    efc_bindColor(els.bcPick, els.bcTxt);
+    efc_bindColor(els.tcPick, els.tcTxt);
+    efc_bindColor(els.hbcPick, els.hbcTxt);
+    efc_bindColor(els.htcPick, els.htcTxt);
+    efc_bindToggle(els.fsToggle, els.fsSlide, els.fsNum);
+    efc_bindToggle(els.fwToggle, els.fwSlide, els.fwNum);
+    efc_bindToggle(els.isToggle, els.isSlide, els.isNum);
+
+    /* HTML 태그 자동 정제 */
+    els.ic.addEventListener('input', function() {
+        var match = els.ic.value.match(/class=["']([^"']+)["']/i);
+        if (match) els.ic.value = match[1];
+        efc_syncData();
+    });
+
+    [els.txt, els.url, els.w, els.ip, els.hoverChk].forEach(function(el) {
+        el.addEventListener('input', efc_syncData);
+        el.addEventListener('change', efc_syncData);
+    });
+
+    /* 실시간 화면 출력 및 스마트 숏코드 압축 로직 */
+    function efc_syncData() {
+        var valTxt = els.txt.value || '버튼';
+        var valUrl = els.url.value || '#';
+        var valIc = els.ic.value;
+        var valIp = els.ip.value;
+        var valIs = els.isToggle.checked ? els.isNum.value : '';
+        var valW = els.w.value;
+        var valR = els.rNum.value;
+        var valBc = els.bcTxt.value;
+        var valTc = els.tcTxt.value;
+        var valHbc = els.hoverChk.checked ? 'none' : els.hbcTxt.value;
+        var valHtc = els.htcTxt.value;
+        var valFs = els.fsToggle.checked ? els.fsNum.value : '';
+        var valFw = els.fwToggle.checked ? els.fwNum.value : '';
+
+        var dirVal = 'row';
+        if(valIp === 'R') dirVal = 'row-reverse';
+        if(valIp === 'T') dirVal = 'column';
+        if(valIp === 'B') dirVal = 'column-reverse';
+        
+        var sc = valHbc === 'none' ? '1' : '1.03';
+        var shd = valHbc === 'none' ? '0 4px 15px rgba(0, 0, 0, 0.06)' : '0 6px 20px rgba(0, 0, 0, 0.12)';
+        
+        els.mockBtn.style.setProperty('--btn-bg', valBc);
+        els.mockBtn.style.setProperty('--btn-color', valTc);
+        els.mockBtn.style.setProperty('--btn-w', valW === 'W' ? '100%' : 'fit-content');
+        if(valW === 'W') els.mockBtn.classList.add('full-width'); else els.mockBtn.classList.remove('full-width');
+        els.mockBtn.style.setProperty('--btn-rad', valR + 'px');
+        els.mockBtn.style.setProperty('--btn-h-bg', valHbc === 'none' ? valBc : valHbc);
+        els.mockBtn.style.setProperty('--btn-h-color', valHbc === 'none' ? valTc : valHtc);
+        els.mockBtn.style.setProperty('--btn-h-scale', sc);
+        els.mockBtn.style.setProperty('--btn-h-shadow', shd);
+        els.mockBtn.style.setProperty('--btn-fs', valFs ? valFs + 'px' : '16px');
+        els.mockBtn.style.setProperty('--btn-fw', valFw ? valFw : '700');
+        els.mockBtn.style.setProperty('--btn-dir', dirVal);
+        els.mockBtn.style.setProperty('--btn-is', valIs ? valIs + 'px' : '1.2em');
+
+        els.mockBtn.innerHTML = '';
+        if (valIc && valIc !== 'none') {
+            if (valIc.indexOf('http') === 0 || valIc.indexOf('/') === 0) {
+                els.mockBtn.innerHTML += '<img src="' + valIc + '" class="ga-btn-icon_k9m" alt="보조 이미지">';
+            } else {
+                els.mockBtn.innerHTML += '<i class="' + valIc + ' ga-btn-icon_k9m" aria-hidden="true"></i>';
+            }
+        }
+        els.mockBtn.innerHTML += '<span>' + valTxt + '</span>';
+
+        /* 1. 표준 숏코드 포맷 생성 */
+        var outFull = `[% button | TXT ${valTxt} | URL ${valUrl} | IC ${valIc} | IP ${valIp} | IS ${valIs} | W ${valW} | R ${valR} | BC ${valBc} | TC ${valTc} | HBC ${valHbc} | HTC ${valHtc} | FS ${valFs} | FW ${valFw} %]`;
+        
+        /* 2. 옵션 A: 공백과 불필요한 값을 모두 지운 스마트 압축 포맷 생성 */
+        var compactParts = [`TXT ${valTxt}`, `URL ${valUrl}`];
+        if (valIc) compactParts.push(`IC ${valIc}`);
+        if (valIp !== 'L') compactParts.push(`IP ${valIp}`);
+        if (valIs) compactParts.push(`IS ${valIs}`);
+        if (valW !== 'w') compactParts.push(`W ${valW}`);
+        if (valR !== '14') compactParts.push(`R ${valR}`);
+        if (valBc !== '#FF4500') compactParts.push(`BC ${valBc}`);
+        if (valTc !== '#ffffff') compactParts.push(`TC ${valTc}`);
+        if (valHbc !== valBc && valHbc !== '') compactParts.push(`HBC ${valHbc}`);
+        if (valHtc !== valTc && valHtc !== '') compactParts.push(`HTC ${valHtc}`);
+        if (valFs) compactParts.push(`FS ${valFs}`);
+        if (valFw) compactParts.push(`FW ${valFw}`);
+        
+        var outCompact = `[% button | ${compactParts.join(' | ')} %]`;
+
+        /* 3. 새롭게 추가된 기능: 이름표를 지우고 빈칸을 강제 유지하는 13슬롯 순서 기반 축약 양식 */
+        var outPositional = `[% button | ${valTxt} | ${valUrl} | ${valIc} | ${valIp} | ${valIs} | ${valW} | ${valR} | ${valBc} | ${valTc} | ${valHbc} | ${valHtc} | ${valFs} | ${valFw} %]`;
+        /* 뒤쪽의 비어있는 슬롯을 깔끔하게 정리하는 선택적 정규식 로직 추가 가능하지만, 
+           요청하신 13자리 빈 공간 유지를 위해 그대로 출력합니다. */
+
+        els.outFull.value = outFull;
+        els.outCompact.value = outCompact;
+        els.outPositional.value = outPositional;
+    }
+
+    /* 폼 검증 기반 가짜 제출 함수 모의 로직 */
+    function efc_validateAndCopy(textarea) {
+        var urlCheck = els.url.value.trim();
+        if(!/^https?:\/\//i.test(urlCheck) && urlCheck !== '#' && urlCheck !== 'none') {
+            console.warn('[데이터 검증 알림] URL 형식이 안전하지 않습니다. 프로토콜(http)이 누락되었습니다.');
+        } else {
+            console.log('[모의 제출 성공] 데이터 추출 완료:', textarea.value);
+        }
+        
+        textarea.select();
+        document.execCommand('copy');
+        els.toast.classList.add('show_s0s');
+        setTimeout(function() { els.toast.classList.remove('show_s0s'); }, 2500);
+    }
+    
+    els.copyFull.onclick = function() { efc_validateAndCopy(els.outFull); };
+    els.copyCompact.onclick = function() { efc_validateAndCopy(els.outCompact); };
+    els.copyPositional.onclick = function() { efc_validateAndCopy(els.outPositional); };
+
+    efc_drawIcons();
+    efc_syncData();
+});
+</script>
+</body>
+</html>

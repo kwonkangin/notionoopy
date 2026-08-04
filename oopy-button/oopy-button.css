@@ -13,32 +13,58 @@
  * 마우스 커서를 가져다 대면(Hover) 부드러운 쿠션 효과와 함께 3% 확대(Zoom-in)되며 그림자가 짙어집니다.
  */
 
+ /* 기존 외부 연동을 위한 전역 강제 확장 클래스 보존 */
 .full-width {
     width: 100% !important;
 }
 
-/* 평상시 버튼 기본 디자인 구역 (움직임 없음) */
+/* 동적 버튼 렌더링 최상위 컴포넌트 */
 .ga-dynamic-btn {
     display: inline-flex !important;
+    flex-direction: var(--btn-dir, row) !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 16px !important;
-    font-weight: 700 !important;
+    gap: 8px !important;
+    
+    font-size: var(--btn-fs, inherit) !important;
+    font-weight: var(--btn-fw, inherit) !important;
+    
     padding: 13px 16px !important;
-    border-radius: 14px !important;
     box-sizing: border-box !important;
     border: none !important;
     cursor: pointer !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+    text-decoration: none !important;
     margin: 8px 0 !important;
+    
+    background: var(--btn-bg, #FF4500) !important;
+    color: var(--btn-color, #ffffff) !important;
+    width: var(--btn-w, auto) !important;
+    border-radius: var(--btn-rad, 14px) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+    
     transform: scale(1) !important;
-    /* 쫀득한 확대를 위해 cubic-bezier 자석 감속 공식 적용 */
-    transition: opacity 250ms, transform 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms !important;
+    transition: opacity 250ms, transform 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms, background 250ms, color 250ms !important;
 }
 
-/* 마우스를 올렸을 때(Hover) 변주 구역 */
 .ga-dynamic-btn:hover {
-    opacity: 0.95 !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
-    transform: scale(1.03) !important; /* 커서 배치 시 3% 부드러운 확대 */
+    background: var(--btn-h-bg, var(--btn-bg)) !important;
+    color: var(--btn-h-color, var(--btn-color)) !important;
+    transform: scale(var(--btn-h-scale, 1.03)) !important;
+    box-shadow: var(--btn-h-shadow, 0 6px 20px rgba(0, 0, 0, 0.12)) !important;
+}
+
+.ga-btn-icon_k9m {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: var(--btn-is, 1.2em) !important;
+}
+
+img.ga-btn-icon_k9m {
+    width: var(--btn-is, 1.2em) !important;
+    height: var(--btn-is, 1.2em) !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 4px !important;
+    object-fit: contain !important;
 }
