@@ -1,0 +1,462 @@
+/* 
+  토글 마스터 대시보드 런처 V9.0
+  폰트 서식 마스터 스위치 및 개별 크기/두께/색상 조작 폼 추가 완료
+*/
+!function efc_launchToggleDashboard_t4m() {
+  /* 팝업 창 생성 및 차단 여부 검증 로직 */
+  const popup = window.open('', 'GaToggleDashboardV9', 'width=540,height=900,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!popup) { alert('팝업 창 차단을 해제해 주십시오.'); return; }
+  
+  /* 부모 창 데이터 통신을 위한 HTML 구조 조립 및 로직 정의 */
+  const scriptContent = `
+    const html = window.opener.document.documentElement;
+
+    const iconPairs = [
+      { name: "기본 꺾쇠", c: "fa-solid fa-chevron-right", o: "fa-solid fa-chevron-down", uc: "&#xf054;", uo: "&#xf078;" },
+      { name: "각진 화살표", c: "fa-solid fa-angle-right", o: "fa-solid fa-angle-down", uc: "&#xf105;", uo: "&#xf107;" },
+      { name: "채워진 세모", c: "fa-solid fa-caret-right", o: "fa-solid fa-caret-down", uc: "&#xf0da;", uo: "&#xf0d7;" },
+      { name: "일반 화살표", c: "fa-solid fa-arrow-right", o: "fa-solid fa-arrow-down", uc: "&#xf061;", uo: "&#xf063;" },
+      { name: "더하기 빼기", c: "fa-solid fa-plus", o: "fa-solid fa-minus", uc: "&#xf067;", uo: "&#xf068;" },
+      { name: "폴더 여닫기", c: "fa-solid fa-folder", o: "fa-solid fa-folder-open", uc: "&#xf07b;", uo: "&#xf07c;" },
+      { name: "원형 꺾쇠", c: "fa-regular fa-circle-right", o: "fa-regular fa-circle-down", uc: "&#xf35a;", uo: "&#xf358;" },
+      { name: "손가락 지시", c: "fa-regular fa-hand-point-right", o: "fa-regular fa-hand-point-down", uc: "&#xf0a4;", uo: "&#xf0a7;" }
+    ];
+
+    /* 논리적 순서로 재구성된 설정 항목 구성 데이터 맵핑 (폰트 제어 그룹 추가됨) */
+    const qaConfig = [
+      {
+        group: "1. 토글 기호 렌더링 설정",
+        items: [
+          { var: "--tg-mode", label: "토글 기호 종류 (모드)", type: "select", opts: {"1":"노션 순정", "2":"더하기 빼기 기호 (FontAwesome 전환)", "3":"초경량 SVG 회전 기호", "4":"사용자 커스텀 폰트어썸"}, def: "3", tip: "4번 선택 시 아래 구역에서 추출된 태그를 삽입합니다." },
+          { type: "custom-fa" },
+          { var: "--tg-use-icon-auto-size", label: "기호 크기 자동 비례", type: "select", opts: {"1":"자동 맞춤", "0":"수동 픽셀 고정"}, def: "1", tip: "글자 크기에 맞춰 자동 조절" },
+          { var: "--tg-icon-size", label: "수동 기호 크기", type: "range", min: 10, max: 50, unit: "px", def: "20", tip: "수동 고정 모드일 때만 작동" },
+          { var: "--tg-use-custom-icon-color", label: "기호 색상 커스텀 여부", type: "select", opts: {"1":"아래 커스텀 지정색 사용", "0":"글자색 강제 흡수(순정화)"}, def: "1", tip: "0 선택 시 기호가 글자색과 동일해집니다" },
+          { var: "--tg-icon-color", label: "커스텀 기호 기본 색상", type: "color-opacity", opVar: "--tg-icon-opacity", def: "#37352f", opDef: "1", tip: "기호 자체의 기본 색상" }
+        ]
+      },
+      {
+        group: "2. 기호 배치 및 정렬 설정",
+        items: [
+          { var: "--tg-position", label: "기호 좌우 위치", type: "select", opts: {"row":"좌측 배치", "row-reverse":"우측 배치"}, def: "row", tip: "토글 기호의 위치" },
+          { var: "--tg-icon-transform", label: "기호 수평 수직 반전 (Flip)", type: "select", opts: {"scale(1)":"반전 없음 (기본)","scaleX(-1)":"좌우 반전 (수평)","scaleY(-1)":"상하 반전 (수직)","scale(-1, -1)":"상하좌우 반전"}, def: "scale(1)", tip: "기호 좌우 위치 변경 시 아이콘 방향을 뒤집을 수 있습니다" },
+          { var: "--tg-icon-vertical-align", label: "기호 상하 정렬", type: "select", opts: {"flex-start":"상단 고정", "center":"중앙 정렬", "flex-end":"하단 고정"}, def: "flex-start", tip: "내용물이 길 때 밀림 방지" },
+          { var: "--tg-text-align", label: "전체 텍스트 정렬", type: "select", opts: {"left":"좌측", "center":"중앙", "right":"우측"}, def: "left", tip: "일반 텍스트를 포함한 전체 텍스트 정렬" }
+        ]
+      },
+      {
+        group: "3. 여백 및 간격 설정",
+        items: [
+          { var: "--tg-padding-y", label: "상하 내부 여백", type: "range", min: 0, max: 50, unit: "px", def: "8", tip: "위아래 두께 조절" },
+          { var: "--tg-padding-x", label: "좌우 내부 여백", type: "range", min: 0, max: 50, unit: "px", def: "10", tip: "좌우 넓이 조절" },
+          { var: "--tg-gap", label: "기호 글자 간격", type: "range", min: 0, max: 50, unit: "px", def: "8", tip: "기호와 글자 사이 간격" }
+        ]
+      },
+      {
+        group: "4. 일반 테마 및 배경 테두리 설정",
+        items: [
+          { var: "--tg-color-theme", label: "색상 테마 모드", type: "select", opts: {"2":"아래 커스텀 색상으로 모두 덮어쓰기", "1":"노션 순정 텍스트 배경색 유지"}, def: "1", tip: "2 선택 시 노션 고유 색상을 무력화합니다." },
+          { var: "--tg-text-color", label: "통일 텍스트 색상", type: "color-opacity", opVar: "--tg-text-opacity", def: "#37352f", opDef: "1", tip: "모든 토글의 기본 글자색" },
+          { var: "--tg-bg-radius", label: "일반 모서리 둥글기", type: "range", min: 0, max: 50, unit: "px", def: "8", tip: "일반 토글 및 동기화된 콜아웃의 모서리 곡률" },
+          { var: "--tg-bg-color", label: "일반 배경 색상", type: "color-opacity", opVar: "--tg-bg-opacity", def: "#fdebec", opDef: "1", tip: "색상 통일 모드 시 일반 영역에 주입되는 배경색" },
+          { var: "--tg-border-width", label: "일반 테두리 굵기", type: "range", min: 0, max: 10, unit: "px", def: "1", tip: "0으로 설정 시 테두리 제거" },
+          { var: "--tg-border-color", label: "일반 테두리 색상", type: "color-opacity", opVar: "--tg-border-opacity", def: "#d1d1d1", opDef: "0.8", tip: "외곽선 색상 및 투명도" }
+        ]
+      },
+      {
+        group: "5. 마우스 올림 효과 설정",
+        items: [
+          { var: "--tg-use-hover", label: "마우스 올림 효과 켜기", type: "select", opts: {"1":"활성화", "0":"비활성화 (호버 애니메이션 완벽 차단)"}, def: "1", tip: "비활성화 시 노션의 기본 투명도 호버까지 제거됩니다" },
+          { var: "--tg-transition-speed", label: "화면 전환 속도", type: "range", min: 0, max: 1000, step: 50, unit: "ms", def: "200", tip: "색상 및 회전 애니메이션 속도 조절" },
+          { var: "--tg-hover-bg-color", label: "올림 시 배경색", type: "color-opacity", opVar: "--tg-hover-bg-opacity", def: "#f5d6d8", opDef: "1", tip: "배경에 마우스가 올라갔을 때 색상" },
+          { var: "--tg-hover-border-color", label: "올림 시 테두리색", type: "color-opacity", opVar: "--tg-hover-border-opacity", def: "#ff4500", opDef: "1", tip: "일반 및 콜아웃 외곽선 강조색" },
+          { var: "--tg-hover-text-color", label: "올림 시 텍스트 색상", type: "color-opacity", opVar: "--tg-hover-text-opacity", def: "#ff4500", opDef: "1", tip: "테마 2 모드일 때 마우스 올림 시 텍스트 색상 변경" },
+          { var: "--tg-hover-icon-color", label: "올림 시 기호색상", type: "color-opacity", opVar: "--tg-hover-icon-opacity", def: "#ff4500", opDef: "1", tip: "기호 자체의 호버 시 색상 강조 및 투명도" }
+        ]
+      },
+      {
+        group: "6. 콜아웃 강조 상자 독립 제어",
+        items: [
+          { var: "--tg-co-sync", label: "콜아웃 동기화 모드", type: "select", opts: {"1":"위의 일반 토글 디자인과 동기화", "0":"아래 설정값으로 완전히 분리하여 제어"}, def: "1", tip: "0 선택 시 콜아웃 전용 디자인이 활성화됩니다" },
+          { var: "--tg-co-radius", label: "콜아웃 모서리 둥글기", type: "range", min: 0, max: 50, unit: "px", def: "8", tip: "콜아웃 전용 모서리 곡률" },
+          { var: "--tg-co-bg-color", label: "콜아웃 배경 색상", type: "color-opacity", opVar: "--tg-co-bg-opacity", def: "#fdebec", opDef: "1", tip: "테마 2 모드 작동 시 콜아웃 전용 배경색" },
+          { var: "--tg-co-border-color", label: "콜아웃 테두리 색상", type: "color-opacity", opVar: "--tg-co-border-opacity", def: "#d1d1d1", opDef: "0.8", tip: "테마 2 모드 작동 시 콜아웃 전용 외곽선 색상" }
+        ]
+      },
+      {
+        group: "7. 폰트 서식 마스터 및 타이틀 제어 (H1~H2)",
+        items: [
+          { var: "--tg-use-custom-font", label: "폰트 서식 커스텀 모드", type: "select", opts: {"1":"커스텀 값 사용 (아래 설정 적용)", "0":"노션 기본 서식 유지"}, def: "1", tip: "활성화 시 모든 타이틀과 텍스트의 크기, 굵기, 색상을 일괄 제어합니다." },
+          { var: "--tg-h1-size", label: "[제목 1] 크기", type: "range", min: 0.5, max: 3, step: 0.05, unit: "em", def: "1.85", tip: "권장 단위: em" },
+          { var: "--tg-h1-weight", label: "[제목 1] 굵기", type: "select", opts: {"100":"100 (Thin)","300":"300 (Light)","400":"400 (Regular)","500":"500 (Medium)","600":"600 (Semi-Bold)","700":"700 (Bold)","900":"900 (Black)"}, def: "700", tip: "H1 폰트 웨이트" },
+          { var: "--tg-h1-color", label: "[제목 1] 색상", type: "color", def: "#111111", tip: "H1 전용 색상" },
+          { var: "--tg-h2-size", label: "[제목 2] 크기", type: "range", min: 0.5, max: 3, step: 0.05, unit: "em", def: "1.50", tip: "권장 단위: em" },
+          { var: "--tg-h2-weight", label: "[제목 2] 굵기", type: "select", opts: {"100":"100","300":"300","400":"400","500":"500","600":"600","700":"700","900":"900"}, def: "700", tip: "H2 폰트 웨이트" },
+          { var: "--tg-h2-color", label: "[제목 2] 색상", type: "color", def: "#222222", tip: "H2 전용 색상" }
+        ]
+      },
+      {
+        group: "8. 타이틀 서식 (H3~H4)",
+        items: [
+          { var: "--tg-h3-size", label: "[제목 3] 크기", type: "range", min: 0.5, max: 3, step: 0.05, unit: "em", def: "1.25", tip: "권장 단위: em" },
+          { var: "--tg-h3-weight", label: "[제목 3] 굵기", type: "select", opts: {"100":"100","300":"300","400":"400","500":"500","600":"600","700":"700","900":"900"}, def: "600", tip: "H3 폰트 웨이트" },
+          { var: "--tg-h3-color", label: "[제목 3] 색상", type: "color", def: "#333333", tip: "H3 전용 색상" },
+          { var: "--tg-h4-size", label: "[제목 4] 크기", type: "range", min: 0.5, max: 3, step: 0.05, unit: "em", def: "1.15", tip: "권장 단위: em" },
+          { var: "--tg-h4-weight", label: "[제목 4] 굵기", type: "select", opts: {"100":"100","300":"300","400":"400","500":"500","600":"600","700":"700","900":"900"}, def: "600", tip: "H4 폰트 웨이트" },
+          { var: "--tg-h4-color", label: "[제목 4] 색상", type: "color", def: "#444444", tip: "H4 전용 색상" }
+        ]
+      },
+      {
+        group: "9. 일반 텍스트 서식 (타이틀 및 본문)",
+        items: [
+          { var: "--tg-text-title-size", label: "[일반 토글 제목] 크기", type: "range", min: 0.5, max: 3, step: 0.05, unit: "em", def: "1.05", tip: "일반 텍스트 토글의 상위 텍스트 영역" },
+          { var: "--tg-text-title-weight", label: "[일반 토글 제목] 굵기", type: "select", opts: {"100":"100","300":"300","400":"400","500":"500","600":"600","700":"700","900":"900"}, def: "500", tip: "" },
+          { var: "--tg-text-title-color", label: "[일반 토글 제목] 색상", type: "color", def: "#37352f", tip: "" },
+          { var: "--tg-text-content-size", label: "[일반 토글 본문] 크기", type: "range", min: 0.5, max: 3, step: 0.05, unit: "em", def: "0.95", tip: "일반 텍스트 토글 안쪽에 작성되는 본문 텍스트 영역" },
+          { var: "--tg-text-content-weight", label: "[일반 토글 본문] 굵기", type: "select", opts: {"100":"100","300":"300","400":"400","500":"500","600":"600","700":"700","900":"900"}, def: "400", tip: "" },
+          { var: "--tg-text-content-color", label: "[일반 토글 본문] 색상", type: "color", def: "#666666", tip: "" }
+        ]
+      }
+    ];
+
+    /* 시맨틱 마크업 조립 및 이벤트 리스너 바인딩 로직 */
+    let innerHTML = \`
+      <header class="headerWrap_h1w">
+        <div class="topBar_t2b">
+          <div>
+            <h3 style="margin: 0 0 4px 0; color: #10b981; font-size: 18px; font-weight: 800;">Toggle Master Dashboard</h3>
+          </div>
+          <button id="efc_globalResetBtn_x2k" style="background: transparent; border: 1px solid #444; color: #aaa; border-radius: 6px; cursor: pointer; padding: 6px 10px; transition: all 0.2s;" title="전체 복구" aria-label="전체 복구">
+            전체 복구
+          </button>
+        </div>
+      </header>
+      <main class="mainLayout_m8l" id="efc_dashScrollArea_h7b">\`;
+
+    window.efc_currentStyles_v9b = {};
+
+    qaConfig.forEach((group) => {
+      innerHTML += \`<section class="panelSection_p9s efc_observerSec_o6f" style="margin-bottom:12px; background:#1a1a1a; border-radius:8px; border:1px solid #2a2a2a;">
+        <details open>
+        <summary style="font-weight: 700; cursor: pointer; color: #38bdf8; outline: none; padding: 12px; background: #222; font-size: 14px;">\${group.group}</summary>
+        <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">\`;
+      
+      group.items.forEach(item => {
+        if (item.type === 'custom-fa') {
+          innerHTML += \`<div style="background: #111; padding: 10px; border-radius: 6px; border: 1px solid #333;">
+            <div style="font-size: 11px; color: #888; margin-bottom: 8px;">원하는 기호 쌍을 클릭하거나 아래에 직접 폰트어썸 태그를 입력 후 아이콘 적용하기 버튼을 누르십시오.</div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 10px;">\`;
+          
+          iconPairs.forEach(pair => {
+            innerHTML += \`<div class="efc_iconPairBtn_i7p" data-close="\${pair.c}" data-open="\${pair.o}" style="background: #222; border: 1px solid #444; border-radius: 4px; padding: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: border-color 0.2s;">
+              <span style="color: #ccc; font-size: 11px; font-weight: bold;">\${pair.name}</span>
+              <div style="font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Brands'; font-weight: 900; color: #10b981; font-size: 14px;" aria-hidden="true">\${pair.uc} \${pair.uo}</div>
+            </div>\`;
+          });
+          
+          innerHTML += \`</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+              <div style="flex:1;">
+                <label style="color: #eee; font-size: 11px; margin-bottom: 4px; display: block;">닫힘 기호 태그 전체 붙여넣기</label>
+                <input type="text" id="inpC" class="efc_basicTxt_z1p" style="width: 100%;" placeholder="<i class='...'>">
+              </div>
+              <div style="flex:1;">
+                <label style="color: #eee; font-size: 11px; margin-bottom: 4px; display: block;">열림 기호 태그 전체 붙여넣기</label>
+                <input type="text" id="inpO" class="efc_basicTxt_z1p" style="width: 100%;" placeholder="<i class='...'>">
+              </div>
+            </div>
+            <button id="efc_applyFaBtn_a1b" style="width: 100%; padding: 8px; background: #10b981; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">아이콘 적용하기</button>
+            <div id="efc_faResultMsg_r2c" style="margin-top: 8px; font-size: 11px; color: #38bdf8; min-height: 14px; text-align: center;"></div>
+          </div>\`;
+          return;
+        }
+
+        let rawVal = item.def;
+        let opRawVal = item.opDef;
+        let rootStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
+        
+        let computed = rootStyles.getPropertyValue(item.var).trim();
+        if(computed) { if(item.type === 'range') rawVal = parseFloat(computed).toString(); else rawVal = computed; }
+        window.efc_currentStyles_v9b[item.var] = rawVal + (item.unit || "");
+
+        if (item.type === 'color-opacity') {
+            let opComputed = rootStyles.getPropertyValue(item.opVar).trim();
+            if(opComputed) opRawVal = opComputed;
+            window.efc_currentStyles_v9b[item.opVar] = opRawVal;
+        }
+        
+        innerHTML += \`<div class="efc_itemContainer_j3v">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div style="width: 100%;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                <label style="color: #eee; font-weight: 600; font-size: 13px;">\${item.label}</label>
+                <span style="font-family: monospace; background: #333; color: #a1a1aa; padding: 2px 6px; border-radius: 4px; font-size: 10px;">\${item.var}</span>
+              </div>
+              <div style="font-size: 11px; color: #888;">\${item.tip}</div>
+            </div>
+            <button class="efc_resetSingleBtn_k2n" data-var="\${item.var}" data-def="\${item.def}" \${item.opVar ? \`data-opvar="\${item.opVar}" data-opdef="\${item.opDef}"\` : ''} title="초기값 복구" aria-label="\${item.label} 초기화">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            </button>
+          </div>\`;
+        
+        /* 폰트 제어를 위한 단일 색상 폼(투명도 제외) 렌더링 로직 추가 */
+        if (item.type === 'color-opacity') {
+          innerHTML += \`<div style="display:flex; gap:8px; align-items:center; width:100%;">
+            <input type="color" class="efc_colorPicker_n5s" data-var="\${item.var}" value="\${rawVal}" aria-label="\${item.label} 색상 선택">
+            <div style="display:flex; align-items:center; gap:4px; flex:1;">
+              <span style="font-size:10px; color:#aaa;">투명도</span>
+              <input type="range" class="efc_opacitySlider_m2z" data-var="\${item.opVar}" min="0" max="1" step="0.05" value="\${opRawVal}" style="flex:1; accent-color:#10b981; height:4px;" aria-label="\${item.label} 투명도 조절">
+              <span style="font-size:11px; color:#10b981; width:24px; text-align:right;" class="efc_opLabel_k9n">\${opRawVal}</span>
+            </div>
+            <input type="text" class="efc_colorTxt_m8r" data-var="\${item.var}" value="\${rawVal}" style="width:70px;" aria-label="\${item.label} 텍스트 입력">
+          </div>\`;
+        } else if (item.type === 'color') {
+          innerHTML += \`<div style="display:flex; gap:8px; align-items:center; width:100%;">
+            <input type="color" class="efc_colorPicker_n5s" data-var="\${item.var}" value="\${rawVal}" aria-label="\${item.label} 색상 선택">
+            <input type="text" class="efc_colorTxt_m8r" data-var="\${item.var}" value="\${rawVal}" style="width:70px;" aria-label="\${item.label} 텍스트 입력">
+          </div>\`;
+        } else if (item.type === 'select') {
+          innerHTML += \`<select class="efc_basicSel_h7k" data-var="\${item.var}" aria-label="\${item.label} 선택">\`;
+          for (let [val, text] of Object.entries(item.opts)) { innerHTML += \`<option value="\${val}" \${rawVal === val ? 'selected' : ''}>\${text}</option>\`; }
+          innerHTML += \`</select>\`;
+        } else if (item.type === 'range') {
+          let numVal = parseFloat(rawVal); if(isNaN(numVal)) numVal = 0;
+          innerHTML += \`<div style="display: flex; gap: 10px; align-items: center;">
+            <input type="range" class="efc_inputRange_x8p" data-var="\${item.var}" data-unit="\${item.unit}" min="\${item.min}" max="\${item.max}" step="\${item.step||1}" value="\${numVal}" aria-label="\${item.label} 범위 조절">
+            <input type="number" class="efc_inputNum_c4m" data-var="\${item.var}" data-unit="\${item.unit}" step="\${item.step||1}" value="\${numVal}" aria-label="\${item.label} 수치 입력">
+          </div>\`;
+        }
+        innerHTML += \`</div>\`;
+      });
+      innerHTML += \`</div></details></section>\`;
+    });
+
+    innerHTML += \`</main>
+      <section id="efc_exportArea_w9c" style="display: none; padding: 16px 20px; border-top: 1px solid #2a2a2a; background: #1a1a1a;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; color: #aaa; font-weight: bold;">출력 결과 (웹사이트 설정에 붙여넣으세요)</span>
+        </div>
+        <textarea id="efc_exportTextarea_f4v" placeholder="코드를 복사하여 적용하십시오." aria-label="최종 출력 코드"></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="efc_copyBtn_l8x" style="flex: 1; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer;" aria-label="클립보드에 코드 복사">클립보드 복사</button>
+        </div>
+      </section>
+      <footer style="padding: 16px 20px; border-top: 1px solid #2a2a2a; background: #1a1a1a; position: sticky; bottom: 0;">
+        <button id="efc_exportTriggerBtn_j2m" style="width: 100%; padding: 12px; background: #eab308; color: #000; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;" aria-label="최종 적용 코드 추출 실행">최종 적용 코드 추출하기</button>
+      </footer>\`;
+    
+    document.getElementById('app').innerHTML = innerHTML;
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible_v0v');
+                sectionObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.efc_observerSec_o6f').forEach(sec => sectionObserver.observe(sec));
+
+    /* 양방향 데이터 바인딩 및 부모 창 CSS 변수 실시간 동기화 브릿지 */
+    const efc_applyChange_p9m = (v, val) => {
+      window.efc_currentStyles_v9b[v] = val;
+      
+      let styleTag = window.opener.document.getElementById('efc_qa_dynamic_toggle_style_z8c');
+      if (!styleTag) {
+          styleTag = window.opener.document.createElement('style');
+          styleTag.id = 'efc_qa_dynamic_toggle_style_z8c';
+          window.opener.document.head.appendChild(styleTag);
+      }
+      
+      let cssRules = ':root {\\n';
+      for(let key in window.efc_currentStyles_v9b) {
+          cssRules += \`  \${key}: \${window.efc_currentStyles_v9b[key]} !important;\\n\`;
+      }
+      cssRules += '}';
+      styleTag.innerHTML = cssRules;
+
+      /* 논리 판단이 필요한 속성은 HTML data 속성으로 변환하여 부모창에 새깁니다. */
+      if (['--tg-mode', '--tg-use-icon-auto-size', '--tg-color-theme', '--tg-use-hover', '--tg-use-custom-icon-color', '--tg-co-sync', '--tg-icon-transform', '--tg-use-custom-font'].includes(v)) {
+          let attrName = v.replace('--tg-use-', 'data-tg-').replace('--tg-', 'data-tg-');
+          if(v === '--tg-use-icon-auto-size') attrName = 'data-tg-icon-auto';
+          if(v === '--tg-use-custom-icon-color') attrName = 'data-tg-custom-icon';
+          window.opener.document.documentElement.setAttribute(attrName, val);
+      }
+    };
+
+    /* 폰트어썸 정규식 추출 및 시각적 피드백 제공 함수 */
+    const efc_extractClass_e4x = (str) => {
+        const match = str.match(/class=["']([^"']+)["']/i);
+        return match ? match[1].trim() : str.replace(/['"]/g, '').trim();
+    };
+
+    const efc_applyFaIcons_a5y = (cVal, oVal) => {
+        const cleanC = efc_extractClass_e4x(cVal);
+        const cleanO = efc_extractClass_e4x(oVal);
+        
+        document.getElementById('inpC').value = cleanC;
+        document.getElementById('inpO').value = cleanO;
+        
+        efc_applyChange_p9m('--tg-fa-closed', "'" + cleanC + "'");
+        efc_applyChange_p9m('--tg-fa-opened', "'" + cleanO + "'");
+        
+        const msgDiv = document.getElementById('efc_faResultMsg_r2c');
+        msgDiv.innerText = "적용 완료 되었습니다 " + cleanC + " 과 " + cleanO;
+        setTimeout(() => { msgDiv.innerText = ""; }, 4000);
+    };
+
+    document.getElementById('efc_applyFaBtn_a1b').addEventListener('click', () => {
+        const cVal = document.getElementById('inpC').value || 'fa-solid fa-chevron-right';
+        const oVal = document.getElementById('inpO').value || 'fa-solid fa-chevron-down';
+        efc_applyFaIcons_a5y(cVal, oVal);
+    });
+
+    document.querySelectorAll('.efc_iconPairBtn_i7p').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.efc_iconPairBtn_i7p').forEach(b => b.style.borderColor = '#444');
+        e.currentTarget.style.borderColor = '#10b981';
+        
+        const cVal = e.currentTarget.getAttribute('data-close');
+        const oVal = e.currentTarget.getAttribute('data-open');
+        document.getElementById('inpC').value = cVal;
+        document.getElementById('inpO').value = oVal;
+      });
+    });
+
+    document.querySelectorAll('.efc_colorPicker_n5s, .efc_opacitySlider_m2z, .efc_colorTxt_m8r').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const container = e.target.closest('div.efc_itemContainer_j3v');
+        const v = container.querySelector('.efc_colorPicker_n5s').getAttribute('data-var');
+        const opV = container.querySelector('.efc_opacitySlider_m2z') ? container.querySelector('.efc_opacitySlider_m2z').getAttribute('data-var') : null;
+        let picker = container.querySelector('.efc_colorPicker_n5s');
+        let slider = container.querySelector('.efc_opacitySlider_m2z');
+        let txt = container.querySelector('.efc_colorTxt_m8r');
+        let lbl = container.querySelector('.efc_opLabel_k9n');
+
+        if(e.target.classList.contains('efc_colorTxt_m8r')) {
+           picker.value = e.target.value;
+           efc_applyChange_p9m(v, e.target.value);
+        } else if(e.target.classList.contains('efc_colorPicker_n5s')) {
+           txt.value = picker.value;
+           efc_applyChange_p9m(v, picker.value);
+        } else if(e.target.classList.contains('efc_opacitySlider_m2z') && opV) {
+           lbl.innerText = slider.value;
+           efc_applyChange_p9m(opV, slider.value);
+        }
+      });
+    });
+
+    document.querySelectorAll('.efc_inputRange_x8p, .efc_inputNum_c4m').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const v = e.target.getAttribute('data-var');
+        const unit = e.target.getAttribute('data-unit');
+        let val = e.target.value;
+        if (e.target.classList.contains('efc_inputRange_x8p')) { e.target.nextElementSibling.value = val; } 
+        else { e.target.previousElementSibling.value = val; }
+        efc_applyChange_p9m(v, val + unit);
+      });
+    });
+
+    document.querySelectorAll('.efc_basicSel_h7k').forEach(input => {
+      input.addEventListener('input', (e) => efc_applyChange_p9m(e.target.getAttribute('data-var'), e.target.value));
+    });
+
+    document.querySelectorAll('.efc_resetSingleBtn_k2n').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const btnEl = e.currentTarget;
+        const v = btnEl.getAttribute('data-var'); 
+        const def = btnEl.getAttribute('data-def');
+        const opV = btnEl.getAttribute('data-opvar');
+        const opDef = btnEl.getAttribute('data-opdef');
+        
+        efc_applyChange_p9m(v, def);
+        if(opV) efc_applyChange_p9m(opV, opDef);
+        
+        const container = btnEl.closest('.efc_itemContainer_j3v');
+        container.querySelectorAll('input, select').forEach(inp => {
+          if (inp.classList.contains('efc_colorPicker_n5s') || inp.classList.contains('efc_colorTxt_m8r') || inp.classList.contains('efc_basicSel_h7k')) { 
+            inp.value = def; 
+          } else if(inp.classList.contains('efc_opacitySlider_m2z') && opDef) {
+            inp.value = opDef;
+            container.querySelector('.efc_opLabel_k9n').innerText = opDef;
+          } else if(inp.classList.contains('efc_inputRange_x8p') || inp.classList.contains('efc_inputNum_c4m')) {
+            inp.value = parseFloat(def) || 0;
+          }
+        });
+      });
+    });
+
+    document.getElementById('efc_globalResetBtn_x2k').addEventListener('click', () => {
+      if(confirm('모든 설정을 초기화하시겠습니까?')) { document.querySelectorAll('.efc_resetSingleBtn_k2n').forEach(btn => btn.click()); }
+    });
+
+    /* CSS 코드 추출 및 클립보드 복사 렌더링 로직 */
+    const efc_generateExportCode_m3p = () => {
+      let exportText = ":root {\\n";
+      qaConfig.forEach(g => g.items.forEach(i => { 
+        if(i.var) exportText += \`  \${i.var}: \${window.efc_currentStyles_v9b[i.var] || i.def};\\n\`; 
+        if(i.opVar) exportText += \`  \${i.opVar}: \${window.efc_currentStyles_v9b[i.opVar] || i.opDef};\\n\`; 
+      }));
+      
+      let closeVal = document.getElementById('inpC') ? document.getElementById('inpC').value : 'fa-solid fa-chevron-right';
+      let openVal = document.getElementById('inpO') ? document.getElementById('inpO').value : 'fa-solid fa-chevron-down';
+      exportText += \`  --tg-fa-closed: '\${closeVal}';\\n\`;
+      exportText += \`  --tg-fa-opened: '\${openVal}';\\n\`;
+      exportText += "}";
+      return exportText;
+    };
+
+    document.getElementById('efc_exportTriggerBtn_j2m').addEventListener('click', () => {
+      const finalCode = efc_generateExportCode_m3p();
+      document.getElementById('efc_exportTextarea_f4v').value = finalCode;
+      
+      const area = document.getElementById('efc_exportArea_w9c');
+      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+      if(area.style.display === 'block') {
+          area.scrollIntoView({behavior: "smooth"});
+      }
+    });
+
+    document.getElementById('efc_copyBtn_l8x').addEventListener('click', () => {
+      document.getElementById('efc_exportTextarea_f4v').select(); document.execCommand('copy'); alert('안전하게 복사되었습니다.');
+    });
+  `;
+
+  popup.document.open();
+  popup.document.write(`
+  <!DOCTYPE html>
+  <html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <title>Toggle Console Dashboard</title>
+    <style>
+      body { margin: 0; background: #121212; color: #e5e5e5; font-family: Pretendard, sans-serif; font-size: 13px; }
+      .headerWrap_h1w { position: sticky; top: 0; z-index: 10; background: #1a1a1a; padding: 16px 20px; border-bottom: 1px solid #2a2a2a; }
+      .topBar_t2b { display: flex; justify-content: space-between; align-items: center; }
+      .mainLayout_m8l { padding: 12px 20px; }
+      .panelSection_p9s { opacity: 0; transform: translateY(10px); transition: opacity 0.4s ease, transform 0.4s ease; }
+      .panelSection_p9s.visible_v0v { opacity: 1; transform: translateY(0); }
+      .efc_itemContainer_j3v { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; border-bottom: 1px dashed #333; }
+      .efc_resetSingleBtn_k2n { display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #888; cursor: pointer; padding: 4px; transition: color 0.2s; }
+      .efc_resetSingleBtn_k2n:hover { color: #10b981 !important; }
+      .efc_basicSel_h7k { padding: 6px; background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; width: 100%; outline: none;}
+      .efc_basicTxt_z1p, .efc_colorTxt_m8r { background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 6px 10px; box-sizing: border-box; outline:none; flex:1;}
+      .efc_colorPicker_n5s { width: 30px; height: 26px; padding: 0; border: none; border-radius: 4px; background: transparent; cursor: pointer; }
+      .efc_inputRange_x8p { flex: 1; accent-color: #10b981; cursor: pointer; }
+      .efc_inputNum_c4m { width: 75px; padding: 6px; background: #111; color: #10b981; border: 1px solid #444; border-radius: 6px; font-weight: 700; text-align: center; outline:none;}
+      #efc_exportTextarea_f4v { width: 100%; height: 180px; background: #000; color: #10b981; border: 1px solid #444; border-radius: 8px; padding: 10px; font-family: monospace; resize: vertical; outline:none; box-sizing: border-box;}
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #1a1a1a; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>${scriptContent}<\/script>
+  </body>
+  </html>
+  `);
+  popup.document.close();
+}();
+</script>

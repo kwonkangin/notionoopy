@@ -8,118 +8,138 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@27f6aec22ed500cfeace1114f0c55c39e5817cc8/toggle-master/toggle-master-core.css">
 <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@27f6aec22ed500cfeace1114f0c55c39e5817cc8/toggle-master/toggle-master-core.js" defer></script>
 
-
-
 <style>
-:root {
-  /* [1] 아이콘 모드 (1: 순정 ▶ / 2: +, - / 3: v, ㅅ) */
-  --tg-mode: 3;
-
-  /* [2] 아이콘 스타일 및 레이아웃 */
-  --tg-use-icon-auto-size: 1;       /* 1: 글자 크기 비례, 0: 고정 크기 */
-  --tg-icon-size: 20px;             /* 고정 크기일 때(0) 픽셀값 */
-  --tg-icon-color: #37352f;         /* 아이콘 색상 기본 #37352f* */
-  --tg-position: row;               /* row: 좌측, row-reverse: 우측 */
-  --tg-icon-vertical-align: center; /* 수직 정렬: flex-start, center, flex-end */
-  --tg-text-align: left;            /* 텍스트 가로 정렬: left, center, right */
-
-  /* [3] 개별 서식 (1: 켬, 0: 끔-기본값) */
-  /* H1 제목 토글 */
-  --tg-use-h1: 1;
-  --tg-h1-size: 1.85em; --tg-h1-color: #111; --tg-h1-weight: 700;
-
-  /* H2 제목 토글 */
-  --tg-use-h2: 1;
-  --tg-h2-size: 1.5em; --tg-h2-color: #222; --tg-h2-weight: 700;
-
-  /* H3 제목 토글 */
-  --tg-use-h3: 1;
-  --tg-h3-size: 1.25em; --tg-h3-color: #333; --tg-h3-weight: 600;
-
-  /* H4 제목 토글 */
-  --tg-use-h4: 1;
-  --tg-h4-size: 1.15em; --tg-h4-color: #444; --tg-h4-weight: 600;
-
-  /* 일반 텍스트 토글 (제목) */
-  --tg-use-text-title: 1;
-  --tg-text-title-size: 1.05em; --tg-text-title-color: #37352f; --tg-text-title-weight: 500;
-
-  /* 일반 텍스트 토글 (본문) */
-  --tg-use-text-content: 1;
-  --tg-text-content-size: 0.95em; --tg-text-content-color: #666; --tg-text-content-weight: 400;
-}
-</style>
-
-
-
-<style>
-:root {
-  /* 🎛️ [1] 토글 마스터 모드 선택 스위치 */
-  /* 1 : 노션 기본 순정 꺾쇠(▶) 아이콘 유지 모드 
-     2 : 텍스트 기호 모드 (+ 닫힘 / - 열림) 
-     3 : 초경량 SVG 회전 모드 (V 닫힘 / ㅅ 열림) -> 권장 옵션
-  */
-  --tg-mode: 3;
-
-  /* 📐 [2] 아이콘 크기 자동/수동 제어 스위치 */
-  /* 1 : 텍스트 폰트 크기에 비례하여 자동으로 사이즈 매핑 (추천)
-     0 : 아래 '--tg-icon-size'에 입력한 픽셀 값으로 모든 아이콘 크기 강제 고정
-  */
-  --tg-use-icon-auto-size: 1; 
-  --tg-icon-size: 20px;        /* 수동(0) 모드일 때 적용되는 아이콘 픽셀 크기 */
-
-  /* 🎨 [3] 토글 공통 디자인 서식 (모드 2, 3 전용) */
-  --tg-icon-color: #37352f;    /* 아이콘 색상 (HEX, RGB 등 자유 입력) 기본 #37352f*/
-  --tg-position: row;          /* 아이콘 배치 방향 | row: 좌측 / row-reverse: 우측 */
-  --tg-text-align: left;       /* 토글 전체 가로 정렬 | left, center, right */
-  
-  /* ↕️ 아이콘 수직 정렬 방식 */
-  /* flex-start(위쪽), center(가운데), flex-end(아래쪽) */
-  --tg-icon-vertical-align: center;
-
-  /* ==========================================================
-     📝 [4] 타이틀 & 텍스트 개별 서식 렌더링 스위치
-     - '1'을 입력하면 해당 블록의 아래 커스텀 서식이 덮어씌워집니다.
-     - '0'을 입력하면 노션 본연의 기본 서식이 유지됩니다.
-     ========================================================== */
-  
-  /* 🔹 [제목1 (H1) 토글] 서식 제어 */
-  --tg-use-h1: 1;             
-  --tg-h1-size: 1.85em;       /* 글자 크기 (em 단위 권장) */
-  --tg-h1-color: #111111;     /* 글자 색상 */
-  --tg-h1-weight: 700;        /* 글자 두께 (100~900) */
-
-  /* 🔹 [제목2 (H2) 토글] 서식 제어 */
-  --tg-use-h2: 1;             
-  --tg-h2-size: 1.5em;
-  --tg-h2-color: #222222;
-  --tg-h2-weight: 700;
-
-  /* 🔹 [제목3 (H3) 토글] 서식 제어 */
-  --tg-use-h3: 1;             
-  --tg-h3-size: 1.25em;
-  --tg-h3-color: #333333;
-  --tg-h3-weight: 600;
-
-  /* 🔹 [제목4 (H4) 토글] 서식 제어 */
-  --tg-use-h4: 1;             
-  --tg-h4-size: 1.15em;
-  --tg-h4-color: #444444;
-  --tg-h4-weight: 600;
-
-  /* 🔹 [일반 텍스트 토글 - 상위 타이틀] 서식 제어 */
-  --tg-use-text-title: 1;     
-  --tg-text-title-size: 1.05em;
-  --tg-text-title-color: #37352f;
-  --tg-text-title-weight: 500;
-
-  /* 🔹 [일반 텍스트 토글 - 내부 본문] 서식 제어 */
-  --tg-use-text-content: 1;   
-  --tg-text-content-size: 0.95em;
-  --tg-text-content-color: #666666;
-  --tg-text-content-weight: 400;
-}
-</style>
-
-
+/* 
+  =========================================================================
+  [CSS 최상위 제어 변수 선언 구역]
+  - 전체 시스템의 뼈대 역할을 하며, 모든 디자인 수치를 중앙 통제합니다.
+  =========================================================================
 */
+:root {
+  /* 🎛️ [1] 토글 기호 기본 렌더링 설정 */
+  /* 기본값: 3
+     선택값: 1(노션 순정), 2(텍스트 +/- 기호), 3(초경량 SVG 회전), 4(사용자 커스텀 폰트어썸)
+     기능/목적: 토글을 여닫을 때 표시되는 기호의 시각적 형태를 결정합니다. */
+  --tg-mode: 3;
+
+  /* 기본값: 1
+     선택값: 1(자동 맞춤), 0(수동 픽셀 고정)
+     기능/목적: 기호 크기를 텍스트 폰트 크기에 비례하게 할지, 고정된 픽셀로 지정할지 설정합니다. */
+  --tg-use-icon-auto-size: 1; 
+
+  /* 기본값: 20px
+     선택/입력: 10px ~ 50px 사이의 수치
+     기능/목적: '--tg-use-icon-auto-size'가 0일 때 강제로 적용되는 기호의 크기입니다. */
+  --tg-icon-size: 20px;
+
+  /* 기본값: scale(1)
+     선택값: scale(1)(반전 없음), scaleX(-1)(좌우 반전), scaleY(-1)(상하 반전), scale(-1, -1)(상하좌우 반전)
+     기능/목적: 기호를 우측 배치할 때 등 아이콘의 지시 방향이 어색할 경우 강제로 방향을 뒤집습니다. */
+  --tg-icon-transform: scale(1); 
+  
+  /* 기본값: 1
+     선택값: 1(커스텀 지정색 사용), 0(글자색 강제 흡수)
+     기능/목적: 기호의 색상을 주변 글자색에 동기화시킬지, 아니면 기호만의 고유 색상을 쓸지 결정합니다. */
+  --tg-use-custom-icon-color: 1;
+
+  /* 기본값: #37352f
+     선택/입력: HEX 색상 코드 (예: #ff0000)
+     기능/목적: 기호 색상 커스텀 모드(1)일 때 적용되는 아이콘 고유의 색상입니다. */
+  --tg-icon-color: #37352f;
+  
+  /* 📐 [2] 레이아웃 및 정렬 설정 */
+  /* 기본값: row
+     선택값: row(좌측 배치), row-reverse(우측 배치)
+     기능/목적: 텍스트를 기준으로 기호를 왼쪽에 둘지 오른쪽에 둘지 레이아웃 구조를 결정합니다. */
+  --tg-position: row;
+
+  /* 기본값: left
+     선택값: left(좌측), center(중앙), right(우측)
+     기능/목적: 일반 텍스트 및 타이틀을 포함한 전체 토글 내용물의 가로 정렬 방식을 결정합니다. */
+  --tg-text-align: left;
+
+  /* 기본값: flex-start
+     선택값: flex-start(상단 고정), center(중앙 정렬), flex-end(하단 고정)
+     기능/목적: 텍스트 줄바꿈이 길어질 때 기호가 수직선상 어디에 위치할지 결정합니다. */
+  --tg-icon-vertical-align: flex-start;
+  
+  /* 기본값: 8px (상하), 10px (좌우), 8px (간격)
+     선택/입력: px 단위 수치
+     기능/목적: 토글 블록 내부의 숨쉬는 공간(여백)과 기호-텍스트 사이의 간격을 미세 조정합니다. */
+  --tg-padding-y: 8px;
+  --tg-padding-x: 10px;
+  --tg-gap: 8px;
+
+  /* 🎨 [3] 일반 테마 및 색상 설정 */
+  /* 기본값: 1
+     선택값: 1(노션 순정 색상 유지), 2(커스텀 색상으로 덮어쓰기)
+     기능/목적: 노션 사용자가 지정한 색상을 무시하고, 강제로 브랜드 통일 색상 체계로 덮어씌웁니다. */
+  --tg-color-theme: 1;
+
+  /* 기본값: 8px (둥글기), #fdebec (배경색), 1 (투명도)
+     선택/입력: px 단위 수치, HEX 색상, 0~1 사이 소수점
+     기능/목적: 테마 2 적용 시 블록 전체를 감싸는 배경의 디자인(곡률, 색상, 투명도)을 결정합니다. */
+  --tg-bg-radius: 8px;             
+  --tg-bg-color: #fdebec;          
+  --tg-bg-opacity: 1;              
+
+  /* 기본값: #37352f (텍스트색), 1 (투명도)
+     기능/목적: 테마 2 적용 시 노션 고유의 글자색을 파괴하고 덮어씌우는 통일 텍스트 색상입니다. */
+  --tg-text-color: #37352f;
+  --tg-text-opacity: 1;
+
+  /* 기본값: 1px (테두리 굵기), #d1d1d1 (테두리 색상), 0.8 (투명도)
+     기능/목적: 일반 토글을 감싸는 외곽선의 디자인을 결정합니다. (0px 입력 시 테두리 제거) */
+  --tg-border-width: 1px;          
+  --tg-border-color: #d1d1d1;      
+  --tg-border-opacity: 0.8;        
+
+  /* 💡 [4] 콜아웃(강조 상자) 독립 제어 설정 */
+  /* 기본값: 1
+     선택값: 1(일반 토글 디자인과 동기화), 0(아래 설정으로 완전 분리)
+     기능/목적: 콜아웃 배경과 일반 배경의 디자인을 동일하게 가져갈지, 콜아웃만 별도 디자인할지 결정합니다. */
+  --tg-co-sync: 1;
+  
+  /* 기능/목적: 동기화(0) 모드일 때 콜아웃에만 단독으로 적용되는 모서리 곡률 및 배경/테두리 색상입니다. */
+  --tg-co-radius: 8px;
+  --tg-co-bg-color: #fdebec;
+  --tg-co-bg-opacity: 1;
+  --tg-co-border-color: #d1d1d1;
+  --tg-co-border-opacity: 0.8;
+
+  /* ✨ [5] 마우스 올림 (Hover) 애니메이션 설정 */
+  /* 기본값: 1
+     선택값: 1(애니메이션 활성화), 0(호버 애니메이션 완전 차단)
+     기능/목적: 0 설정 시 커스텀 효과뿐만 아니라 노션이 기본 제공하는 회색 투명도 호버까지 완벽히 차단합니다. */
+  --tg-use-hover: 1;               
+  
+  /* 기본값: 200ms
+     선택/입력: ms(밀리초) 단위 시간
+     기능/목적: 색상 변화, 기호 회전 시 발생하는 애니메이션의 부드러움(속도)을 제어합니다. */
+  --tg-transition-speed: 200ms;    
+  
+  /* 기능/목적: 마우스를 올렸을 때 발동하는 배경, 텍스트, 테두리, 기호의 강조 색상 및 투명도 세트입니다. */
+  --tg-hover-bg-color: #f5d6d8;    
+  --tg-hover-bg-opacity: 1;        
+  --tg-hover-text-color: #ff4500;
+  --tg-hover-text-opacity: 1;
+  --tg-hover-border-color: #ff4500;
+  --tg-hover-border-opacity: 1;    
+  --tg-hover-icon-color: #ff4500;  
+  --tg-hover-icon-opacity: 1;
+
+  /* 📝 [6] 타이틀 및 일반 텍스트 폰트 고정 서식 (단일 진실 공급원) */
+  /* 기능/목적: 블록 레벨별(H1~H4, 본문) 폰트 크기, 두께, 기본 색상을 전역에서 중앙 제어합니다. 
+     각 '--tg-use-' 속성을 0으로 변경하면 노션 순정 폰트 시스템을 따르게 됩니다. */
+  --tg-use-h1: 1; --tg-h1-size: 1.85em; --tg-h1-weight: 700; --tg-h1-color: #111111;
+  --tg-use-h2: 1; --tg-h2-size: 1.5em; --tg-h2-weight: 700; --tg-h2-color: #222222;
+  --tg-use-h3: 1; --tg-h3-size: 1.25em; --tg-h3-weight: 600; --tg-h3-color: #333333;
+  --tg-use-h4: 1; --tg-h4-size: 1.15em; --tg-h4-weight: 600; --tg-h4-color: #444444;
+  --tg-use-text-title: 1; --tg-text-title-size: 1.05em; --tg-text-title-weight: 500; --tg-text-title-color: #37352f;
+  --tg-use-text-content: 1; --tg-text-content-size: 0.95em; --tg-text-content-weight: 400; --tg-text-content-color: #666666;
+
+  /* 🎯 [7] 폰트어썸 기호 데이터 (모드 4 전용) */
+  /* 기능/목적: 대시보드 통신을 거치지 않을 때 기본값으로 사용되는 열림/닫힘 클래스명입니다. */
+  --tg-fa-closed: 'fa-solid fa-chevron-right';
+  --tg-fa-opened: 'fa-solid fa-chevron-down';
+}
