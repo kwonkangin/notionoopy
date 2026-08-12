@@ -1,0 +1,547 @@
+/* 
+  ====================================================================
+  탭 콜아웃 대시보드 런처 완결판 (기본 배열 방식 설정 기능 추가)
+  ====================================================================
+*/
+!function efc_launchTabDashboard_d7k() {
+  /* 대시보드 팝업창 생성 (팝업 차단 해제 필요) */
+  const popupWindow = window.open('', 'GaTabDashboard', 'width=600,height=960,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!popupWindow) { 
+    alert('팝업 창 차단을 해제해 주십시오.'); 
+    return; 
+  }
+  
+  /* 팝업창 내부에 삽입될 자바스크립트 로직 문자열 */
+  const scriptContent = `
+    const targetHtml = window.opener.document.documentElement;
+
+    /* 1. 기본 디자인 변수 설정 배열 */
+    const qaConfig = [
+      {
+        group: "1. 탭 기본 서식 및 텍스트 제어",
+        items: [
+          { var: "--customTabBg_z9x", label: "기본 배경 색상", type: "color-alpha", defHex: "#ffffff", defAlpha: "0", def: "transparent", tip: "투명도 0 설정 시 투명 적용" },
+          { var: "--customTabColor_p2m", label: "기본 글자 색상", type: "color-alpha", defHex: "#787774", defAlpha: "100", def: "rgba(120, 119, 116, 1)" },
+          { var: "--customTabFontSize_n1c", label: "글자 크기", type: "range", min: 10, max: 30, unit: "px", def: "14" },
+          { var: "--customTabFontWeight_y7t", label: "기본 글자 굵기", type: "select", opts: {"100":"100","200":"200","300":"300","400":"400","500":"500","600":"600","700":"700","800":"800","900":"900"}, def: "400" },
+          { var: "--textLimitToggle_b4v", label: "글자 수 제한 활성화", type: "checkbox", def: false, tip: "초과 글자 말줄임표 처리" },
+          { var: "--textLimitLength_c5x", label: "최대 허용 글자 수", type: "range", min: 2, max: 30, unit: "", def: "10" }
+        ]
+      },
+      {
+        group: "2. 탭 선택 활성 상태 서식",
+        items: [
+          { var: "--customTabActiveBg_w4a", label: "선택된 탭 배경 색상", type: "color-alpha", defHex: "#f1f1ef", defAlpha: "100", def: "rgba(241, 241, 239, 1)" },
+          { var: "--customTabActiveColor_k8b", label: "선택된 탭 글자 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55, 53, 47, 1)" },
+          { var: "--customTabActiveWeight_d3f", label: "선택된 탭 글자 굵기", type: "select", opts: {"100":"100","200":"200","300":"300","400":"400","500":"500","600":"600","700":"700","800":"800","900":"900"}, def: "600" }
+        ]
+      },
+      {
+        group: "3. 마우스 올림 및 콜아웃 팽창 효과 제어",
+        items: [
+          { var: "--slideAnimSpeed_p4q", label: "콜아웃 팽창(밀어내기) 속도", type: "range", min: 0.1, max: 2.0, step: 0.1, unit: "s", def: "0.4", tip: "갤러리가 밀려나는 애니메이션 속도" },
+          { var: "--hoverTransitionSpeed_t9x", label: "호버 색상 전환 속도", type: "range", min: 0.0, max: 2.0, step: 0.1, unit: "s", def: "0.2" },
+          { var: "--hoverTransformScale_s2w", label: "호버 확대 비율", type: "range", min: 1.0, max: 1.5, step: 0.05, unit: "", def: "1.05" },
+          { var: "--hoverBgColor_m4b", label: "호버 배경 색상", type: "color-alpha", defHex: "#f1f1ef", defAlpha: "50", def: "rgba(241, 241, 239, 0.5)" },
+          { var: "--hoverTextColor_z1n", label: "호버 글자 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55, 53, 47, 1)" },
+          { var: "--hoverRadius_k9v", label: "호버 모서리 둥글기", type: "range", min: 0, max: 30, unit: "px", def: "6" }
+        ]
+      },
+      {
+        group: "4. 탭 넓이 높이 및 간격 제어",
+        items: [
+          { var: "pad-link", label: "넓이 높이 동기화", type: "checkbox", def: true },
+          { var: "--dash-pad-y", label: "높이 내부 여백", type: "range", min: 0, max: 30, unit: "px", def: "6" },
+          { var: "--dash-pad-x", label: "넓이 내부 여백", type: "range", min: 0, max: 50, unit: "px", def: "12" },
+          { var: "--customTabGap_b2v", label: "탭 사이 간격", type: "range", min: 0, max: 50, unit: "px", def: "8" },
+          { var: "--customTabRadius_m9h", label: "기본 모서리 둥글기", type: "range", min: 0, max: 30, unit: "px", def: "6" }
+        ]
+      },
+      {
+        group: "5. 콜아웃 상하 여백 정밀 제어",
+        items: [
+          { var: "margin-link", label: "위 아래 여백 동기화", type: "checkbox", def: true },
+          { var: "--calloutMarginTop_v5x", label: "상단 여백", type: "range", min: 0, max: 100, unit: "px", def: "10" },
+          { var: "--calloutMarginBottom_w6y", label: "하단 여백", type: "range", min: 0, max: 100, unit: "px", def: "16" }
+        ]
+      },
+      {
+        group: "6. 활성 탭 하단 선 제어",
+        items: [
+          { var: "--borderToggle_a1z", label: "하단 선 노출 활성화", type: "checkbox", def: true },
+          { var: "--activeBorderSize_y2b", label: "선 두께", type: "range", min: 1, max: 10, unit: "px", def: "2" },
+          { var: "--activeBorderColor_z3c", label: "선 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55, 53, 47, 1)" }
+        ]
+      },
+      {
+        group: "7. 탭 컨테이너 하단 그림자 제어",
+        items: [
+          { var: "--shadowToggle_u8f", label: "그림자 노출 활성화", type: "checkbox", def: true },
+          { var: "--shadowX_b2c", label: "가로 축 오프셋", type: "range", min: -20, max: 20, unit: "px", def: "0" },
+          { var: "--shadowY_c3d", label: "세로 축 오프셋", type: "range", min: -20, max: 20, unit: "px", def: "-1" },
+          { var: "--shadowBlur_d4e", label: "흐림 정도", type: "range", min: 0, max: 30, unit: "px", def: "0" },
+          { var: "--shadowSpread_e5f", label: "퍼짐 정도", type: "range", min: -10, max: 20, unit: "px", def: "0" },
+          { var: "--shadowColor_f6g", label: "그림자 색상", type: "color-alpha", defHex: "#e9e9e7", defAlpha: "100", def: "rgba(233, 233, 231, 1)" }
+        ]
+      }
+    ];
+
+    /* 갤러리 기본 배열 방식 전역 상태 변수 신설 */
+    window.efc_defaultGalleryMode_k9x = 'scroll';
+
+    /* 우피 원본 창에서 갤러리 제목 자동 스크랩 */
+    window.efc_galleryList_x4n = [];
+    try {
+      const openerGalleries = window.opener.document.querySelectorAll('.notion-collection_view-block');
+      openerGalleries.forEach((gal, idx) => {
+        const titleSpan = gal.querySelector('.css-11vqqno span');
+        const galName = titleSpan ? titleSpan.innerText.trim() : ('이름없는 갤러리 ' + (idx + 1));
+        window.efc_galleryList_x4n.push({ name: galName, mode: 'scroll' });
+      });
+    } catch(e) {
+      console.log("갤러리 목록을 가져올 수 없습니다.");
+    }
+
+    /* 대시보드 UI HTML 빌더 */
+    let htmlBuilder = \`
+      <header class="headerWrap_h1w">
+        <div class="topBar_t2b">
+          <div>
+            <h3 style="margin: 0 0 4px 0; color: #10b981; font-size: 18px; font-weight: 800;">에픽션 탭 통합 제어판</h3>
+          </div>
+          <button id="efc_globalResetBtn_x2k" style="background: transparent; border: 1px solid #444; color: #aaa; border-radius: 6px; cursor: pointer; padding: 6px 10px; transition: all 0.2s;">
+            전체 복구
+          </button>
+        </div>
+      </header>
+      <main class="mainLayout_m8l" id="efc_dashScrollArea_h7b">\`;
+
+    window.efc_currentStyles_v9b = {};
+
+    /* 1. 디자인 변수 설정 섹션 렌더링 */
+    qaConfig.forEach((groupObj) => {
+      htmlBuilder += \`<section class="panelSection_p9s efc_observerSec_o6f" style="margin-bottom:12px; background:#1a1a1a; border-radius:8px; border:1px solid #2a2a2a;">
+        <details open>
+        <summary style="font-weight: 700; cursor: pointer; color: #38bdf8; outline: none; padding: 12px; background: #222; font-size: 14px;">\${groupObj.group}</summary>
+        <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">\`;
+      
+      groupObj.items.forEach(itemObj => {
+        let rawVal = itemObj.def;
+        let rootStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
+        
+        if (itemObj.type === 'checkbox') {
+            let computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+            if (computedVal !== "") rawVal = (computedVal === 'true');
+            window.efc_currentStyles_v9b[itemObj.var] = rawVal;
+            
+            htmlBuilder += \`<div class="efc_itemContainer_j3v" style="border-bottom:none; padding-bottom:0;">
+              <div style="display: flex; gap: 8px; align-items: center; background: #222; padding: 10px; border-radius: 6px;">
+                <input type="checkbox" id="efc_chk_\${itemObj.var}" class="efc_chkBox_b9w" data-var="\${itemObj.var}" \${rawVal ? 'checked' : ''} style="accent-color: #10b981; width: 16px; height: 16px; cursor: pointer;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <label for="efc_chk_\${itemObj.var}" style="cursor: pointer; color: #10b981; font-weight: 700;">\${itemObj.label}</label>
+                  <span style="font-size: 11px; color: #888;">\${itemObj.tip || ''}</span>
+                </div>
+              </div>
+            </div>\`;
+        } else {
+            let computedVal = "";
+            if (itemObj.var !== 'pad-link' && itemObj.var !== 'margin-link') {
+                computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+                if (computedVal) { 
+                  if(itemObj.type === 'range') rawVal = parseFloat(computedVal).toString(); 
+                  else rawVal = computedVal; 
+                }
+            }
+            window.efc_currentStyles_v9b[itemObj.var] = rawVal + (itemObj.unit || "");
+            
+            htmlBuilder += \`<div class="efc_itemContainer_j3v">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <div style="width: 100%;">
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                    <label style="color: #eee; font-weight: 600; font-size: 13px;">\${itemObj.label}</label>
+                  </div>
+                  <div style="font-size: 11px; color: #888;">\${itemObj.tip || ''}</div>
+                </div>
+                <button class="efc_resetSingleBtn_k2n" data-var="\${itemObj.var}" data-def="\${itemObj.def}" data-defhex="\${itemObj.defHex}" data-defalpha="\${itemObj.defAlpha}" aria-label="초기화">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                </button>
+              </div>\`;
+            
+            if (itemObj.type === 'color-alpha') {
+              htmlBuilder += \`<div style="display:flex; flex-direction:column; gap:8px; width:100%; padding-top:4px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <input type="color" class="efc_colorPicker_n5s" data-var="\${itemObj.var}" value="\${itemObj.defHex}" aria-label="색상 선택">
+                  <span style="font-size:12px; color:#aaa; white-space:nowrap;">투명도</span>
+                  <input type="range" class="efc_alphaRange_a1b efc_inputRange_x8p" data-var="\${itemObj.var}" min="0" max="100" value="\${itemObj.defAlpha}" style="flex:1;" aria-label="투명도 조절">
+                  <span class="efc_alphaVal_v2c" style="font-size:12px; color:#10b981; width:36px; text-align:right;">\${itemObj.defAlpha}%</span>
+                </div>
+                <input type="text" class="efc_colorTxt_m8r" data-var="\${itemObj.var}" value="\${rawVal}" style="width:100%; font-family:monospace;" aria-label="색상 코드">
+              </div>\`;
+            } else if (itemObj.type === 'select') {
+              htmlBuilder += \`<select class="efc_basicSel_h7k" data-var="\${itemObj.var}" aria-label="\${itemObj.label}">\`;
+              for (let [optionVal, optionText] of Object.entries(itemObj.opts)) { 
+                  htmlBuilder += \`<option value="\${optionVal}" \${rawVal === optionVal ? 'selected' : ''}>\${optionText}</option>\`; 
+              }
+              htmlBuilder += \`</select>\`;
+            } else if (itemObj.type === 'range') {
+              let numVal = parseFloat(rawVal); if(isNaN(numVal)) numVal = 0;
+              htmlBuilder += \`<div style="display: flex; gap: 10px; align-items: center;">
+                <input type="range" class="efc_inputRange_x8p efc_valRange_r9p" data-var="\${itemObj.var}" data-unit="\${itemObj.unit}" min="\${itemObj.min}" max="\${itemObj.max}" step="\${itemObj.step||1}" value="\${numVal}" aria-label="\${itemObj.label} 조절">
+                <input type="number" class="efc_inputNum_c4m" data-var="\${itemObj.var}" data-unit="\${itemObj.unit}" step="\${itemObj.step||1}" value="\${numVal}" aria-label="\${itemObj.label} 직접 입력">
+              </div>\`;
+            }
+            htmlBuilder += \`</div>\`;
+        }
+      });
+      htmlBuilder += \`</div></details></section>\`;
+    });
+
+    /* 2. 동적 갤러리 배열 설정 섹션 추가 (기본 방식 설정기 포함) */
+    htmlBuilder += \`
+      <section class="panelSection_p9s efc_observerSec_o6f" style="margin-bottom:12px; background:#1a1a1a; border-radius:8px; border:1px solid #2a2a2a;">
+        <details open>
+          <summary style="font-weight: 700; cursor: pointer; color: #f43f5e; outline: none; padding: 12px; background: #222; font-size: 14px;">8. 동적 갤러리 배열 방식 설정</summary>
+          <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="font-size: 11px; color: #888; margin-bottom: -6px;">기본 배열 방식 및 특정 갤러리 이름 기준 예외 배열 방식을 지정합니다.</div>
+            
+            <!-- 기본 배열 방식 설정 구역 -->
+            <div style="display: flex; gap: 8px; align-items: center; background: #222; padding: 10px; border-radius: 6px;">
+              <label style="color: #eee; font-weight: 600; font-size: 13px; flex: 1;">기본 배열 방식 (Default)</label>
+              <select id="efc_defaultModeSel_w3b" style="padding: 6px; background: #111; color: #eee; border: 1px solid #444; border-radius: 4px; outline: none;">
+                <option value="scroll" selected>스크롤</option>
+                <option value="wrap">줄바꿈</option>
+                <option value="more">더보기 단추</option>
+              </select>
+            </div>
+
+            <hr style="border: 0; border-top: 1px dashed #444; margin: 4px 0;">
+            <div style="font-size: 12px; font-weight: 600; color: #ccc;">예외 갤러리 설정 (Exceptions)</div>
+            
+            <div id="efc_galleryRowsArea_t1x" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            <button id="efc_addGalleryBtn_b2y" class="efc_actionBtn_q3w" style="margin-top: 4px;">+ 예외 갤러리 추가</button>
+          </div>
+        </details>
+      </section>
+    </main>\`;
+
+    /* 3. 최종 출력 영역 및 버튼 */
+    htmlBuilder += \`
+      <section id="efc_exportArea_w9c" style="display: none; padding: 16px 20px; border-top: 1px solid #2a2a2a; background: #1a1a1a;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; color: #aaa; font-weight: bold;">최종 통합 코드 (CSS + JS)</span>
+        </div>
+        <textarea id="efc_exportTextarea_f4v" placeholder="코드를 복사하십시오" aria-label="출력 코드 영역"></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="efc_copyBtn_l8x" style="flex: 1; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer;">기본 복사</button>
+          <button id="efc_copyMinBtn_m8c" style="flex: 1; padding: 10px; background: #8b5cf6; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer;">압축(Minify) 복사</button>
+        </div>
+      </section>
+      <footer style="padding: 16px 20px; border-top: 1px solid #2a2a2a; background: #1a1a1a; position: sticky; bottom: 0;">
+        <button id="efc_exportTriggerBtn_j2m" style="width: 100%; padding: 12px; background: #eab308; color: #000; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">최종 적용 코드 출력하기</button>
+      </footer>\`;
+    
+    document.getElementById('app').innerHTML = htmlBuilder;
+
+    window.efc_currentStyles_v9b['--customTabPadding_r5q'] = (window.efc_currentStyles_v9b['--dash-pad-y'] || '6px') + ' ' + (window.efc_currentStyles_v9b['--dash-pad-x'] || '12px');
+
+    /* 헥스 코드를 RGB로 변환하는 함수 */
+    const efc_hexToRgb_g3j = (hexCode) => {
+        let cleanHex = hexCode.replace('#', '');
+        if (cleanHex.length === 3) cleanHex = cleanHex.split('').map(char => char + char).join('');
+        return { r: parseInt(cleanHex.substring(0, 2), 16), g: parseInt(cleanHex.substring(2, 4), 16), b: parseInt(cleanHex.substring(4, 6), 16) };
+    };
+
+    /* 기본 배열 방식 선택 이벤트 리스너 부착 */
+    document.getElementById('efc_defaultModeSel_w3b').addEventListener('change', (e) => {
+        window.efc_defaultGalleryMode_k9x = e.target.value;
+    });
+
+    /* 예외 갤러리 UI 행 렌더링 함수 */
+    const efc_renderGalleryRows_p5z = () => {
+      const rowArea = document.getElementById('efc_galleryRowsArea_t1x');
+      rowArea.innerHTML = '';
+      window.efc_galleryList_x4n.forEach((gal, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = "display: flex; gap: 8px; align-items: center;";
+        row.innerHTML = \`
+          <input type="text" class="efc_galNameInput_v4x" data-idx="\${idx}" value="\${gal.name}" placeholder="갤러리 이름" style="flex: 2; padding: 6px 10px; background: #111; color: #eee; border: 1px solid #444; border-radius: 4px; outline: none;">
+          <select class="efc_galModeSel_n9q" data-idx="\${idx}" style="flex: 1; padding: 6px; background: #111; color: #eee; border: 1px solid #444; border-radius: 4px; outline: none;">
+            <option value="scroll" \${gal.mode === 'scroll' ? 'selected' : ''}>스크롤</option>
+            <option value="wrap" \${gal.mode === 'wrap' ? 'selected' : ''}>줄바꿈</option>
+            <option value="more" \${gal.mode === 'more' ? 'selected' : ''}>더보기 단추</option>
+          </select>
+          <button class="efc_galDelBtn_k7j" data-idx="\${idx}" style="padding: 6px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">삭제</button>
+        \`;
+        rowArea.appendChild(row);
+      });
+
+      /* 예외 갤러리 제어 이벤트 리스너 재부착 */
+      document.querySelectorAll('.efc_galNameInput_v4x').forEach(input => {
+        input.addEventListener('input', (e) => {
+          window.efc_galleryList_x4n[e.target.dataset.idx].name = e.target.value;
+        });
+      });
+      document.querySelectorAll('.efc_galModeSel_n9q').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          window.efc_galleryList_x4n[e.target.dataset.idx].mode = e.target.value;
+        });
+      });
+      document.querySelectorAll('.efc_galDelBtn_k7j').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          window.efc_galleryList_x4n.splice(e.target.dataset.idx, 1);
+          efc_renderGalleryRows_p5z();
+        });
+      });
+    };
+
+    /* 예외 갤러리 추가 버튼 이벤트 */
+    document.getElementById('efc_addGalleryBtn_b2y').addEventListener('click', () => {
+      window.efc_galleryList_x4n.push({ name: '새 갤러리', mode: 'scroll' });
+      efc_renderGalleryRows_p5z();
+    });
+
+    /* 초기 갤러리 UI 렌더링 */
+    efc_renderGalleryRows_p5z();
+
+    /* 스타일을 원본 창에 실시간 주입하는 함수 */
+    const efc_generateCssRules_d7s = () => {
+        let cssRules = '<style id="efc_dynamic_dashboard_style_z8c">\\n:root {\\n';
+        for (let cssKey in window.efc_currentStyles_v9b) {
+            if (['pad-link', 'margin-link', '--dash-pad-y', '--dash-pad-x'].includes(cssKey)) continue;
+            cssRules += \`  \${cssKey}: \${window.efc_currentStyles_v9b[cssKey]} !important;\\n\`;
+        }
+        cssRules += '}\\n</style>';
+        return cssRules;
+    };
+
+    /* UI 변경 사항을 상태에 반영하고 실시간 미리보기를 적용하는 함수 */
+    const efc_applyChange_p9m = (targetVar, targetValue) => {
+      window.efc_currentStyles_v9b[targetVar] = targetValue;
+      if (targetVar === '--dash-pad-y' || targetVar === '--dash-pad-x') {
+          window.efc_currentStyles_v9b['--customTabPadding_r5q'] = (window.efc_currentStyles_v9b['--dash-pad-y'] || '6px') + ' ' + (window.efc_currentStyles_v9b['--dash-pad-x'] || '12px');
+      }
+      
+      const isBorder = window.efc_currentStyles_v9b['--borderToggle_a1z'] === true || window.efc_currentStyles_v9b['--borderToggle_a1z'] === 'true';
+      window.efc_currentStyles_v9b['--borderConfig_a1z'] = isBorder ? \`\${window.efc_currentStyles_v9b['--activeBorderSize_y2b'] || '2px'} solid \${window.efc_currentStyles_v9b['--activeBorderColor_z3c'] || '#000'}\` : 'none';
+
+      const isShadow = window.efc_currentStyles_v9b['--shadowToggle_u8f'] === true || window.efc_currentStyles_v9b['--shadowToggle_u8f'] === 'true';
+      window.efc_currentStyles_v9b['--shadowConfig_u8f'] = isShadow ? \`\${window.efc_currentStyles_v9b['--shadowX_b2c'] || '0px'} \${window.efc_currentStyles_v9b['--shadowY_c3d'] || '0px'} \${window.efc_currentStyles_v9b['--shadowBlur_d4e'] || '0px'} \${window.efc_currentStyles_v9b['--shadowSpread_e5f'] || '0px'} \${window.efc_currentStyles_v9b['--shadowColor_f6g'] || '#000'} inset\` : 'none';
+
+      let dynamicStyleTag = window.opener.document.getElementById('efc_dynamic_dashboard_style_z8c');
+      if (dynamicStyleTag) { dynamicStyleTag.remove(); }
+      window.opener.document.head.insertAdjacentHTML('beforeend', efc_generateCssRules_d7s());
+
+      if (targetVar === '--textLimitToggle_b4v' || targetVar === '--textLimitLength_c5x') {
+          if (typeof window.opener.efc_updateTabLimits_w1v === 'function') {
+              window.opener.efc_updateTabLimits_w1v();
+          }
+      }
+    };
+
+    /* 제어판 폼 이벤트 리스너 일괄 연결 */
+    document.querySelectorAll('.efc_chkBox_b9w').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+            const varName = e.target.getAttribute('data-var');
+            if (varName === 'pad-link') { window.isPaddingLinked = e.target.checked; } 
+            else if (varName === 'margin-link') { window.isCalloutMarginLinked = e.target.checked; }
+            else { efc_applyChange_p9m(varName, e.target.checked); }
+        });
+    });
+
+    window.isPaddingLinked = true;
+    window.isCalloutMarginLinked = true;
+
+    document.querySelectorAll('.efc_colorPicker_n5s, .efc_alphaRange_a1b, .efc_colorTxt_m8r').forEach(inputElem => {
+      inputElem.addEventListener('input', (eventObj) => {
+        const itemContainer = eventObj.target.closest('.efc_itemContainer_j3v');
+        const varName = itemContainer.querySelector('.efc_colorPicker_n5s').getAttribute('data-var');
+        
+        if (eventObj.target.classList.contains('efc_colorTxt_m8r')) {
+           efc_applyChange_p9m(varName, eventObj.target.value);
+        } else {
+           const hexPicker = itemContainer.querySelector('.efc_colorPicker_n5s');
+           const alphaSlider = itemContainer.querySelector('.efc_alphaRange_a1b');
+           itemContainer.querySelector('.efc_alphaVal_v2c').innerText = alphaSlider.value + '%';
+           const rgbData = efc_hexToRgb_g3j(hexPicker.value);
+           const finalColorString = parseInt(alphaSlider.value) === 0 ? 'transparent' : \`rgba(\${rgbData.r}, \${rgbData.g}, \${rgbData.b}, \${(parseInt(alphaSlider.value) / 100).toFixed(2)})\`;
+           itemContainer.querySelector('.efc_colorTxt_m8r').value = finalColorString;
+           efc_applyChange_p9m(varName, finalColorString);
+        }
+      });
+    });
+
+    document.querySelectorAll('.efc_valRange_r9p, .efc_inputNum_c4m').forEach(inputElem => {
+      inputElem.addEventListener('input', (eventObj) => {
+        const targetVar = eventObj.target.getAttribute('data-var');
+        const measureUnit = eventObj.target.getAttribute('data-unit') || '';
+        let rawValue = eventObj.target.value;
+        
+        if (eventObj.target.classList.contains('efc_valRange_r9p')) { eventObj.target.nextElementSibling.value = rawValue; } 
+        else { eventObj.target.previousElementSibling.value = rawValue; }
+
+        if (window.isPaddingLinked && (targetVar === '--dash-pad-y' || targetVar === '--dash-pad-x')) {
+            const counterpartVar = targetVar === '--dash-pad-y' ? '--dash-pad-x' : '--dash-pad-y';
+            const counterpartElem = document.querySelector(\`input[data-var="\${counterpartVar}"]\`);
+            if (counterpartElem) {
+                const counterpartContainer = counterpartElem.closest('.efc_itemContainer_j3v');
+                counterpartContainer.querySelector('.efc_valRange_r9p').value = rawValue;
+                counterpartContainer.querySelector('.efc_inputNum_c4m').value = rawValue;
+                efc_applyChange_p9m(counterpartVar, rawValue + measureUnit);
+            }
+        }
+
+        if (window.isCalloutMarginLinked && (targetVar === '--calloutMarginTop_v5x' || targetVar === '--calloutMarginBottom_w6y')) {
+            const counterpartVar = targetVar === '--calloutMarginTop_v5x' ? '--calloutMarginBottom_w6y' : '--calloutMarginTop_v5x';
+            const counterpartElem = document.querySelector(\`input[data-var="\${counterpartVar}"]\`);
+            if (counterpartElem) {
+                const counterpartContainer = counterpartElem.closest('.efc_itemContainer_j3v');
+                counterpartContainer.querySelector('.efc_valRange_r9p').value = rawValue;
+                counterpartContainer.querySelector('.efc_inputNum_c4m').value = rawValue;
+                efc_applyChange_p9m(counterpartVar, rawValue + measureUnit);
+            }
+        }
+        
+        if (targetVar === '--textLimitLength_c5x') { efc_applyChange_p9m(targetVar, rawValue); } 
+        else { efc_applyChange_p9m(targetVar, rawValue + measureUnit); }
+      });
+    });
+
+    document.querySelectorAll('.efc_basicSel_h7k').forEach(selectElem => {
+      selectElem.addEventListener('input', (eventObj) => efc_applyChange_p9m(eventObj.target.getAttribute('data-var'), eventObj.target.value));
+    });
+
+    document.querySelectorAll('.efc_resetSingleBtn_k2n').forEach(resetBtn => {
+      resetBtn.addEventListener('click', (eventObj) => {
+        const btnNode = eventObj.currentTarget;
+        const targetVar = btnNode.getAttribute('data-var'); 
+        const defaultVal = btnNode.getAttribute('data-def');
+        const defaultHex = btnNode.getAttribute('data-defhex');
+        const defaultAlpha = btnNode.getAttribute('data-defalpha');
+        
+        efc_applyChange_p9m(targetVar, defaultVal);
+        
+        const parentContainer = btnNode.closest('.efc_itemContainer_j3v');
+        parentContainer.querySelectorAll('input, select').forEach(inputNode => {
+          if (inputNode.classList.contains('efc_colorPicker_n5s') && defaultHex) { inputNode.value = defaultHex; } 
+          else if (inputNode.classList.contains('efc_alphaRange_a1b') && defaultAlpha) {
+            inputNode.value = defaultAlpha;
+            parentContainer.querySelector('.efc_alphaVal_v2c').innerText = defaultAlpha + '%';
+          } 
+          else if(inputNode.classList.contains('efc_colorTxt_m8r') || inputNode.classList.contains('efc_basicSel_h7k')) { inputNode.value = defaultVal; } 
+          else if(inputNode.classList.contains('efc_valRange_r9p') || inputNode.classList.contains('efc_inputNum_c4m')) { inputNode.value = parseFloat(defaultVal) || 0; }
+        });
+      });
+    });
+
+    document.getElementById('efc_globalResetBtn_x2k').addEventListener('click', () => {
+      if(confirm('모든 디자인 설정을 최초 상태로 초기화하시겠습니까?')) { document.querySelectorAll('.efc_resetSingleBtn_k2n').forEach(resetBtn => resetBtn.click()); }
+    });
+
+    /* 최종 출력 통합 코드(CSS + JS) 생성기: 기본(Default) 모드 연동 반영 */
+    const efc_createFinalExportText_j3w = () => {
+      // CSS 파트
+      let exportText = "<style>\\n  /* 우피/노션 삽입용 가변 데이터 구역 */\\n  :root {\\n";
+      for (let cssKey in window.efc_currentStyles_v9b) {
+          if (['pad-link', 'margin-link', '--dash-pad-y', '--dash-pad-x'].includes(cssKey)) continue;
+          exportText += \`    \${cssKey}: \${window.efc_currentStyles_v9b[cssKey]};\\n\`;
+      }
+      exportText += "  }\\n</style>\\n\\n";
+      
+      // JS 파트 (동적 기본 배열 방식 연동 포함)
+      exportText += "<script>\\n  /* 갤러리 배열 방식 설정 객체 */\\n";
+      exportText += "  window.efc_galleryConfig_v2 = {\\n";
+      exportText += \`    default: "\${window.efc_defaultGalleryMode_k9x}",\\n\`;
+      exportText += "    exceptions: {\\n";
+      
+      const exceptionsList = [];
+      window.efc_galleryList_x4n.forEach(gal => {
+         // 기본 방식과 다른 예외 항목만 기록하여 효율성 증대
+         if(gal.name && gal.name !== '새 갤러리' && gal.mode !== window.efc_defaultGalleryMode_k9x) {
+            exceptionsList.push(\`      "\${gal.name}": "\${gal.mode}"\`);
+         }
+      });
+      exportText += exceptionsList.join(',\\n');
+      exportText += "\\n    }\\n  };\\n<\\/script>";
+      
+      return exportText;
+    };
+
+    /* 출력하기 버튼 클릭 이벤트 */
+    document.getElementById('efc_exportTriggerBtn_j2m').addEventListener('click', () => {
+      document.getElementById('efc_exportTextarea_f4v').value = efc_createFinalExportText_j3w();
+      const targetExportArea = document.getElementById('efc_exportArea_w9c');
+      targetExportArea.style.display = targetExportArea.style.display === 'none' ? 'block' : 'none';
+      if(targetExportArea.style.display === 'block') { targetExportArea.scrollIntoView({behavior: "smooth"}); }
+    });
+
+    /* 기본 복사 버튼 이벤트 */
+    document.getElementById('efc_copyBtn_l8x').addEventListener('click', () => {
+      document.getElementById('efc_exportTextarea_f4v').select(); 
+      document.execCommand('copy'); 
+      alert('출력된 설정 코드가 안전하게 복사되었습니다.');
+    });
+
+    /* 압축(Minify) 복사 버튼 이벤트: 줄바꿈 제거 및 다중 공백 축소 */
+    document.getElementById('efc_copyMinBtn_m8c').addEventListener('click', () => {
+      let rawText = document.getElementById('efc_exportTextarea_f4v').value;
+      
+      // 주석 제거 및 공백 축소 (JS 문자열 안전성을 위해 보수적으로 압축)
+      let minifiedText = rawText
+        .replace(/\\/\\*[\\s\\S]*?\\*\\//g, '') // CSS/JS 블록 주석 제거
+        .replace(/\\n/g, '') // 줄바꿈 제거
+        .replace(/\\s{2,}/g, ' ') // 다중 공백 단일화
+        .trim();
+        
+      // 화면에는 유지하되 클립보드에만 압축 코드를 넣기 위해 임시 텍스트 영역 활용
+      const tempTextarea = document.createElement('textarea');
+      tempTextarea.value = minifiedText;
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextarea);
+      
+      alert('압축된(Minify) 코드가 복사되었습니다. 우피 코드 주입구에 바로 붙여넣으십시오.');
+    });
+    
+    efc_applyChange_p9m('init', null);
+  `;
+
+  /* 대시보드 팝업창 HTML 렌더링 */
+  popupWindow.document.open();
+  popupWindow.document.write(`
+  <!DOCTYPE html>
+  <html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <title>탭 콜아웃 디자인 통합 제어판</title>
+    <style>
+      body { margin: 0; background: #121212; color: #e5e5e5; font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; }
+      .headerWrap_h1w { position: sticky; top: 0; z-index: 10; background: #1a1a1a; padding: 16px 20px; border-bottom: 1px solid #2a2a2a; }
+      .topBar_t2b { display: flex; justify-content: space-between; align-items: center; }
+      .mainLayout_m8l { padding: 12px 20px; }
+      .panelSection_p9s { opacity: 1; transform: translateY(0); }
+      .efc_itemContainer_j3v { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; border-bottom: 1px dashed #333; }
+      .efc_resetSingleBtn_k2n { display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #888; cursor: pointer; padding: 4px; transition: color 0.2s; }
+      .efc_resetSingleBtn_k2n:hover { color: #10b981 !important; }
+      .efc_basicSel_h7k { padding: 6px; background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; width: 100%; outline: none;}
+      .efc_basicTxt_z1p, .efc_colorTxt_m8r { background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 6px 10px; box-sizing: border-box; outline:none; flex:1;}
+      .efc_colorPicker_n5s { width: 34px; height: 26px; padding: 0; border: none; border-radius: 4px; background: transparent; cursor: pointer; }
+      .efc_inputRange_x8p { flex: 1; accent-color: #10b981; cursor: pointer; }
+      .efc_inputNum_c4m { width: 75px; padding: 6px; background: #111; color: #10b981; border: 1px solid #444; border-radius: 6px; font-weight: 700; text-align: center; outline:none;}
+      .efc_actionBtn_q3w { width: 100%; padding: 10px; background: #333; color: #10b981; border: 1px dashed #555; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+      .efc_actionBtn_q3w:hover { background: #444; }
+      #efc_exportTextarea_f4v { width: 100%; height: 250px; background: #000; color: #10b981; border: 1px solid #444; border-radius: 8px; padding: 10px; font-family: monospace; resize: vertical; outline:none; box-sizing: border-box; font-size:12px; white-space: pre;}
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #1a1a1a; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>${scriptContent}<\/script>
+  </body>
+  </html>
+  `);
+  popupWindow.document.close();
+}();
