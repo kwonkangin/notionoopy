@@ -1,0 +1,704 @@
+/*
+
+<!-- 메뉴바 커스텀 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-master.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-master.js" defer></script>
+
+*/
+
+<!--
+====================================================================
+[영역 1: 가변 데이터] 나중에 대시보드에서 출력된 코드를 붙여넣을 구역
+====================================================================
+-->
+<style>
+:root {
+--headerBg_a1: #ffffff;
+--headerBorderColor_a2: transparent;
+--headerHeight_a3: 72px;
+--headerMaxWidth_a4: 1280px;
+--headerPaddingX_a5: 24px;
+--headerZIndex_a6: 50;
+--headerTransitionSpeed_a7: 0.3s;
+--headerRowGap_a8: 24px;
+--logoHeight_b1: 28px;
+--navAlign_c9: center;
+--navGap_c1: 28px;
+--navMarginLeft_c10: 0px;
+--navMarginRight_c11: 0px;
+--navFontSize_c2: 15px;
+--navFontWeight_c3: 500;
+--navColor_c4: #333333;
+--navHoverColor_c5: rgba(49, 130, 246, 1.00);
+--navArrowDisplay_c6: inline-block;
+--navArrowSize_c7: 10px;
+--navArrowColor_c8: currentColor;
+--dropdownSimpleBg_d1: #ffffff;
+--dropdownSimpleRadius_d2: 12px;
+--dropdownSimplePad_d5: 8px 8px;
+--dropdownSimpleShadow_d3: 0 10px 30px rgba(0, 0, 0, 0.08);
+--dropdownSimpleMinWidth_d4: 200px;
+--dropdownDetailedBg_e1: #ffffff;
+--dropdownDetailedRadius_e2: 16px;
+--dropdownDetailedPad_e5: 10px 10px;
+--dropdownDetailedShadow_e3: 0 20px 40px rgba(0, 0, 0, 0.12);
+--dropdownDetailedWidth_e4: 320px;
+--dropdownItemRadius_e6: 10px;
+--dropdownItemHoverBg_e7: rgba(49, 130, 246, 0.06);
+--dropdownGap_e21: 4px;
+--dropdownIconColor_e11: rgba(51, 51, 51, 1.00);
+--dropdownIconHoverColor_e11h: rgba(49, 130, 246, 1.00);
+--dropdownIconBoxSize_e8: 30px;
+--dropdownIconBoxBg_e9: transparent;
+--dropdownIconBoxRadius_e10: 8px;
+--dropdownIconImgScale_e11b: 0.8;
+--dropdownIconFaSize_e11c: 17px;
+--dropdownIconGap_e12: 10px;
+--dropdownTitleColor_e13: #1f2937;
+--dropdownTitleSize_e14: 14px;
+--dropdownTitleWeight_e15: 600;
+--dropdownDescColor_e16: #8a8f98;
+--dropdownDescSize_e17: 12px;
+--dropdownDescWeight_e18: 400;
+--dropdownTitleDescGap_e19: 3px;
+--dropdownNoIconAlign_e20: left;
+--ctaGap_f1: 10px;
+--ctaRadius_f2: 999px;
+--ctaFontSize_f3: 14px;
+--ctaFontWeight_z7: 700;
+--ctaPaddingY_f5: 10px;
+--ctaPaddingX_f4: 18px;
+--ctaSolidBg_z1: rgba(49, 130, 246, 1.00);
+--ctaSolidText_z2: #ffffff;
+--ctaOutlineBg_z3: #ffffff;
+--ctaOutlineText_z4: rgba(49, 130, 246, 1.00);
+--ctaOutlineBorder_z5: rgba(49, 130, 246, 1.00);
+--ctaBorderWidth_z6: 1.5px;
+--searchBtnBg_j1: transparent;
+--searchBtnText_j2: #333333;
+--searchBtnHoverBg_j3: transparent;
+--searchBtnHoverText_j4: #00a6ab;
+--searchBtnSize_j5: 18px;
+--searchBtnPadding_j6: 4px 4px;
+--searchBtnRadius_j7: 4px;
+--mobileSearchBg_m1: #f4f4f5;
+--mobileSearchText_m2: #333333;
+--mobileSearchHoverBg_m3: #e4e4e7;
+--mobileSearchHoverText_m4: #00a6ab;
+--mobileSearchRadius_m5: 8px;
+--mobilePanelBg_h1: #ffffff;
+--mobileActionGap_o2: 12px;
+--toggleColor_g1: #1f2937;
+--mobileItemFontSize_h2: 15px;
+--mobileItemColor_h3: #333333;
+--mobileCaretColor_h4: #9aa0a6;
+--mobileBarCtaGap_i1: 8px;
+--mobileBarCtaFontSize_i2: 12px;
+--mobileBarCtaPaddingY_i4: 7px;
+--mobileBarCtaPaddingX_i3: 12px;
+--mobileBarCtaRadius_i5: 999px;
+init: null;
+}
+</style>
+
+<script>
+window.hwahaeNavConfig_v1 = {
+"mobileBreakpoint": 1024,
+"useSearch": false,
+"showMobileSearchBtn": true,
+"searchPosition": "right",
+"oopyPlan": "standard",
+"hideNotionTopbar": true,
+"showMobileDesc": true,
+"mobileCtaLayout": "horizontal",
+"mobileCtaGridCols": 2,
+"useHeaderShadow": true,
+"logo": {
+"url": "https://i.ibb.co/gbbhjYGW/Logo-efiction-33.png",
+"alt": "브랜드 로고",
+"link": "/"
+},
+"showArrowDefault": true,
+"defaultDropdownStyle": "detailed",
+"menuItems": [
+{
+"label": "제품",
+"url": "#",
+"target": "_self",
+"dropdownStyle": "detailed",
+"children": [
+{
+"title": "워크플로우 자동화 ",
+"url": "#",
+"target": "_self",
+"desc": "반복 업무를 자동으로 처리해 시간을 절약하세요",
+"icon": {
+"type": "fa",
+"value": "fa-solid fa-table-columns"
+}
+},
+{
+"title": "팀 협업 툴",
+"url": "#",
+"target": "_self",
+"desc": "실시간으로 함께 일하고 소통하는 공간",
+"icon": {
+"type": "fa",
+"value": "fa-solid fa-circle-nodes"
+}
+},
+{
+"title": "데이터 분석",
+"url": "#",
+"target": "_self",
+"desc": "흩어진 데이터를 한눈에, 의사결정을 빠르게",
+"icon": {
+"type": "fa",
+"value": "fa-solid fa-chart-line"
+}
+}
+]
+},
+{
+"label": "솔루션",
+"url": "#",
+"target": "_self",
+"dropdownStyle": "detailed",
+"children": [
+{
+"title": "스타트업",
+"url": "#",
+"target": "_self",
+"desc": "빠르게 성장하는 팀을 위한 맞춤 구성",
+"icon": {
+"type": "none",
+"value": "fa-solid fa-stairs"
+}
+},
+{
+"title": "중견·대기업",
+"url": "#",
+"target": "_self",
+"desc": "대규모 조직에 필요한 확장성과 보안",
+"icon": {
+"type": "none",
+"value": "fa-solid fa-people-group"
+}
+},
+{
+"title": "커머스 솔루션",
+"url": "#",
+"target": "_self",
+"desc": "주문부터 정산까지 하나의 흐름으로",
+"icon": {
+"type": "none",
+"value": "fa-solid fa-bag-shopping"
+}
+},
+{
+"title": "맞춤형 커스터마이징",
+"url": "#",
+"target": "_self",
+"desc": "우리 회사만의 방식대로 설계",
+"icon": {
+"type": "none",
+"value": "fa-solid fa-gear"
+}
+}
+]
+},
+{
+"label": "인사이트",
+"url": "#",
+"target": "_self",
+"dropdownStyle": "detailed",
+"children": [
+{
+"title": "블로그",
+"url": "#",
+"target": "_self",
+"desc": "트렌드와 노하우를 담은 이야기",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "고객 사례",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "가이드",
+"url": "#",
+"target": "_self",
+"desc": "깊이 있는 실무 자료 모음",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "웨비나",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+}
+]
+},
+{
+"label": "요금제",
+"url": "#",
+"target": "_self",
+"dropdownStyle": "simple",
+"children": [
+{
+"title": "베이직 플랜",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "프로 플랜",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "엔터프라이즈 플랜",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "맞춤 견적 문의",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+}
+]
+},
+{
+"label": "회사소개",
+"url": "#",
+"target": "_self",
+"dropdownStyle": "simple",
+"children": [
+{
+"title": "팀 소개",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "채용정보",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+},
+{
+"title": "파트너십",
+"url": "#",
+"target": "_self",
+"desc": "",
+"icon": {
+"type": "none",
+"value": ""
+}
+}
+]
+},
+{
+"label": "고객지원",
+"url": "#",
+"target": "_self",
+"dropdownStyle": "simple",
+"children": []
+}
+],
+"ctaButtons": [
+{
+"label": "서비스 소개서 ",
+"url": "#",
+"target": "_blank",
+"variant": "outline",
+"showOnMobileBar": false
+},
+{
+"label": "상담 신청",
+"url": "#",
+"target": "_blank",
+"variant": "solid",
+"showOnMobileBar": true
+}
+],
+"scrollEffect": true,
+"scrollThreshold": 10,
+"offsetBody": true
+};
+</script>
+
+
+
+
+
+
+
+<!-- 
+  ====================================================================
+  [영역 1: 가변 데이터] 나중에 대시보드에서 출력된 코드를 붙여넣을 구역
+  ==================================================================== 
+-->
+<style>
+  :root {
+    /* ── 헤더(네비게이션 바) 전체 레이아웃 ── */
+
+    /* 헤더 전체 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 #ffffff (흰색) */
+    --headerBg_a1: #ffffff;
+    /* 헤더 하단 테두리 색상. 설정값: HEX/RGBA 색상 코드 또는 transparent. 기본값 transparent (테두리 없음) */
+    --headerBorderColor_a2: transparent;
+    /* 헤더 전체 높이. 설정값: px 단위 숫자. 기본값 72px */
+    --headerHeight_a3: 72px;
+    /* 헤더 내부 콘텐츠(로고+메뉴+CTA)가 배치되는 최대 너비. 이 값을 넘으면 좌우 여백이 생김. 설정값: px 단위 숫자. 기본값 1280px */
+    --headerMaxWidth_a4: 1280px;
+    /* 헤더 좌우 안쪽 여백(패딩). 설정값: px 단위 숫자. 기본값 24px */
+    --headerPaddingX_a5: 24px;
+    /* 헤더의 쌓임 순서(z-index). 다른 요소 위에 항상 떠있게 하려면 값을 높게 설정. 설정값: 정수. 기본값 50 */
+    --headerZIndex_a6: 50;
+    /* 스크롤 시 헤더 배경/그림자 등이 바뀌는 전환 애니메이션 속도. 설정값: s(초) 단위. 기본값 0.3s */
+    --headerTransitionSpeed_a7: 0.3s;
+    /* 헤더 내부 요소가 줄바꿈될 때 생기는 행 간격. 설정값: px 단위 숫자. 기본값 24px */
+    --headerRowGap_a8: 24px;
+
+    /* ── 로고 ── */
+
+    /* 로고 이미지의 높이. 너비는 원본 비율에 맞춰 자동 조정됨. 설정값: px 단위 숫자. 기본값 28px */
+    --logoHeight_b1: 28px;
+
+    /* ── 데스크톱 대메뉴(nav) ── */
+
+    /* 대메뉴 전체 정렬 방향. 설정값: left / center / right. 기본값 center (가운데 정렬) */
+    --navAlign_c9: center;
+    /* 대메뉴 항목 사이의 간격. 설정값: px 단위 숫자. 기본값 28px */
+    --navGap_c1: 28px;
+    /* 대메뉴 영역의 좌측 여백. 로고와의 간격을 벌리고 싶을 때 조정. 설정값: px 단위 숫자. 기본값 0px */
+    --navMarginLeft_c10: 0px;
+    /* 대메뉴 영역의 우측 여백. CTA와의 간격을 벌리고 싶을 때 조정. 설정값: px 단위 숫자. 기본값 0px */
+    --navMarginRight_c11: 0px;
+    /* 대메뉴 텍스트 크기. 설정값: px 단위 숫자. 기본값 15px */
+    --navFontSize_c2: 15px;
+    /* 대메뉴 텍스트 굵기. 설정값: 100~900 사이의 100 단위 숫자 (400 일반, 500 중간, 700 굵게). 기본값 500 */
+    --navFontWeight_c3: 500;
+    /* 대메뉴 텍스트 기본(평상시) 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #333333 */
+    --navColor_c4: #333333;
+    /* 대메뉴에 마우스를 올렸을 때(hover) 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 rgba(49,130,246,1) (파란색) */
+    --navHoverColor_c5: rgba(49, 130, 246, 1.00);
+    /* 하위메뉴가 있는 대메뉴 옆의 화살표(▾) 아이콘 표시 여부. 설정값: inline-block(표시) / none(숨김). 기본값 inline-block */
+    --navArrowDisplay_c6: inline-block;
+    /* 화살표 아이콘 크기. 설정값: px 단위 숫자. 기본값 10px */
+    --navArrowSize_c7: 10px;
+    /* 화살표 아이콘 색상. 설정값: HEX/RGBA 색상 코드 또는 currentColor(부모 텍스트 색을 그대로 따라감). 기본값 currentColor */
+    --navArrowColor_c8: currentColor;
+
+    /* ── 심플 드롭다운(이름만 있는 하위메뉴) 박스 스타일 ── */
+
+    /* 심플 드롭다운 박스 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 #ffffff */
+    --dropdownSimpleBg_d1: #ffffff;
+    /* 심플 드롭다운 박스 모서리 둥글기. 설정값: px 단위 숫자. 기본값 12px */
+    --dropdownSimpleRadius_d2: 12px;
+    /* 심플 드롭다운 박스 내부 여백. 설정값: "상하 좌우" 형태의 px 값. 기본값 8px 8px */
+    --dropdownSimplePad_d5: 8px 8px;
+    /* 심플 드롭다운 박스 그림자. 설정값: CSS box-shadow 문법(오프셋 흐림정도 색상). 기본값 0 10px 30px rgba(0,0,0,0.08) */
+    --dropdownSimpleShadow_d3: 0 10px 30px rgba(0, 0, 0, 0.08);
+    /* 심플 드롭다운 박스 최소 너비. 항목 이름이 짧아도 이 너비 이하로 줄어들지 않음. 설정값: px 단위 숫자. 기본값 200px */
+    --dropdownSimpleMinWidth_d4: 200px;
+
+    /* ── 상세 드롭다운(아이콘+이름+설명이 있는 하위메뉴) 박스 스타일 ── */
+
+    /* 상세 드롭다운 박스 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 #ffffff */
+    --dropdownDetailedBg_e1: #ffffff;
+    /* 상세 드롭다운 박스 모서리 둥글기. 설정값: px 단위 숫자. 기본값 16px */
+    --dropdownDetailedRadius_e2: 16px;
+    /* 상세 드롭다운 박스 내부 여백. 설정값: "상하 좌우" 형태의 px 값. 기본값 10px 10px */
+    --dropdownDetailedPad_e5: 10px 10px;
+    /* 상세 드롭다운 박스 그림자. 설정값: CSS box-shadow 문법. 기본값 0 20px 40px rgba(0,0,0,0.12) */
+    --dropdownDetailedShadow_e3: 0 20px 40px rgba(0, 0, 0, 0.12);
+    /* 상세 드롭다운 박스의 고정 너비. 설정값: px 단위 숫자. 기본값 320px */
+    --dropdownDetailedWidth_e4: 320px;
+
+    /* ── 드롭다운 공통(개별 항목) 스타일 ── */
+
+    /* 드롭다운 내부 개별 항목의 모서리 둥글기(hover 배경 표시 시 적용). 설정값: px 단위 숫자. 기본값 10px */
+    --dropdownItemRadius_e6: 10px;
+    /* 드롭다운 개별 항목에 마우스를 올렸을 때의 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 rgba(49,130,246,0.06) (연한 파란색) */
+    --dropdownItemHoverBg_e7: rgba(49, 130, 246, 0.06);
+    /* 드롭다운 내부 항목들 사이의 세로 간격. 설정값: px 단위 숫자. 기본값 4px */
+    --dropdownGap_e21: 4px;
+
+    /* ── 드롭다운 아이콘 스타일 ── */
+
+    /* 아이콘 기본 색상(Font Awesome 아이콘에 적용). 설정값: HEX/RGBA 색상 코드. 기본값 rgba(51,51,51,1) */
+    --dropdownIconColor_e11: rgba(51, 51, 51, 1.00);
+    /* 아이콘에 마우스를 올렸을 때 색상. 설정값: HEX/RGBA 색상 코드. 기본값 rgba(49,130,246,1) */
+    --dropdownIconHoverColor_e11h: rgba(49, 130, 246, 1.00);
+    /* 아이콘을 감싸는 정사각형 박스의 한 변 크기. 설정값: px 단위 숫자. 기본값 30px */
+    --dropdownIconBoxSize_e8: 30px;
+    /* 아이콘 박스의 배경색. 설정값: HEX/RGBA 색상 코드 또는 transparent. 기본값 transparent */
+    --dropdownIconBoxBg_e9: transparent;
+    /* 아이콘 박스의 모서리 둥글기. 설정값: px 단위 숫자. 기본값 8px */
+    --dropdownIconBoxRadius_e10: 8px;
+    /* icon.type을 "img"(이미지 파일)로 설정했을 때, 박스 안에서 이미지가 표시되는 배율. 설정값: 0~1 사이 소수(1이면 박스 꽉 채움). 기본값 0.8 */
+    --dropdownIconImgScale_e11b: 0.8;
+    /* icon.type을 "fa"(Font Awesome)로 설정했을 때 아이콘 글자 크기. 설정값: px 단위 숫자. 기본값 17px */
+    --dropdownIconFaSize_e11c: 17px;
+    /* 아이콘과 텍스트(제목) 사이의 가로 간격. 설정값: px 단위 숫자. 기본값 10px */
+    --dropdownIconGap_e12: 10px;
+
+    /* ── 드롭다운 텍스트(제목/설명) 스타일 ── */
+
+    /* 하위메뉴 제목(title) 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #1f2937 (진한 회색) */
+    --dropdownTitleColor_e13: #1f2937;
+    /* 하위메뉴 제목 텍스트 크기. 설정값: px 단위 숫자. 기본값 14px */
+    --dropdownTitleSize_e14: 14px;
+    /* 하위메뉴 제목 텍스트 굵기. 설정값: 100~900 사이의 100 단위 숫자. 기본값 600 */
+    --dropdownTitleWeight_e15: 600;
+    /* 하위메뉴 설명(desc) 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #8a8f98 (연한 회색) */
+    --dropdownDescColor_e16: #8a8f98;
+    /* 하위메뉴 설명 텍스트 크기. 설정값: px 단위 숫자. 기본값 12px */
+    --dropdownDescSize_e17: 12px;
+    /* 하위메뉴 설명 텍스트 굵기. 설정값: 100~900 사이의 100 단위 숫자. 기본값 400 */
+    --dropdownDescWeight_e18: 400;
+    /* 제목과 설명 사이의 세로 간격. 설정값: px 단위 숫자. 기본값 3px */
+    --dropdownTitleDescGap_e19: 3px;
+    /* icon.type을 "none"으로 설정해 아이콘이 없을 때, 제목/설명 텍스트의 정렬 방향. 설정값: left / center / right. 기본값 left */
+    --dropdownNoIconAlign_e20: left;
+
+    /* ── CTA 버튼 공통 스타일 ── */
+
+    /* CTA 버튼 2개 사이의 간격. 설정값: px 단위 숫자. 기본값 10px */
+    --ctaGap_f1: 10px;
+    /* CTA 버튼 모서리 둥글기. 설정값: px 단위 숫자(999px에 가까울수록 알약 모양). 기본값 999px */
+    --ctaRadius_f2: 999px;
+    /* CTA 버튼 텍스트 크기. 설정값: px 단위 숫자. 기본값 14px */
+    --ctaFontSize_f3: 14px;
+    /* CTA 버튼 텍스트 굵기. 설정값: 100~900 사이의 100 단위 숫자. 기본값 700 */
+    --ctaFontWeight_z7: 700;
+    /* CTA 버튼 상하 안쪽 여백. 설정값: px 단위 숫자. 기본값 10px */
+    --ctaPaddingY_f5: 10px;
+    /* CTA 버튼 좌우 안쪽 여백. 설정값: px 단위 숫자. 기본값 18px */
+    --ctaPaddingX_f4: 18px;
+
+    /* ── CTA 버튼 - Solid(채워진) 스타일 (variant: "solid") ── */
+
+    /* Solid 버튼 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 rgba(49,130,246,1) */
+    --ctaSolidBg_z1: rgba(49, 130, 246, 1.00);
+    /* Solid 버튼 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #ffffff */
+    --ctaSolidText_z2: #ffffff;
+
+    /* ── CTA 버튼 - Outline(테두리만) 스타일 (variant: "outline") ── */
+
+    /* Outline 버튼 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 #ffffff */
+    --ctaOutlineBg_z3: #ffffff;
+    /* Outline 버튼 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 rgba(49,130,246,1) */
+    --ctaOutlineText_z4: rgba(49, 130, 246, 1.00);
+    /* Outline 버튼 테두리 색상. 설정값: HEX/RGBA 색상 코드. 기본값 rgba(49,130,246,1) */
+    --ctaOutlineBorder_z5: rgba(49, 130, 246, 1.00);
+    /* Outline 버튼 테두리 두께. 설정값: px 단위 숫자. 기본값 1.5px */
+    --ctaBorderWidth_z6: 1.5px;
+
+    /* ── 검색 버튼(PC) 스타일 : window.hwahaeNavConfig_v1.useSearch가 true일 때만 노출 ── */
+
+    /* PC 검색 버튼 배경색. 설정값: HEX/RGBA 색상 코드 또는 transparent. 기본값 transparent */
+    --searchBtnBg_j1: transparent;
+    /* PC 검색 버튼 아이콘/텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #333333 */
+    --searchBtnText_j2: #333333;
+    /* PC 검색 버튼 hover 시 배경색. 설정값: HEX/RGBA 색상 코드 또는 transparent. 기본값 transparent */
+    --searchBtnHoverBg_j3: transparent;
+    /* PC 검색 버튼 hover 시 아이콘/텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #00a6ab (청록색) */
+    --searchBtnHoverText_j4: #00a6ab;
+    /* PC 검색 아이콘 크기. 설정값: px 단위 숫자. 기본값 18px */
+    --searchBtnSize_j5: 18px;
+    /* PC 검색 버튼 내부 여백. 설정값: "상하 좌우" 형태의 px 값. 기본값 4px 4px */
+    --searchBtnPadding_j6: 4px 4px;
+    /* PC 검색 버튼 모서리 둥글기. 설정값: px 단위 숫자. 기본값 4px */
+    --searchBtnRadius_j7: 4px;
+
+    /* ── 모바일 검색창 스타일 : window.hwahaeNavConfig_v1.showMobileSearchBtn이 true일 때 적용 ── */
+
+    /* 모바일 검색창 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 #f4f4f5 (연한 회색) */
+    --mobileSearchBg_m1: #f4f4f5;
+    /* 모바일 검색창 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #333333 */
+    --mobileSearchText_m2: #333333;
+    /* 모바일 검색창 hover(또는 focus) 시 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 #e4e4e7 */
+    --mobileSearchHoverBg_m3: #e4e4e7;
+    /* 모바일 검색창 hover(또는 focus) 시 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #00a6ab */
+    --mobileSearchHoverText_m4: #00a6ab;
+    /* 모바일 검색창 모서리 둥글기. 설정값: px 단위 숫자. 기본값 8px */
+    --mobileSearchRadius_m5: 8px;
+
+    /* ── 모바일 메뉴 패널 전체 스타일 (햄버거 클릭 시 열리는 영역) ── */
+
+    /* 모바일 메뉴 패널 배경색. 설정값: HEX/RGBA 색상 코드. 기본값 #ffffff */
+    --mobilePanelBg_h1: #ffffff;
+    /* 모바일 패널 내 액션(검색/기타 버튼) 요소들 사이의 간격. 설정값: px 단위 숫자. 기본값 12px */
+    --mobileActionGap_o2: 12px;
+    /* 헤더의 햄버거(토글) 아이콘 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #1f2937 */
+    --toggleColor_g1: #1f2937;
+    /* 모바일 메뉴 항목 텍스트 크기. 설정값: px 단위 숫자. 기본값 15px */
+    --mobileItemFontSize_h2: 15px;
+    /* 모바일 메뉴 항목 텍스트 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #333333 */
+    --mobileItemColor_h3: #333333;
+    /* 모바일 아코디언(하위메뉴 펼침) 화살표 색상. 설정값: HEX/RGBA 색상 코드. 기본값 #9aa0a6 */
+    --mobileCaretColor_h4: #9aa0a6;
+
+    /* ── 모바일 하단 고정 CTA 바 스타일 (ctaButtons의 showOnMobileBar가 true인 버튼이 노출되는 영역) ── */
+
+    /* 모바일 하단 CTA 바 내 버튼들 사이의 간격. 설정값: px 단위 숫자. 기본값 8px */
+    --mobileBarCtaGap_i1: 8px;
+    /* 모바일 하단 CTA 바 버튼 텍스트 크기. 설정값: px 단위 숫자. 기본값 12px */
+    --mobileBarCtaFontSize_i2: 12px;
+    /* 모바일 하단 CTA 바 버튼 상하 여백. 설정값: px 단위 숫자. 기본값 7px */
+    --mobileBarCtaPaddingY_i4: 7px;
+    /* 모바일 하단 CTA 바 버튼 좌우 여백. 설정값: px 단위 숫자. 기본값 12px */
+    --mobileBarCtaPaddingX_i3: 12px;
+    /* 모바일 하단 CTA 바 버튼 모서리 둥글기. 설정값: px 단위 숫자. 기본값 999px */
+    --mobileBarCtaRadius_i5: 999px;
+
+    /* 실제 스타일에는 관여하지 않는 예약/구분용 값. 값을 수정해도 화면에 영향 없음. 기본값 null */
+    init: null;
+  }
+</style>
+
+<script>
+  window.hwahaeNavConfig_v1 = {
+    /* PC 레이아웃과 모바일 레이아웃이 전환되는 화면 너비 기준점. 이 값보다 화면이 좁아지면 모바일 메뉴(햄버거)로 전환됨. 설정값: px 단위 숫자. 기본값 1024 */
+    "mobileBreakpoint": 1024,
+    /* PC 헤더에 검색 버튼을 노출할지 여부. 설정값: true(노출) / false(숨김). 기본값 false */
+    "useSearch": false,
+    /* 모바일 메뉴 패널 안에 검색 버튼을 노출할지 여부. 설정값: true(노출) / false(숨김). 기본값 true */
+    "showMobileSearchBtn": true,
+    /* useSearch가 true일 때, PC 검색 버튼이 배치되는 위치. 설정값: "left" / "right". 기본값 "right" */
+    "searchPosition": "right",
+    /* 이 스크립트가 지원하는 Oopy 요금제 구분값(기능 분기용 내부 값). 설정값: 서비스에서 정의한 플랜 문자열(예 "standard", "premium" 등). 기본값 "standard" */
+    "oopyPlan": "standard",
+    /* Notion 원본 상단바(Topbar)를 숨길지 여부. 설정값: true(숨김) / false(노출). 기본값 true */
+    "hideNotionTopbar": true,
+    /* 모바일 메뉴에서도 하위메뉴의 설명(desc) 텍스트를 표시할지 여부. 설정값: true(표시) / false(제목만 표시). 기본값 true */
+    "showMobileDesc": true,
+    /* 모바일 하단 CTA 바에서 버튼 2개를 배치하는 방향. 설정값: "horizontal"(가로 나열) / "vertical"(세로 나열). 기본값 "horizontal" */
+    "mobileCtaLayout": "horizontal",
+    /* mobileCtaLayout이 그리드 형태로 배치될 때 적용되는 컬럼(열) 개수. 설정값: 정수(보통 CTA 버튼 개수와 동일하게 지정). 기본값 2 */
+    "mobileCtaGridCols": 2,
+    /* 헤더 하단에 그림자 효과를 줄지 여부. 설정값: true(적용) / false(미적용). 기본값 true */
+    "useHeaderShadow": true,
+    /* 로고 설정 객체 */
+    "logo": {
+        /* 로고로 사용할 이미지 파일의 URL. 설정값: 이미지 경로/링크 문자열. 기본값 예시 이미지 URL */
+        "url": "https://i.ibb.co/gbbhjYGW/Logo-efiction-33.png",
+        /* 로고 이미지의 대체 텍스트(alt, 이미지 로드 실패 시 표시되거나 스크린리더가 읽는 텍스트). 설정값: 임의 문자열. 기본값 "브랜드 로고" */
+        "alt": "브랜드 로고",
+        /* 로고 클릭 시 이동할 경로. 설정값: URL 문자열. 기본값 "/" (홈으로 이동) */
+        "link": "/"
+    },
+    /* 개별 메뉴 항목에서 showArrow를 따로 지정하지 않았을 때 적용되는 화살표 기본 노출 여부. 설정값: true(노출) / false(숨김). 기본값 true */
+    "showArrowDefault": true,
+    /* 메뉴 항목에서 dropdownStyle을 따로 지정하지 않았을 때 적용되는 기본 드롭다운 스타일. 설정값: "detailed"(아이콘+제목+설명) / "simple"(제목만). 기본값 "detailed" */
+    "defaultDropdownStyle": "detailed",
+    /* 대메뉴 배열. 배열 순서가 곧 화면에 표시되는 좌→우 순서임 */
+    "menuItems": [
+        {
+            /* 대메뉴에 표시될 이름. 설정값: 임의 문자열 */
+            "label": "제품",
+            /* 대메뉴 자체를 클릭했을 때 이동할 링크. 하위메뉴가 있는 경우 보통 "#"으로 두어 클릭 시 이동하지 않고 펼침 동작만 하게 함. 설정값: URL 문자열 */
+            "url": "#",
+            /* 링크가 열리는 방식. 설정값: "_self"(현재 탭) / "_blank"(새 탭) */
+            "target": "_self",
+            /* 이 대메뉴의 하위메뉴 스타일. 설정값: "detailed" / "simple". 하위메뉴가 없는 항목은 이 속성 자체가 없어도 됨(예: "고객지원") */
+            "dropdownStyle": "detailed",
+            /* 하위메뉴 항목 배열. 빈 배열([])이면 하위메뉴 없이 대메뉴가 단일 링크로 동작함 */
+            "children": [
+                {
+                    /* 하위메뉴 제목(굵게 표시되는 이름). 설정값: 임의 문자열 */
+                    "title": "워크플로우 자동화 ",
+                    /* 하위메뉴 클릭 시 이동할 링크. 설정값: URL 문자열 */
+                    "url": "#",
+                    /* 링크가 열리는 방식. 설정값: "_self" / "_blank" */
+                    "target": "_self",
+                    /* 하위메뉴 설명(제목 아래 작게 표시되는 텍스트). dropdownStyle이 "simple"이거나 icon.type이 "none"이 아닐 때 조합에 따라 노출/미노출됨. 설정값: 임의 문자열, 빈 문자열("")이면 설명 미표시 */
+                    "desc": "반복 업무를 자동으로 처리해 시간을 절약하세요",
+                    /* 하위메뉴 아이콘 설정 객체 */
+                    "icon": {
+                        /* 아이콘 종류. 설정값: "fa"(Font Awesome 아이콘 클래스 사용) / "img"(이미지 URL 사용) / "none"(아이콘 없음) */
+                        "type": "fa",
+                        /* type이 "fa"면 Font Awesome 클래스명, "img"면 이미지 URL을 입력. type이 "none"이면 이 값은 무시됨. 설정값: 문자열 */
+                        "value": "fa-solid fa-table-columns"
+                    }
+                }
+                /* ... 이하 하위메뉴 항목들도 위와 동일한 구조 반복 ... */
+            ]
+        }
+        /* ... 이하 대메뉴 항목들도 위와 동일한 구조 반복 (하위메뉴 없는 대메뉴는 "children": [] 로 지정) ... */
+    ],
+    /* CTA 버튼 배열. 배열 순서가 곧 화면에 표시되는 좌→우 순서임(현재 2개: 서비스 소개서 / 상담 신청) */
+    "ctaButtons": [
+        {
+            /* 버튼에 표시될 텍스트. 설정값: 임의 문자열 */
+            "label": "서비스 소개서 ",
+            /* 버튼 클릭 시 이동할 링크. 설정값: URL 문자열 */
+            "url": "#",
+            /* 링크가 열리는 방식. 설정값: "_self" / "_blank" */
+            "target": "_blank",
+            /* 버튼 디자인 종류. 설정값: "solid"(배경이 채워진 강조 버튼) / "outline"(테두리만 있는 보조 버튼) */
+            "variant": "outline",
+            /* 모바일 하단 고정 CTA 바에도 이 버튼을 노출할지 여부. 설정값: true(노출) / false(숨김) */
+            "showOnMobileBar": false
+        },
+        {
+            "label": "상담 신청",
+            "url": "#",
+            "target": "_blank",
+            "variant": "solid",
+            "showOnMobileBar": true
+        }
+    ],
+    /* 스크롤 시 헤더에 시각 효과(배경/그림자 변화 등)를 적용할지 여부. 설정값: true(적용) / false(미적용). 기본값 true */
+    "scrollEffect": true,
+    /* scrollEffect가 true일 때, 몇 px 이상 스크롤해야 효과가 발동되는지 정하는 임계값. 설정값: px 단위 숫자. 기본값 10 */
+    "scrollThreshold": 10,
+    /* 헤더가 fixed/sticky로 떠 있을 때, 본문 콘텐츠가 헤더에 가려지지 않도록 헤더 높이만큼 자동으로 상단 여백을 보정할지 여부. 설정값: true(자동 보정) / false(수동 처리 필요). 기본값 true */
+    "offsetBody": true
+};
+</script>

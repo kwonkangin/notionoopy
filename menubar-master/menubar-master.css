@@ -1,0 +1,200 @@
+<!-- 
+  ====================================================================
+  [영역 2: 고정 코어 엔진] 깃허브 보관용 CSS 및 JS 구조
+  ==================================================================== 
+-->
+
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+
+  .efc_header_h7k {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: var(--headerZIndex_a6, 50);
+    background-color: var(--headerBg_a1, #fff);
+    border-bottom: 1px solid var(--headerBorderColor_a2, transparent);
+    transition: background-color var(--headerTransitionSpeed_a7, .3s) ease, border-color var(--headerTransitionSpeed_a7, .3s) ease;
+  }
+  .efc_header_h7k.is-scrolled { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  .efc_header_h7k.no-shadow_n9x { box-shadow: none !important; }
+
+  .headerInner_i2m {
+    max-width: var(--headerMaxWidth_a4, 1280px);
+    margin: 0 auto; padding: 0 var(--headerPaddingX_a5, 24px);
+  }
+
+  .headerRow_r3n {
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+    column-gap: var(--headerRowGap_a8, 24px); height: var(--headerHeight_a3, 72px);
+  }
+
+  .logoLink_l4p { display: flex; align-items: center; flex-shrink: 0; text-decoration: none; }
+  .logoImg_g5q { height: var(--logoHeight_b1, 28px); width: auto; display: block; object-fit: contain; }
+
+  .navDesktop_n6r {
+    display: flex; align-items: center; gap: var(--navGap_c1, 28px);
+    justify-content: var(--navAlign_c9, flex-start);
+    width: 100%; min-width: 0;
+    padding-left: var(--navMarginLeft_c10, 0px); padding-right: var(--navMarginRight_c11, 0px);
+  }
+  .efc_header_h7k.efc_mobileView_m8v .navDesktop_n6r { display: none; }
+
+  .efc_navItem_v7s { position: relative; }
+
+  .navLink_k8t, .efc_navTrigger_c1x {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: var(--navFontSize_c2, 15px); font-weight: var(--navFontWeight_c3, 500);
+    color: var(--navColor_c4, #333); text-decoration: none; cursor: pointer;
+    white-space: nowrap; transition: color .2s ease;
+  }
+  .navLink_k8t:hover, .efc_navItem_v7s.is-open > .efc_navTrigger_c1x { color: var(--navHoverColor_c5, #00a6ab); }
+
+  .navArrowIcon_a2y {
+    display: var(--navArrowDisplay_c6, inline-block); font-size: var(--navArrowSize_c7, 10px); color: var(--navArrowColor_c8, currentColor);
+    transition: transform .2s ease;
+  }
+  .efc_navItem_v7s.is-open .navArrowIcon_a2y { transform: rotate(180deg); }
+
+  /* 드롭다운 스타일 */
+  .dropdownSimple_d3z {
+    position: absolute; top: calc(100% + 16px); left: 0; min-width: var(--dropdownSimpleMinWidth_d4, 200px);
+    padding: var(--dropdownSimplePad_d5, 8px); margin: 0; background: var(--dropdownSimpleBg_d1, #fff);
+    border-radius: var(--dropdownSimpleRadius_d2, 12px); box-shadow: var(--dropdownSimpleShadow_d3, 0 10px 30px rgba(0,0,0,.08));
+    opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-6px); transition: opacity .2s ease, transform .2s ease; z-index: 60;
+  }
+  .efc_navItem_v7s.is-open .dropdownSimple_d3z { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+  
+  .dropdownSimpleItem_s4a {
+    display: block; padding: 8px 12px; font-size: 14px; border-radius: var(--dropdownItemRadius_e6, 10px);
+    color: var(--navColor_c4, #333); text-decoration: none; white-space: nowrap; transition: background-color .2s ease, color .2s ease;
+  }
+  .dropdownSimpleItem_s4a:hover { background: var(--dropdownItemHoverBg_e7, #f3fbfb); color: var(--navHoverColor_c5, #00a6ab); }
+
+  .dropdownDetailed_e4a {
+    position: absolute; top: calc(100% + 16px); left: 0; width: var(--dropdownDetailedWidth_e4, 320px);
+    padding: var(--dropdownDetailedPad_e5, 10px); display: flex; flex-direction: column; gap: var(--dropdownGap_e21, 4px);
+    background: var(--dropdownDetailedBg_e1, #fff); border-radius: var(--dropdownDetailedRadius_e2, 16px);
+    box-shadow: var(--dropdownDetailedShadow_e3, 0 20px 40px rgba(0,0,0,.12));
+    opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-6px); transition: opacity .2s ease, transform .2s ease; z-index: 60;
+  }
+  .efc_navItem_v7s.is-open .dropdownDetailed_e4a { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+
+  .dropdownItem_f5b {
+    display: flex; align-items: center; gap: var(--dropdownIconGap_e12, 10px); padding: 8px; border-radius: var(--dropdownItemRadius_e6, 10px);
+    text-decoration: none; transition: background-color .2s ease;
+  }
+  .dropdownItem_f5b:hover { background: var(--dropdownItemHoverBg_e7, #f3fbfb); }
+  .dropdownItem_f5b.is-no-icon { justify-content: var(--dropdownNoIconAlign_e20, left); }
+  .dropdownItem_f5b.is-no-icon .dropdownTextWrap_j9f { align-items: var(--dropdownNoIconAlign_e20, left); text-align: var(--dropdownNoIconAlign_e20, left); }
+
+  .dropdownIconWrap_g6c {
+    flex-shrink: 0; width: var(--dropdownIconBoxSize_e8, 30px); height: var(--dropdownIconBoxSize_e8, 30px);
+    border-radius: var(--dropdownIconBoxRadius_e10, 8px); background: var(--dropdownIconBoxBg_e9, transparent);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .dropdownIconImg_h7d { width: calc(var(--dropdownIconBoxSize_e8, 30px) * var(--dropdownIconImgScale_e11b, 0.8)); height: calc(var(--dropdownIconBoxSize_e8, 30px) * var(--dropdownIconImgScale_e11b, 0.8)); object-fit: contain; display: block; }
+  
+  /* PC 데스크톱 아이콘 색상 캐스케이딩 */
+  .dropdownIconFa_i8e { font-size: var(--dropdownIconFaSize_e11c, 17px); color: var(--localIconColor, var(--dropdownIconColor_e11, #00a6ab)); transition: color 0.2s ease; }
+  .dropdownItem_f5b:hover .dropdownIconFa_i8e { color: var(--localIconHoverColor, var(--dropdownIconHoverColor_e11h, var(--localIconColor, var(--dropdownIconColor_e11, #00898d)))); }
+
+  .dropdownTextWrap_j9f { display: flex; flex-direction: column; min-width: 0; gap: var(--dropdownTitleDescGap_e19, 3px); }
+  .dropdownTitle_k1g { font-size: var(--dropdownTitleSize_e14, 14px); font-weight: var(--dropdownTitleWeight_e15, 600); color: var(--dropdownTitleColor_e13, #1f2937); }
+  .dropdownDesc_l2h { font-size: var(--dropdownDescSize_e17, 12px); font-weight: var(--dropdownDescWeight_e18, 400); color: var(--dropdownDescColor_e16, #8a8f98); white-space: normal; line-height: 1.35; margin: 0; }
+
+  /* CTA 및 액션 영역 */
+  .headerActions_o1a { display: flex; align-items: center; justify-self: end; gap: var(--headerRowGap_a8, 24px); }
+  .efc_header_h7k.efc_mobileView_m8v .headerActions_o1a { gap: var(--mobileActionGap_o2, 12px); }
+  .ctaGroup_m3i { display: flex; align-items: center; gap: var(--ctaGap_f1, 10px); flex-shrink: 0; }
+  .efc_header_h7k.efc_mobileView_m8v .ctaGroup_m3i { display: none; }
+
+  .ctaBtn_n4j {
+    display: inline-flex; align-items: center; justify-content: center; border-radius: var(--ctaRadius_f2, 999px);
+    font-size: var(--ctaFontSize_f3, 14px); font-weight: var(--ctaFontWeight_z7, 700);
+    padding: var(--ctaPaddingY_f5, 10px) var(--ctaPaddingX_f4, 18px); text-decoration: none; white-space: nowrap; transition: opacity .2s ease, filter .2s ease;
+  }
+  .ctaBtn_n4j.is-solid { background: var(--ctaSolidBg_z1, #00a6ab) !important; color: var(--ctaSolidText_z2, #ffffff) !important; border: var(--ctaBorderWidth_z6, 1.5px) solid var(--ctaSolidBg_z1, #00a6ab) !important; }
+  .ctaBtn_n4j.is-solid:hover { filter: brightness(0.9); }
+  .ctaBtn_n4j.is-outline { background: var(--ctaOutlineBg_z3, #ffffff) !important; color: var(--ctaOutlineText_z4, #00a6ab) !important; border: var(--ctaBorderWidth_z6, 1.5px) solid var(--ctaOutlineBorder_z5, #00a6ab) !important; }
+  .ctaBtn_n4j.is-outline:hover { filter: brightness(0.95); }
+
+  .mobileBarCtaGroup_m1a { display: none; align-items: center; gap: var(--mobileBarCtaGap_i1, 8px); }
+  .efc_header_h7k.efc_mobileView_m8v .mobileBarCtaGroup_m1a { display: flex; }
+  .mobileBarCtaBtn_n2b {
+    display: inline-flex; align-items: center; justify-content: center; border-radius: var(--mobileBarCtaRadius_i5, 999px);
+    font-size: var(--mobileBarCtaFontSize_i2, 12px); font-weight: var(--ctaFontWeight_z7, 700);
+    padding: var(--mobileBarCtaPaddingY_i4, 7px) var(--mobileBarCtaPaddingX_i3, 12px); text-decoration: none; white-space: nowrap; 
+  }
+  .mobileBarCtaBtn_n2b.is-solid { background: var(--ctaSolidBg_z1, #00a6ab); color: var(--ctaSolidText_z2, #ffffff); border: var(--ctaBorderWidth_z6, 1.5px) solid var(--ctaSolidBg_z1, #00a6ab); }
+  .mobileBarCtaBtn_n2b.is-outline { background: var(--ctaOutlineBg_z3, #ffffff); color: var(--ctaOutlineText_z4, #00a6ab); border: var(--ctaBorderWidth_z6, 1.5px) solid var(--ctaOutlineBorder_z5, #00a6ab); }
+
+  .efc_desktopSearchBtn_s5l {
+    background: var(--searchBtnBg_j1, transparent); border: none; cursor: pointer; padding: var(--searchBtnPadding_j6, 4px); margin: 0 4px;
+    border-radius: var(--searchBtnRadius_j7, 4px); font-size: var(--searchBtnSize_j5, 18px); color: var(--searchBtnText_j2, var(--searchBtnColor_j1x, #333));
+    transition: color 0.2s ease, background 0.2s ease; display: flex; align-items: center; justify-content: center;
+  }
+  .efc_desktopSearchBtn_s5l:hover { color: var(--searchBtnHoverText_j4, var(--searchBtnHoverColor_j2y, #00a6ab)); background: var(--searchBtnHoverBg_j3, transparent); }
+  .efc_header_h7k.efc_mobileView_m8v .efc_desktopSearchBtn_s5l { display: none; }
+
+  .efc_toggleBtn_o5k { display: none; flex-direction: column; gap: 5px; padding: 6px; background: none; border: none; cursor: pointer; }
+  .efc_header_h7k.efc_mobileView_m8v .efc_toggleBtn_o5k { display: inline-flex; }
+  .toggleBar_p6l { display: block; height: 2px; width: 22px; background: var(--toggleColor_g1, #1f2937); transition: transform .2s ease, opacity .2s ease; }
+  .efc_header_h7k.is-open .toggleBar_p6l:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .efc_header_h7k.is-open .toggleBar_p6l:nth-child(2) { opacity: 0; }
+  .efc_header_h7k.is-open .toggleBar_p6l:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* 모바일 확장 패널 */
+  .mobilePanel_q7m {
+    display: none; flex-direction: column; gap: 2px; padding: 12px var(--headerPaddingX_a5, 24px) 20px;
+    background: var(--mobilePanelBg_h1, #fff); border-top: 1px solid rgba(0,0,0,.06);
+    max-height: calc(100vh - var(--headerHeight_a3, 72px)); overflow-y: auto;
+  }
+  .efc_header_h7k.efc_mobileView_m8v.is-open .mobilePanel_q7m { display: flex; }
+  .efc_header_h7k:not(.efc_mobileView_m8v) .mobilePanel_q7m { display: none !important; }
+
+  .efc_mobileGroup_r8n { display: flex; flex-direction: column; }
+  .mobileItemRow_s9o { display: flex; align-items: center; justify-content: space-between; }
+  .mobileLink_t1p, .efc_mobileTrigger_u2q {
+    flex: 1; padding: 12px 0; font-size: var(--mobileItemFontSize_h2, 15px); color: var(--mobileItemColor_h3, #333); text-decoration: none; cursor: pointer;
+  }
+  .efc_mobileCaret_v3r {
+    background: none; border: none; padding: 12px; cursor: pointer; color: var(--mobileCaretColor_h4, #9aa0a6); transition: transform .2s ease;
+  }
+  .efc_mobileGroup_r8n.is-expanded .efc_mobileCaret_v3r { transform: rotate(180deg); }
+
+  .mobileSubmenuPanel_w4s { max-height: 0; overflow: hidden; padding-left: 12px; transition: max-height .25s ease; }
+  .efc_mobileGroup_r8n.is-expanded .mobileSubmenuPanel_w4s { max-height: 600px; }
+  
+  .mobileSubItem_x5t { display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: 14px; color: var(--mobileItemColor_h3, #333); text-decoration: none; transition: background-color 0.2s ease, border-radius 0.2s ease;}
+  .mobileSubItem_x5t:hover { background: var(--dropdownItemHoverBg_e7, #f3fbfb); border-radius: var(--dropdownItemRadius_e6, 10px); }
+  
+  .mobileSubIconWrap_y6u {
+    width: var(--dropdownIconBoxSize_e8, 30px); height: var(--dropdownIconBoxSize_e8, 30px);
+    border-radius: var(--dropdownIconBoxRadius_e10, 8px); background: var(--dropdownIconBoxBg_e9, transparent);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+  }
+  .mobileSubIconImg_z7v { width: calc(var(--dropdownIconBoxSize_e8, 30px) * var(--dropdownIconImgScale_e11b, 0.8)); height: calc(var(--dropdownIconBoxSize_e8, 30px) * var(--dropdownIconImgScale_e11b, 0.8)); object-fit: contain; }
+  
+  /* [수정 4] 모바일 하위메뉴 아이콘 색상 글로벌/개별 연동 완벽 적용 */
+  .mobileSubItem_x5t .mobileSubIconFa_a8w { font-size: var(--dropdownIconFaSize_e11c, 17px); color: var(--localIconColor, var(--dropdownIconColor_e11, #00a6ab)); transition: color 0.2s ease; }
+  .mobileSubItem_x5t:hover .mobileSubIconFa_a8w { color: var(--localIconHoverColor, var(--dropdownIconHoverColor_e11h, var(--localIconColor, var(--dropdownIconColor_e11, #00898d)))); }
+
+  /* [수정 1] 모바일 텍스트 래퍼 및 설명글 노출/숨김 CSS 토글 적용 */
+  .mobileSubTextWrap_t9z { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .mobileSubTitle_t1y { font-size: 14px; color: var(--mobileItemColor_h3, #333); }
+  .mobileSubDesc_d8y { font-size: 12px; color: var(--dropdownDescColor_e16, #8a8f98); line-height: 1.35; margin:0;}
+  .mobilePanel_q7m.hide-desc_x9z .mobileSubDesc_d8y { display: none !important; }
+
+  .mobileCtaWrap_w8k { margin-top: 10px; } 
+  .mobileCtaBtn_b9x { display: flex; align-items: center; justify-content: center; text-align: center; border-radius: var(--ctaRadius_f2, 999px); font-size: 14px; font-weight: var(--ctaFontWeight_z7, 700); padding: 10px 0; text-decoration: none; }
+  .mobileCtaBtn_b9x.is-solid { background: var(--ctaSolidBg_z1, #00a6ab); color: var(--ctaSolidText_z2, #ffffff); border: var(--ctaBorderWidth_z6, 1.5px) solid var(--ctaSolidBg_z1, #00a6ab); }
+  .mobileCtaBtn_b9x.is-outline { background: var(--ctaOutlineBg_z3, #ffffff); color: var(--ctaOutlineText_z4, #00a6ab); border: var(--ctaBorderWidth_z6, 1.5px) solid var(--ctaOutlineBorder_z5, #00a6ab); }
+
+  .efc_mobileSearchBtn_k6m {
+    display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; padding: 12px 0; 
+    background: var(--mobileSearchBg_m1, #f4f4f5); color: var(--mobileSearchText_m2, #333); border: none; border-radius: var(--mobileSearchRadius_m5, 8px); 
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, color 0.2s ease;
+  }
+  .efc_mobileSearchBtn_k6m:hover { background: var(--mobileSearchHoverBg_m3, #e4e4e7); color: var(--mobileSearchHoverText_m4, #00a6ab); }
+
+  body.efc_headerOffset_c9y { padding-top: var(--headerHeight_a3, 72px); }
