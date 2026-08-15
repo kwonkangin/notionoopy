@@ -2,7 +2,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-master.css">
 <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-master.js" defer></script>
 
-
 <!--
 ====================================================================
 [영역 1: 가변 데이터] 나중에 대시보드에서 출력된 코드를 붙여넣을 구역

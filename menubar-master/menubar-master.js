@@ -244,11 +244,22 @@
 
       toggle.addEventListener("click", function () { header.classList.toggle("is-open"); toggle.setAttribute("aria-expanded", header.classList.contains("is-open")); });
 
-      globalResizeHandler_m3h = function() {
-        if (window.innerWidth <= cfg.mobileBreakpoint) { header.classList.add("efc_mobileView_m8v"); } 
-        else { header.classList.remove("efc_mobileView_m8v"); header.classList.remove("is-open"); }
-      };
-      window.addEventListener("resize", globalResizeHandler_m3h); globalResizeHandler_m3h(); 
+      function applyActionsMinWidth_x1k() {
+  var isMobile = window.innerWidth <= cfg.mobileBreakpoint;
+  if (isMobile) {
+    actions.style.minWidth = "";
+  } else {
+    var lw = logoLink.offsetWidth;
+    if (lw > 0) actions.style.minWidth = lw + "px";
+  }
+}
+
+globalResizeHandler_m3h = function() {
+  if (window.innerWidth <= cfg.mobileBreakpoint) { header.classList.add("efc_mobileView_m8v"); } 
+  else { header.classList.remove("efc_mobileView_m8v"); header.classList.remove("is-open"); }
+  applyActionsMinWidth_x1k();
+};
+window.addEventListener("resize", globalResizeHandler_m3h); globalResizeHandler_m3h();
 
       document.addEventListener("click", function (e) { if (header.contains(e.target)) return; header.querySelectorAll(".efc_navItem_v7s.is-open").forEach(function (item) { item.classList.remove("is-open"); }); });
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") { header.classList.remove("is-open"); header.querySelectorAll(".efc_navItem_v7s.is-open").forEach(function (item) { item.classList.remove("is-open"); }); } });
@@ -265,10 +276,7 @@
       document.body.insertBefore(header, document.body.firstChild);
       if (cfg.offsetBody) document.body.classList.add("efc_headerOffset_c9y");
 
-      requestAnimationFrame(function() {
-        var lw = logoLink.offsetWidth;
-        if (lw > 0) actions.style.minWidth = lw + 'px';
-      });
+      requestAnimationFrame(applyActionsMinWidth_x1k);
     };
 
     if (document.readyState !== "loading") window.efc_rebuildNav_v2a();
