@@ -1,16 +1,10 @@
-/* 
-    글로벌 상태 잠금 변수 및 콜아웃 저장소
-    efc_clickLock_m9q: 통신 중 중복 연산(프리징)을 막기 위한 논리 잠금 변수
-  */
-  window.efc_clickLock_m9q = false;
+ window.efc_clickLock_m9q = false;
   const efc_parsedCalloutList_p7z = {};
 
-  /* 양끝 공백 정규화 헬퍼 함수 */
   function efc_normalizeString_c4f(rawString) {
     return rawString ? rawString.trim() : "";
   }
 
-  /* 기호 구문 시각적 삭제 헬퍼 함수 */
   function efc_removeRegexText_r2b(targetDomElement, regexPattern) {
     const textWalker = document.createTreeWalker(targetDomElement, NodeFilter.SHOW_TEXT, null, false);
     let currentNode;
@@ -21,7 +15,6 @@
     }
   }
 
-  /* 탭 텍스트 글자 수 제한 동적 제어 함수 */
   window.efc_updateTabLimits_w1v = function() {
     const rootStyles = getComputedStyle(document.documentElement);
     const isLimitEnabled = rootStyles.getPropertyValue('--textLimitToggle_b4v').trim() === 'true';
@@ -29,7 +22,7 @@
 
     const allTabItems = document.querySelectorAll('.efc_tabItem_h2c');
     allTabItems.forEach(function(tabNode) {
-      const textSpan = tabNode.querySelector('.css-ymcnjv');
+      const textSpan = tabNode.querySelector('.css-152tfkv');
       if (!textSpan) return;
       const originalText = tabNode.getAttribute('data-orig-txt_j8k');
       if (!originalText) return;
@@ -42,11 +35,7 @@
     });
   };
 
-  /* 
-    핵심 로직: 탭 클릭 시 팽창 애니메이션 실행 및 콜아웃 교체 
-  */
   function efc_handleTabSwitch_v8k(selectedTab, allTabsList, animWrapper) {
-    /* 1. 모든 탭 비활성화 및 대상 탭 활성화 */
     allTabsList.forEach(function(tabNode) {
       tabNode.classList.remove('efc_activeTab_p9k');
       tabNode.setAttribute('aria-selected', 'false');
@@ -55,42 +44,33 @@
     selectedTab.classList.add('efc_activeTab_p9k');
     selectedTab.setAttribute('aria-selected', 'true');
 
-    /* 화면에 잘린 글자가 아닌 돔 속성의 원본 문자열을 참조 */
     const rawTabLabel = selectedTab.getAttribute('data-orig-txt_j8k');
     const normalizedTabLabel = efc_normalizeString_c4f(rawTabLabel);
 
-    /* 현재 래퍼 내부에 있는 이전 텍스트 요소 페이드 아웃 */
     const currentTextNodes = animWrapper.querySelectorAll('.efc_textFade_z9m');
     currentTextNodes.forEach(node => node.classList.remove('efc_textActive_v2x'));
 
     const calloutDom = efc_parsedCalloutList_p7z[normalizedTabLabel];
 
     if (!calloutDom) {
-      /* 대상 콜아웃이 없는 경우 래퍼 높이를 0으로 수축하여 갤러리 끌어올림 */
       animWrapper.style.maxHeight = '0px';
-      
-      /* 래퍼 비우기 (자연스러운 축소를 위해 0.4초 딜레이 후 DOM 제거) */
       setTimeout(function() {
          animWrapper.innerHTML = '';
       }, 400); 
     } else {
-      /* 새로운 콜아웃을 래퍼 내부로 복제 배치 (기존 DOM 구조 보호) */
       animWrapper.innerHTML = '';
       const clonedCallout = calloutDom.cloneNode(true);
       clonedCallout.classList.add('efc_activeCallout_m5y');
       
-      /* 텍스트 내용물에 페이드 클래스 부여 */
-      const contentBox = clonedCallout.querySelector('.CalloutBlock_content__AigMk') || clonedCallout;
+      const contentBox = clonedCallout.querySelector('.CalloutBlock-module__b-lIEa__content') || clonedCallout;
       contentBox.classList.add('efc_textFade_z9m');
       
       animWrapper.appendChild(clonedCallout);
 
-      /* 요소가 화면에 렌더링된 직후 정확한 높이를 연산하여 팽창 애니메이션 트리거 */
       requestAnimationFrame(function() {
-        const requiredHeight = clonedCallout.scrollHeight + 30; // 상하 여백 여유분 포함
+        const requiredHeight = clonedCallout.scrollHeight + 30;
         animWrapper.style.maxHeight = requiredHeight + 'px';
         
-        /* 팽창이 시작된 직후 텍스트 페이드인 가동 */
         setTimeout(function() {
           const insertedText = animWrapper.querySelector('.efc_textFade_z9m');
           if (insertedText) insertedText.classList.add('efc_textActive_v2x');
@@ -99,7 +79,6 @@
     }
   }
 
-  /* 더보기 단추 동적 생성기 */
   function efc_createMoreButton_t4z(galleryBlockElement) {
     const navContainer = galleryBlockElement.querySelector('.css-11qk0aa');
     if(!navContainer || galleryBlockElement.querySelector('.efc_moreBtn_k2c')) return;
@@ -115,11 +94,89 @@
     
     navContainer.parentElement.appendChild(moreBtn);
   }
+  
+  
+  function efc_enableWheelDragScroll_t3n(navElem) {
+  if (navElem.dataset.efcScrollBound_v5k) return;
+  navElem.dataset.efcScrollBound_v5k = '1';
 
-  /* 엔진 메인 실행 함수 (DOM 변화 감지기 대응) */
+  navElem.addEventListener('wheel', function (e) {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      navElem.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+
+  let isDragging = false;
+  let dragStartX = 0;
+  let scrollStartLeft = 0;
+  let dragMoved = false;
+
+  navElem.addEventListener('mousedown', function (e) {
+    isDragging = true;
+    dragMoved = false;
+    navElem.classList.add('efc_grabbing_h5s');
+    dragStartX = e.pageX;
+    scrollStartLeft = navElem.scrollLeft;
+  });
+
+  window.addEventListener('mousemove', function (e) {
+    if (!isDragging) return;
+    const walk = e.pageX - dragStartX;
+    if (Math.abs(walk) > 5) dragMoved = true;
+    navElem.scrollLeft = scrollStartLeft - walk;
+  });
+
+  window.addEventListener('mouseup', function () {
+    isDragging = false;
+    navElem.classList.remove('efc_grabbing_h5s');
+  });
+
+  // 드래그가 실제로 있었다면, 뒤이어 발생하는 탭 클릭(전환)은 무시
+  navElem.addEventListener('click', function (e) {
+    if (dragMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragMoved = false;
+    }
+  }, true);
+}
+
+
+function efc_findGalleryTitleElement_p3z(galleryElement) {
+  let topBlock = galleryElement;
+  while (topBlock.parentElement && !topBlock.parentElement.classList.contains('notion-page-content')) {
+    topBlock = topBlock.parentElement;
+  }
+
+  let titleEl = topBlock.querySelector('.css-1b3theg');
+  if (titleEl) return titleEl;
+
+  let prev = topBlock.previousElementSibling;
+  let next = topBlock.nextElementSibling;
+  for (let hops = 0; hops < 5 && (prev || next); hops++) {
+    if (prev) {
+      titleEl = prev.querySelector('.css-1b3theg');
+      if (titleEl) return titleEl;
+      prev = prev.previousElementSibling;
+    }
+    if (next) {
+      titleEl = next.querySelector('.css-1b3theg');
+      if (titleEl) return titleEl;
+      next = next.nextElementSibling;
+    }
+  }
+  return null;
+}
+
+function efc_findGalleryTitle_q6r(galleryElement) {
+  const titleEl = efc_findGalleryTitleElement_p3z(galleryElement);
+  return titleEl ? efc_normalizeString_c4f(titleEl.innerText) : "";
+}
+
+
   function efc_initUniversalEngine_b2n() {
     
-    /* 1. 콜아웃 기호 파싱 및 글로벌 저장소 보관 */
     const rawCallouts = document.querySelectorAll('.notion-callout-block:not(.efc_processed_j3x)');
     rawCallouts.forEach(function(callout) {
       callout.classList.add('efc_processed_j3x');
@@ -133,7 +190,6 @@
         const tabKey = efc_normalizeString_c4f(configParts[0]);
         let textAlign = 'left', boxWidth = '100%', boxRadius = '';
 
-        /* 추가 속성(정렬, 너비, 곡률) 처리 */
         for (let i = 1; i < configParts.length; i++) {
             const prop = configParts[i].trim().toUpperCase();
             if (prop.startsWith('A ')) {
@@ -148,7 +204,7 @@
         }
 
         efc_removeRegexText_r2b(callout, configRegex);
-        const innerBox = callout.querySelector('.CalloutBlock_content__AigMk') || callout;
+        const innerBox = callout.querySelector('.CalloutBlock-module__b-lIEa__content') || callout;
         const flexCont = callout.firstElementChild;
         
         innerBox.style.textAlign = textAlign;
@@ -169,25 +225,22 @@
       }
     });
 
-    /* 2. 갤러리 탐색 및 '이름' 기반 레이아웃 제어 */
     const galleries = document.querySelectorAll('.notion-collection_view-block');
     
     galleries.forEach(function(gallery) {
       const allTabs = gallery.querySelectorAll('div[role="menuitem"]');
-      const tabRowWrapper = gallery.querySelector('.css-1x5f8m8');
+      const tabRowWrapper = gallery.querySelector('.css-ey93bd');
       
       if (allTabs.length === 0 || !tabRowWrapper) return;
 
-      /* 통제권을 벗어난 새 탭(비동기 렌더링)이 발견되었는지 검증 */
       const unstyledTabs = gallery.querySelectorAll('div[role="menuitem"]:not(.efc_tabItem_h2c)');
       
       if (unstyledTabs.length > 0) {
-        /* 통신 성공: 이중 클릭 방지용 잠금 장치 해제 */
         window.efc_clickLock_m9q = false;
         
-        /* 갤러리 이름(데이터베이스 명) 기반 배열 방식 확인 및 적용 */
-        const titleSpan = gallery.querySelector('.css-11vqqno span');
-        const galleryTitleText = titleSpan ? titleSpan.innerText.trim() : "";
+        /* 최상위 블록 자기 자신 + 형제 블록에서 제목(css-1b3theg) 탐색.
+   8개 데이터베이스 전체에서 정확히 구분됨을 콘솔로 검증 완료 (2026-08-17). */
+        const galleryTitleText = efc_findGalleryTitle_q6r(gallery);
         const config = window.efc_galleryConfig_v2 || { default: "scroll", exceptions: {} };
         const layoutMode = (galleryTitleText && config.exceptions[galleryTitleText]) ? config.exceptions[galleryTitleText] : config.default;
         
@@ -198,10 +251,27 @@
           efc_createMoreButton_t4z(gallery);
         }
 
-        const navElem = gallery.querySelector('.css-11qk0aa');
-        if (navElem) navElem.classList.add('efc_tabContainer_t7a');
 
-        /* 팽창 애니메이션 래퍼 셋업 (없으면 생성하여 탭 컨테이너 바로 아래 삽입) */
+
+const titleConfig = window.efc_titleVisibilityConfig_h8q || { default: true, exceptions: {} };
+const shouldShowTitle = (galleryTitleText && Object.prototype.hasOwnProperty.call(titleConfig.exceptions, galleryTitleText))
+  ? titleConfig.exceptions[galleryTitleText]
+  : titleConfig.default;
+const titleEl = efc_findGalleryTitleElement_p3z(gallery);
+if (titleEl) titleEl.classList.toggle('efc_hideTitle_q2m', !shouldShowTitle);
+
+const tabVisConfig = window.efc_tabVisibilityConfig_r4w || { default: true, exceptions: {} };
+const shouldShowTabs = (galleryTitleText && Object.prototype.hasOwnProperty.call(tabVisConfig.exceptions, galleryTitleText))
+  ? tabVisConfig.exceptions[galleryTitleText]
+  : tabVisConfig.default;
+tabRowWrapper.classList.toggle('efc_hideTabs_w3n', !shouldShowTabs);
+
+        const navElem = gallery.querySelector('.css-11qk0aa');
+if (navElem) {
+  navElem.classList.add('efc_tabContainer_t7a');
+  efc_enableWheelDragScroll_t3n(navElem);
+}
+
         let animWrapper = gallery.querySelector('.efc_animWrapper_h4b');
         if (!animWrapper) {
            animWrapper = document.createElement('div');
@@ -209,56 +279,68 @@
            tabRowWrapper.after(animWrapper);
         }
 
-        /* 각 탭에 커스텀 클래스 부여 및 이벤트 리스너 연결 */
         allTabs.forEach(function(tab) {
-          tab.classList.add('efc_tabItem_h2c');
-          const textSpan = tab.querySelector('.css-ymcnjv');
-          if (textSpan && !tab.hasAttribute('data-orig-txt_j8k')) {
-              tab.setAttribute('data-orig-txt_j8k', textSpan.innerText);
-          }
+  tab.classList.add('efc_tabItem_h2c');
+  const textSpan = tab.querySelector('.css-152tfkv');
+  if (textSpan && !tab.hasAttribute('data-orig-txt_j8k')) {
+      tab.setAttribute('data-orig-txt_j8k', textSpan.innerText);
+  }
 
-          /* 탭 클릭 이벤트 - 중복 클릭(프리징 방지) 및 잠금 논리 엄격 적용 */
-          tab.addEventListener('click', function() {
-            const isAlreadyActive = tab.classList.contains('efc_activeTab_p9k') || tab.getAttribute('aria-selected') === 'true';
-            if (isAlreadyActive || window.efc_clickLock_m9q) return;
+  if (tab.dataset.efcBound_r3k) return;      // ← 추가
+  tab.dataset.efcBound_r3k = '1';             // ← 추가
 
-            window.efc_clickLock_m9q = true; // 비동기 로딩 통신 잠금 활성화
-            
-            /* 즉시 팽창 애니메이션 및 내용 교체 실행 */
-            efc_handleTabSwitch_v8k(tab, allTabs, animWrapper);
+  tab.addEventListener('click', function() {
+    const isAlreadyActive = tab.classList.contains('efc_activeTab_p9k') || tab.getAttribute('aria-selected') === 'true';
+    if (isAlreadyActive || window.efc_clickLock_m9q) return;
+    window.efc_clickLock_m9q = true;
+    efc_handleTabSwitch_v8k(tab, allTabs, animWrapper);
+    setTimeout(function() { window.efc_clickLock_m9q = false; }, 1500);
+  });
+});
 
-            /* 안전 장치: 우피 서버 지연 시 1.5초 후 강제 잠금 해제하여 무한 프리징 방지 */
-            setTimeout(function() {
-                window.efc_clickLock_m9q = false;
-            }, 1500);
-          });
-        });
-
-        /* 설정된 글자수 제한 다시 복원 */
         window.efc_updateTabLimits_w1v();
 
-        /* 비동기 렌더링 시점 복원: 현재 활성화된 탭을 찾아내어 콜아웃 연결 복구 */
         let activeTabToRestore = allTabs[0];
-        allTabs.forEach(function(tab) {
-           const btnInner = tab.querySelector('div[role="button"]');
-           if (btnInner && btnInner.style.opacity === '1') {
-               activeTabToRestore = tab;
-           }
-        });
-        
-        efc_handleTabSwitch_v8k(activeTabToRestore, allTabs, animWrapper);
+allTabs.forEach(function(tab) {
+   const btnInner = tab.querySelector('div[role="button"]');
+   if (btnInner && btnInner.style.opacity === '1') {
+       activeTabToRestore = tab;
+   }
+});
+
+if (!gallery.dataset.efcInitialized_x7p) {
+  gallery.dataset.efcInitialized_x7p = '1';
+  efc_handleTabSwitch_v8k(activeTabToRestore, allTabs, animWrapper);
+} else {
+  // 이미 세팅된 갤러리라면, 콜아웃 애니메이션 재생 없이 활성 표시만 조용히 복구
+  allTabs.forEach(function(tabNode) {
+    tabNode.classList.remove('efc_activeTab_p9k');
+    tabNode.setAttribute('aria-selected', tabNode === activeTabToRestore ? 'true' : 'false');
+  });
+  activeTabToRestore.classList.add('efc_activeTab_p9k');
+}
       }
     });
   }
 
-  /* 비동기 DOM 변화(우피 통신) 감지 옵저버 연결 */
-  const domObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(function() {
+  let efc_updateScheduled_q8p = false;
+const domObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(function() {
+  if (efc_updateScheduled_q8p) return;
+  efc_updateScheduled_q8p = true;
+  queueMicrotask(function() {
+    efc_updateScheduled_q8p = false;
     efc_initUniversalEngine_b2n();
-  }) : null;
+  });
+}) : null;
 
-  if (domObserver) {
-    domObserver.observe(document.body, { childList: true, subtree: true });
-  }
+if (domObserver) {
+  domObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class']
+  });
+}
 
   document.addEventListener("DOMContentLoaded", function() {
     efc_initUniversalEngine_b2n();

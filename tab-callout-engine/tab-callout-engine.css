@@ -1,7 +1,20 @@
-/* 
-    콜아웃 팽창(Slide-down) 애니메이션 핵심 래퍼 
-    JS가 콜아웃을 래퍼 안으로 옮기고 max-height를 조절해 갤러리를 밀어냅니다.
-  */
+/*
+  ====================================================================
+  [영역 2] 깃허브 호스팅용 고정 엔진 구역
+
+  ※ 2026-08-17 클래스명 갱신 내역 (콘솔+육안 테스트로 확정)
+    css-ymcnjv          -> css-152tfkv   (탭 라벨 span, 확정)
+    CalloutBlock_content__AigMk -> CalloutBlock-module__b-lIEa__content (확정)
+    css-1jvn19f         -> css-jvgm1n    (탭 내부 버튼, 확정)
+    css-1x5f8m8         -> css-ey93bd    (탭줄 전체 그림자선, 인라인 box-shadow 확인으로 확정)
+    css-swnvre          -> efc_activeTab_p9k (우리쪽 커스텀 활성탭 클래스로 대체 — 노션 해시 대신
+                           안정적인 자체 클래스 사용. 5-b에서 발견한 .css-14wd0sq의
+                           border-bottom:2px solid currentColor 를 대신 여기서 덮어씀)
+    css-11vqqno(제목)    -> css-1b3theg (최상위 블록 자기자신+형제 탐색 방식으로 로직 변경.
+                       8개 데이터베이스 전체에서 정확히 구분됨을 콘솔로 검증 완료)
+  ====================================================================
+*/
+
   .efc_animWrapper_h4b {
     width: 100%;
     max-height: 0px;
@@ -9,7 +22,6 @@
     transition: max-height var(--slideAnimSpeed_p4q) cubic-bezier(0.25, 1, 0.5, 1);
   }
 
-  /* 원본 콜아웃 상자 숨김 및 배경 투명도 고정 (이중 페이드인 방지) */
   .notion-callout-block.efc_dynamicCallout_q1w {
     display: none !important; 
     margin-top: var(--calloutMarginTop_v5x) !important;
@@ -20,7 +32,6 @@
     opacity: 1 !important;
   }
 
-  /* 콜아웃 내부 텍스트만 스무스하게 페이드인 처리 */
   .efc_textFade_z9m {
     opacity: 0;
     transform: translateY(-5px);
@@ -31,7 +42,6 @@
     transform: translateY(0);
   }
 
-  /* 탭 컨테이너 레이아웃 재구성 및 스크롤바 숨김 */
   .css-11qk0aa.efc_tabContainer_t7a {
     display: flex;
     gap: var(--customTabGap_b2v);
@@ -42,93 +52,91 @@
   .css-11qk0aa.efc_tabContainer_t7a::-webkit-scrollbar {
     display: none; 
   }
+  
+  .css-11qk0aa.efc_tabContainer_t7a {
+  cursor: grab;
+}
+.css-11qk0aa.efc_tabContainer_t7a.efc_grabbing_h5s {
+  cursor: grabbing;
+  user-select: none;
+}
 
-  /* 노션의 텍스트 강제 잘림(Ellipsis) 속성 무력화 */
   div[role="menuitem"].efc_tabItem_h2c div[role="button"] {
     max-width: none !important;
     overflow: visible !important;
   }
-  div[role="menuitem"].efc_tabItem_h2c .css-ymcnjv {
-    white-space: nowrap !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-  }
+ .notion-collection_view-block div[role="menuitem"] .css-152tfkv {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
 
-  /* 이중 마우스 올림 충돌 방지: 안쪽 노션 순정 효과 원천 무력화 */
-  div[role="menuitem"].efc_tabItem_h2c .css-1jvn19f {
-    background-color: transparent !important;
-    transition: none !important;
-  }
-  div[role="menuitem"].efc_tabItem_h2c .css-1jvn19f:hover {
-    background-color: transparent !important;
-  }
+  .notion-collection_view-block div[role="menuitem"] .css-jvgm1n {
+  background-color: transparent !important;
+  transition: none !important;
+}
+.notion-collection_view-block div[role="menuitem"] .css-jvgm1n:hover {
+  background-color: transparent !important;
+}
 
-  /* 탭 기본 상태 지정 */
-  div[role="menuitem"].efc_tabItem_h2c {
-    background-color: var(--customTabBg_z9x) !important;
-    color: var(--customTabColor_p2m) !important;
-    padding: var(--customTabPadding_r5q) !important;
-    border-radius: var(--customTabRadius_m9h) !important;
-    cursor: pointer;
-    transition: all var(--hoverTransitionSpeed_t9x) ease !important;
-    white-space: nowrap;
-    transform-origin: center center;
-  }
-  div[role="menuitem"].efc_tabItem_h2c,
-  div[role="menuitem"].efc_tabItem_h2c span,
-  div[role="menuitem"].efc_tabItem_h2c div {
-    font-size: var(--customTabFontSize_n1c) !important;
-    font-weight: var(--customTabFontWeight_y7t) !important;
-  }
+  .notion-collection_view-block div[role="menuitem"] {
+  background-color: var(--customTabBg_z9x) !important;
+  color: var(--customTabColor_p2m) !important;
+  padding: var(--customTabPadding_r5q) !important;
+  border-radius: var(--customTabRadius_m9h) !important;
+  cursor: pointer;
+  transition: all var(--hoverTransitionSpeed_t9x) ease !important;
+  white-space: nowrap;
+  transform-origin: center center;
+}
+.notion-collection_view-block div[role="menuitem"],
+.notion-collection_view-block div[role="menuitem"] span,
+.notion-collection_view-block div[role="menuitem"] div {
+  font-size: var(--customTabFontSize_n1c) !important;
+  font-weight: var(--customTabFontWeight_y7t) !important;
+}
 
-  /* 탭 호버(마우스 올림) 확대 시각 효과 */
-  div[role="menuitem"].efc_tabItem_h2c:hover {
-    transform: scale(var(--hoverTransformScale_s2w)) !important;
-    background-color: var(--hoverBgColor_m4b) !important;
-    color: var(--hoverTextColor_z1n) !important;
-    border-radius: var(--hoverRadius_k9v) !important;
-    z-index: 2;
-  }
+.notion-collection_view-block div[role="menuitem"]:hover {
+  transform: scale(var(--hoverTransformScale_s2w)) !important;
+  background-color: var(--hoverBgColor_m4b) !important;
+  color: var(--hoverTextColor_z1n) !important;
+  border-radius: var(--hoverRadius_k9v) !important;
+  z-index: 2;
+}
 
-  /* 활성 탭 상태 지정 (호버 확대 효과 제외) */
-  div[role="menuitem"].efc_activeTab_p9k {
-    background-color: var(--customTabActiveBg_w4a) !important;
-    color: var(--customTabActiveColor_k8b) !important;
-    transform: scale(1) !important;
-  }
-  div[role="menuitem"].efc_activeTab_p9k,
-  div[role="menuitem"].efc_activeTab_p9k span,
-  div[role="menuitem"].efc_activeTab_p9k div {
-    font-weight: var(--customTabActiveWeight_d3f) !important;
-  }
+.notion-collection_view-block div[role="menuitem"][aria-selected="true"] {
+  background-color: var(--customTabActiveBg_w4a) !important;
+  color: var(--customTabActiveColor_k8b) !important;
+  transform: scale(1) !important;
+  border-bottom: var(--borderConfig_a1z) !important;
+}
+.notion-collection_view-block div[role="menuitem"][aria-selected="true"],
+.notion-collection_view-block div[role="menuitem"][aria-selected="true"] span,
+.notion-collection_view-block div[role="menuitem"][aria-selected="true"] div {
+  font-weight: var(--customTabActiveWeight_d3f) !important;
+}
   div[role="menuitem"].efc_tabItem_h2c svg {
     display: var(--customTabIconDisplay_j4k) !important;
   }
 
-  /* 그림자 제어 및 하단 선 동적 제어 */
-  .css-1x5f8m8 {
-    height: auto !important;
-    box-shadow: var(--shadowConfig_u8f) !important;
-    overflow: visible !important;
-  }
-  .css-swnvre {
-    border-bottom: var(--borderConfig_a1z) !important;
-  }
+  /* 탭줄 전체 그림자선 (구 css-1x5f8m8 -> css-ey93bd, 인라인 box-shadow 덮어쓰기) */
+  .notion-collection_view-block .css-ey93bd {
+  height: auto !important;
+  box-shadow: var(--shadowConfig_u8f) !important;
+  overflow: visible !important;
+}
 
-  /* 갤러리 배열 방식 - 줄바꿈 강제 (wrap) */
   .efc_wrapMode_x3m .css-11qk0aa {
     flex-wrap: wrap;
     overflow-x: visible;
   }
 
-  /* 갤러리 배열 방식 - 더보기 단추용 구조 (more) */
   .efc_moreMode_y7n .css-11qk0aa {
     overflow: hidden;
     position: relative;
     padding-right: 40px;
   }
   
-  /* 갤러리 우측 화살표 더보기 단추 스타일 */
   .efc_moreBtn_k2c {
     position: absolute;
     right: 0;
@@ -148,3 +156,5 @@
       justify-content: center;
     }
   }
+  .efc_hideTitle_q2m { display: none !important; }
+.efc_hideTabs_w3n { display: none !important; }
