@@ -1,10 +1,9 @@
 /* 
   ====================================================================
-  탭 콜아웃 대시보드 런처 v3
-  - 데이터베이스별 설정(배열방식/제목노출/탭노출)을 표 하나로 통합
-  - 체크박스 → 토글 스위치로 전환
-  - localStorage 자동 저장/복원 (opener 도메인에 저장)
-  - 설정 내보내기(JSON)/가져오기 버튼 추가
+  탭 콜아웃 대시보드 런처 v4
+  - 가져오기(Import): 내보낸 코드를 붙여넣으면 값을 다시 채움
+  - 저장 슬롯 여러 개 (시각 라벨과 함께 목록으로 관리)
+  - 색상 코드 텍스트 입력 검증 (#hex / rgba(...) / transparent 만 허용)
   ====================================================================
 */
 !function efc_launchTabDashboard_d7k() {
@@ -16,42 +15,9 @@
 
   const scriptContent = `
     const targetHtml = window.opener.document.documentElement;
-    const STORAGE_KEY_g8h = 'efc_tabDashboardSettings_v1';
+    const EFC_STORAGE_LIST_KEY_t9q = 'efc_dashboard_saves_list_t9q';
+    const EFC_COLOR_REGEX_h9d = /^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})|rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*(,\\s*(0|1|0?\\.\\d+)\\s*)?\\)|transparent)$/;
 
-    /* ---- localStorage 저장/불러오기 (오프너=실제 노션/우피 페이지 도메인에 저장) ---- */
-    function efc_loadFromStorage_h5o() {
-      try {
-        const raw = window.opener.localStorage.getItem(STORAGE_KEY_g8h);
-        return raw ? JSON.parse(raw) : null;
-      } catch(e) { return null; }
-    }
-    let efc_saveTimer_h6p = null;
-    function efc_saveToStorage_h4n() {
-      clearTimeout(efc_saveTimer_h6p);
-      efc_saveTimer_h6p = setTimeout(function() {
-        try {
-          const payload = {
-            currentStyles: window.efc_currentStyles_v9b,
-            defaultArrangeMode: window.efc_defaultArrangeMode_k9x,
-            titleDefaultMode: window.efc_titleDefaultMode_h2k,
-            tabDefaultMode: window.efc_tabDefaultMode_h3k,
-            shadowPresetMode: window.efc_shadowPresetMode_r6t,
-            dbSettingsList: window.efc_dbSettingsList_p8c,
-            isPaddingLinked: window.isPaddingLinked,
-            isCalloutMarginLinked: window.isCalloutMarginLinked,
-            themeLight: document.body.classList.contains('efc_lightMode_t8n'),
-            savedAt: new Date().toISOString()
-          };
-          window.opener.localStorage.setItem(STORAGE_KEY_g8h, JSON.stringify(payload));
-          const indicator = document.getElementById('efc_saveIndicator_s3q');
-          if (indicator) indicator.innerText = '저장됨 ' + new Date().toLocaleTimeString();
-        } catch(e) { console.log('설정 저장 실패', e); }
-      }, 300);
-    }
-
-    const efc_loadedPayload_h7q = efc_loadFromStorage_h5o();
-
-    /* 1. 기본 디자인 변수 설정 배열 */
     const qaConfig = [
       {
         group: "1. 탭 기본 서식 및 텍스트 제어",
@@ -60,8 +26,8 @@
           { var: "--customTabColor_p2m", label: "기본 글자 색상", type: "color-alpha", defHex: "#787774", defAlpha: "100", def: "rgba(120, 119, 116, 1)" },
           { var: "--customTabFontSize_n1c", label: "글자 크기", type: "range", min: 10, max: 30, unit: "px", def: "14", rowGroup: "fontGroup1" },
           { var: "--customTabFontWeight_y7t", label: "글자 굵기", type: "weight-slider", min: 100, max: 900, step: 100, def: "400", rowGroup: "fontGroup1" },
-          { var: "--customTabIconToggle_j4k", label: "아이콘 표시", type: "toggle", def: true, tip: "탭 안의 아이콘 노출 여부" },
-          { var: "--textLimitToggle_b4v", label: "글자 수 제한 활성화", type: "toggle", def: false, tip: "초과 글자 말줄임표 처리" },
+          { var: "--customTabIconToggle_j4k", label: "아이콘 표시", type: "toggle", def: true },
+          { var: "--textLimitToggle_b4v", label: "글자 수 제한 활성화", type: "toggle", def: false, tip: "켜면 최대 글자 수 설정이 나타납니다", reveal: ["--textLimitLength_c5x"] },
           { var: "--textLimitLength_c5x", label: "최대 허용 글자 수", type: "range", min: 2, max: 30, unit: "", def: "10" }
         ]
       },
@@ -105,7 +71,7 @@
       {
         group: "6. 활성 탭 하단 선 제어",
         items: [
-          { var: "--borderToggle_a1z", label: "하단 선 노출 활성화", type: "toggle", def: true },
+          { var: "--borderToggle_a1z", label: "하단 선 노출 활성화", type: "toggle", def: true, tip: "켜면 두께/색상 설정이 나타납니다", reveal: ["--activeBorderSize_y2b", "--activeBorderColor_z3c"] },
           { var: "--activeBorderSize_y2b", label: "선 두께", type: "range", min: 1, max: 10, unit: "px", def: "2" },
           { var: "--activeBorderColor_z3c", label: "선 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55, 53, 47, 1)" }
         ]
@@ -119,77 +85,53 @@
       strong: { toggle: true,  x: "0px",  y: "-2px", blur: "8px",  spread: "0px", colorHex: "#000000", colorAlpha: "22" }
     };
 
-    /* ---- 전역 상태: 저장값이 있으면 우선 복원, 없으면 기본값 ---- */
-    window.efc_defaultArrangeMode_k9x = efc_loadedPayload_h7q ? efc_loadedPayload_h7q.defaultArrangeMode : 'scroll';
-    window.efc_titleDefaultMode_h2k = efc_loadedPayload_h7q ? efc_loadedPayload_h7q.titleDefaultMode : true;
-    window.efc_tabDefaultMode_h3k = efc_loadedPayload_h7q ? efc_loadedPayload_h7q.tabDefaultMode : true;
-    window.efc_shadowPresetMode_r6t = efc_loadedPayload_h7q ? efc_loadedPayload_h7q.shadowPresetMode : 'none';
-    window.efc_currentStyles_v9b = efc_loadedPayload_h7q ? (efc_loadedPayload_h7q.currentStyles || {}) : {};
+    window.efc_dbDefaults_h5k = { layout: 'wrap', title: 'show', tab: 'show' };
+    window.efc_dbSettingsList_h4k = [];
+    window.efc_shadowPresetMode_r6t = 'none';
 
-    /* ---- 데이터베이스별 통합 설정 목록: 이름 + 배열방식 + 제목노출 + 탭노출 한 줄에 ---- */
-    window.efc_dbSettingsList_p8c = [];
     try {
-      const scrapedNames_p2z = [];
       const openerGalleries = window.opener.document.querySelectorAll('.notion-collection_view-block');
       const seenTitles_p2z = {};
       openerGalleries.forEach((gal) => {
         const tabsHere = gal.querySelectorAll('div[role="menuitem"]').length;
         if (tabsHere === 0) return;
         let titleTxt = "";
-        try {
-          if (typeof window.opener.efc_findGalleryTitle_q6r === 'function') {
-            titleTxt = window.opener.efc_findGalleryTitle_q6r(gal);
-          }
-        } catch(e) {}
+        try { if (typeof window.opener.efc_findGalleryTitle_q6r === 'function') { titleTxt = window.opener.efc_findGalleryTitle_q6r(gal); } } catch(e) {}
         if (!titleTxt || seenTitles_p2z[titleTxt]) return;
         seenTitles_p2z[titleTxt] = true;
-        scrapedNames_p2z.push(titleTxt);
+        window.efc_dbSettingsList_h4k.push({ name: titleTxt, layout: window.efc_dbDefaults_h5k.layout, title: window.efc_dbDefaults_h5k.title, tab: window.efc_dbDefaults_h5k.tab });
       });
+    } catch(e) { console.log("데이터베이스 목록을 가져올 수 없습니다."); }
 
-      const savedList_p3z = (efc_loadedPayload_h7q && efc_loadedPayload_h7q.dbSettingsList) ? efc_loadedPayload_h7q.dbSettingsList : [];
-      const savedMap_p4z = {};
-      savedList_p3z.forEach(row => { savedMap_p4z[row.name] = row; });
-
-      scrapedNames_p2z.forEach(name => {
-        if (savedMap_p4z[name]) {
-          window.efc_dbSettingsList_p8c.push(savedMap_p4z[name]);
-        } else {
-          window.efc_dbSettingsList_p8c.push({ name: name, arrangeMode: 'scroll', titleShow: true, tabShow: true });
-        }
-      });
-      /* 지금은 스크랩되지 않았지만 이전에 직접 추가해둔 항목(수동 예외)도 유지 */
-      savedList_p3z.forEach(row => {
-        if (scrapedNames_p2z.indexOf(row.name) === -1) window.efc_dbSettingsList_p8c.push(row);
-      });
-    } catch(e) {
-      console.log("데이터베이스 목록을 가져올 수 없습니다.");
-    }
-
-    /* 대시보드 UI HTML 빌더 */
     let htmlBuilder = \`
       <header class="headerWrap_h1w">
         <div class="topBar_t2b">
-          <div>
-            <h3 style="margin: 0 0 4px 0; color: #10b981; font-size: 18px; font-weight: 800;">에픽션 탭 통합 제어판</h3>
-            <span id="efc_saveIndicator_s3q" style="font-size:11px; color:#888;">\${efc_loadedPayload_h7q ? ('마지막 저장: ' + new Date(efc_loadedPayload_h7q.savedAt).toLocaleString()) : '저장된 설정 없음'}</span>
-          </div>
+          <div><h3 style="margin: 0 0 4px 0; color: #10b981; font-size: 18px; font-weight: 800;">에픽션 탭 통합 제어판</h3></div>
           <div style="display:flex; gap:8px; align-items:center;">
             <button id="efc_themeToggleBtn_l4p" class="efc_themeBtn_q8r" aria-label="라이트/다크 모드 전환">🌙 다크</button>
             <button id="efc_globalResetBtn_x2k" style="background: transparent; border: 1px solid #444; color: #aaa; border-radius: 6px; cursor: pointer; padding: 6px 10px;">전체 복구</button>
           </div>
         </div>
         <input type="text" id="efc_searchInput_s7q" placeholder="설정 검색 (예: 글자, 그림자, 여백)" class="efc_searchBox_a2c">
-        <div style="display:flex; gap:8px;">
-          <button id="efc_exportJsonBtn_j5r" class="efc_smallBtn_h9s">설정 내보내기(JSON)</button>
-          <label class="efc_smallBtn_h9s" style="text-align:center;">설정 가져오기(JSON)<input type="file" id="efc_importJsonInput_j6s" accept=".json" style="display:none;"></label>
+        <div class="efc_storageBar_h1t">
+          <button id="efc_saveLocalBtn_h1x" class="efc_storageBtn_h2u">💾 임시저장(새 슬롯)</button>
+          <button id="efc_toggleSlotsBtn_h6d" class="efc_storageBtn_h2u">📂 저장 슬롯 목록</button>
+          <button id="efc_toggleImportBtn_h7e" class="efc_storageBtn_h2u">📥 가져오기</button>
+          <button id="efc_invalidateLocalBtn_h3z" class="efc_storageBtn_h2u efc_storageBtnDanger_h4a">↺ 기본값 보기(무효화)</button>
+        </div>
+        <div id="efc_saveStatus_h5b" class="efc_saveStatus_h5b"></div>
+        <div id="efc_slotsPanel_h8f" class="efc_slotsPanel_h8f" style="display:none;">
+          <div id="efc_slotsList_h9g" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+        <div id="efc_importPanel_h1h" class="efc_importPanel_h1h" style="display:none;">
+          <div style="font-size:11px; color:#888; margin-bottom:6px;">이전에 "최종 적용 코드 출력하기"로 뽑았던 코드를 그대로 붙여넣고 적용을 누르세요.</div>
+          <textarea id="efc_importTextarea_h2i" placeholder="여기에 이전 출력 코드를 붙여넣으세요"></textarea>
+          <button id="efc_importApplyBtn_h3j" class="efc_actionBtn_q3w" style="margin-top:8px;">이 코드로 값 채우기</button>
         </div>
       </header>
       <main class="mainLayout_m8l" id="efc_dashScrollArea_h7b">\`;
 
-    /* 토글 스위치 HTML */
-    function efc_toggleHtml_h8t(id, varName, checked, extraClass) {
-      return '<label class="efc_toggleSwitch_h5w"><input type="checkbox" id="' + id + '" class="' + extraClass + '" data-var="' + varName + '" ' + (checked ? 'checked' : '') + '><span class="efc_toggleSlider_h7y"></span></label>';
-    }
+    window.efc_currentStyles_v9b = {};
 
     function efc_buildItemInner_t2q(itemObj, rawVal) {
       let out = "";
@@ -198,15 +140,13 @@
         out += '<input type="color" class="efc_colorPicker_n5s" data-var="' + itemObj.var + '" value="' + itemObj.defHex + '" aria-label="색상 선택">';
         out += '<input type="range" class="efc_alphaRange_a1b efc_inputRange_x8p" data-var="' + itemObj.var + '" min="0" max="100" value="' + itemObj.defAlpha + '" style="flex:1;" aria-label="투명도 조절">';
         out += '<span class="efc_alphaVal_v2c" style="font-size:11px; color:#10b981; width:32px; text-align:right;">' + itemObj.defAlpha + '%</span>';
-        out += '<input type="text" class="efc_colorTxt_m8r" data-var="' + itemObj.var + '" value="' + rawVal + '" style="width:118px; font-family:monospace; font-size:11px;" aria-label="색상 코드">';
+        out += '<input type="text" class="efc_colorTxt_m8r" data-var="' + itemObj.var + '" value="' + rawVal + '" style="width:130px; font-family:monospace; font-size:11px;" aria-label="색상 코드">';
         out += '</div>';
       } else if (itemObj.type === 'weight-slider') {
         out += '<div style="display:flex; gap:8px; align-items:center;">';
         out += '<input type="range" class="efc_inputRange_x8p efc_weightRange_g3n" data-var="' + itemObj.var + '" min="' + itemObj.min + '" max="' + itemObj.max + '" step="' + itemObj.step + '" value="' + rawVal + '" style="flex:1;" aria-label="' + itemObj.label + ' 슬라이드">';
         out += '<select class="efc_basicSel_h7k efc_weightSel_h4p" data-var="' + itemObj.var + '" style="width:80px;" aria-label="' + itemObj.label + ' 드롭다운">';
-        [100,200,300,400,500,600,700,800,900].forEach(w => {
-          out += '<option value="' + w + '" ' + (String(w) === String(rawVal) ? 'selected' : '') + '>' + w + '</option>';
-        });
+        [100,200,300,400,500,600,700,800,900].forEach(w => { const wv = String(w); out += '<option value="' + wv + '" ' + (wv === String(rawVal) ? 'selected' : '') + '>' + wv + '</option>'; });
         out += '</select></div>';
       } else if (itemObj.type === 'range') {
         let numVal = parseFloat(rawVal); if (isNaN(numVal)) numVal = 0;
@@ -220,17 +160,11 @@
 
     function efc_renderFullItem_q4z(itemObj, rootStyles) {
       let rawVal = itemObj.def;
-      if (window.efc_currentStyles_v9b.hasOwnProperty(itemObj.var)) {
-        let saved = window.efc_currentStyles_v9b[itemObj.var];
-        if (itemObj.type === 'range' || itemObj.type === 'weight-slider') { rawVal = String(parseFloat(saved)); }
-        else { rawVal = saved; }
-      } else {
-        let computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
-        if (computedVal) {
-          if (itemObj.type === 'range') rawVal = parseFloat(computedVal).toString();
-          else if (itemObj.type === 'weight-slider') { const n = parseInt(computedVal, 10); rawVal = isNaN(n) ? itemObj.def : String(n); }
-          else rawVal = computedVal;
-        }
+      let computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+      if (computedVal) { rawVal = (itemObj.type === 'range') ? parseFloat(computedVal).toString() : computedVal; }
+      if (itemObj.type === 'weight-slider') {
+        const numeric = parseInt(computedVal || itemObj.def, 10);
+        rawVal = isNaN(numeric) ? itemObj.def : String(numeric);
       }
       window.efc_currentStyles_v9b[itemObj.var] = rawVal + (itemObj.unit || "");
 
@@ -246,6 +180,21 @@
       return html;
     }
 
+    function efc_renderToggleItem_g6h(itemObj, rootStyles) {
+      let rawVal = itemObj.def;
+      const computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+      if (computedVal !== "") rawVal = (computedVal === 'true');
+      window.efc_currentStyles_v9b[itemObj.var] = rawVal;
+
+      const revealAttr = itemObj.reveal ? ' data-reveal="' + itemObj.reveal.join(',') + '"' : '';
+      let html = '<div class="efc_itemContainer_j3v" data-label="' + itemObj.label.toLowerCase() + '" style="border-bottom:none; padding-bottom:0;">';
+      html += '<div style="display:flex; gap:10px; align-items:center; background: var(--efc-summary-bg); padding: 10px; border-radius: 6px;">';
+      html += '<label class="efc_toggleWrap_q1p"><input type="checkbox" class="efc_toggleInput_b9w" data-var="' + itemObj.var + '"' + revealAttr + ' ' + (rawVal ? 'checked' : '') + '><span class="efc_toggleSlider_s2q"></span></label>';
+      html += '<div style="display:flex; flex-direction:column; gap:2px;"><span style="color:#10b981; font-weight:700;">' + itemObj.label + '</span><span style="font-size:11px; color:#888;">' + (itemObj.tip || '') + '</span></div>';
+      html += '</div></div>';
+      return html;
+    }
+
     qaConfig.forEach((groupObj) => {
       htmlBuilder += \`<section class="panelSection_p9s efc_observerSec_o6f" data-groupname="\${groupObj.group.toLowerCase()}" style="margin-bottom:12px; background:var(--efc-panel-bg); border-radius:8px; border:1px solid var(--efc-panel-border);">
         <details open>
@@ -254,50 +203,27 @@
 
       let rootStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
       const doneIdx = {};
-
       groupObj.items.forEach((itemObj, i) => {
         if (doneIdx[i]) return;
-
-        if (itemObj.type === 'toggle') {
-          let rawVal = itemObj.def;
-          if (window.efc_currentStyles_v9b.hasOwnProperty(itemObj.var)) {
-            rawVal = window.efc_currentStyles_v9b[itemObj.var] === true || window.efc_currentStyles_v9b[itemObj.var] === 'true';
-          } else {
-            let computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
-            if (computedVal !== "") rawVal = (computedVal === 'true');
-          }
-          window.efc_currentStyles_v9b[itemObj.var] = rawVal;
-
-          htmlBuilder += '<div class="efc_itemContainer_j3v" data-label="' + itemObj.label.toLowerCase() + '" style="border-bottom:none; padding-bottom:0;">' +
-            '<div style="display: flex; gap: 10px; align-items: center; background: var(--efc-summary-bg); padding: 10px; border-radius: 6px;">' +
-            efc_toggleHtml_h8t('efc_chk_' + itemObj.var, itemObj.var, rawVal, 'efc_chkBox_b9w') +
-            '<div style="display:flex; flex-direction:column; gap:2px;">' +
-            '<label for="efc_chk_' + itemObj.var + '" style="cursor: pointer; color: #10b981; font-weight: 700;">' + itemObj.label + '</label>' +
-            '<span style="font-size: 11px; color: #888;">' + (itemObj.tip || '') + '</span></div></div></div>';
-          return;
-        }
-
+        if (itemObj.type === 'toggle') { htmlBuilder += efc_renderToggleItem_g6h(itemObj, rootStyles); return; }
         if (itemObj.rowGroup) {
           const partnerIdx = groupObj.items.findIndex((o, j) => j > i && o.rowGroup === itemObj.rowGroup);
           if (partnerIdx > -1) {
             doneIdx[partnerIdx] = true;
-            htmlBuilder += '<div style="display:flex; gap:10px; align-items:flex-start;">' +
-              '<div style="flex:1;">' + efc_renderFullItem_q4z(itemObj, rootStyles) + '</div>' +
-              '<div style="flex:1;">' + efc_renderFullItem_q4z(groupObj.items[partnerIdx], rootStyles) + '</div>' +
-              '</div>';
+            htmlBuilder += '<div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:1;">' + efc_renderFullItem_q4z(itemObj, rootStyles) + '</div><div style="flex:1;">' + efc_renderFullItem_q4z(groupObj.items[partnerIdx], rootStyles) + '</div></div>';
             return;
           }
         }
-
         htmlBuilder += efc_renderFullItem_q4z(itemObj, rootStyles);
       });
-
       htmlBuilder += \`</div></details></section>\`;
     });
 
-    /* 7. 그림자 프리셋 섹션 */
     (function() {
       let rootStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
+      const shadowToggleVal = rootStyles.getPropertyValue('--shadowToggle_u8f').trim();
+      window.efc_shadowPresetMode_r6t = (shadowToggleVal === 'true') ? 'custom' : 'none';
+
       htmlBuilder += '<section class="panelSection_p9s efc_observerSec_o6f" data-groupname="그림자" style="margin-bottom:12px; background:var(--efc-panel-bg); border-radius:8px; border:1px solid var(--efc-panel-border);">' +
         '<details open><summary style="font-weight:700; cursor:pointer; color:#38bdf8; outline:none; padding:12px; background:var(--efc-summary-bg); font-size:14px;">7. 탭 컨테이너 하단 그림자 제어</summary>' +
         '<div style="padding:12px; display:flex; flex-direction:column; gap:14px;">' +
@@ -315,34 +241,24 @@
         '</div></div></details></section>';
     })();
 
-    /* 8. 데이터베이스별 통합 설정 (배열방식 + 제목노출 + 탭노출을 한 표로) */
     htmlBuilder += \`
       <section class="panelSection_p9s efc_observerSec_o6f" data-groupname="데이터베이스 설정" style="margin-bottom:12px; background:var(--efc-panel-bg); border-radius:8px; border:1px solid var(--efc-panel-border);">
         <details open>
-          <summary style="font-weight: 700; cursor: pointer; color: #f43f5e; outline: none; padding: 12px; background: var(--efc-summary-bg); font-size: 14px;">8. 데이터베이스별 개별 설정</summary>
+          <summary style="font-weight: 700; cursor: pointer; color: #f43f5e; outline: none; padding: 12px; background: var(--efc-summary-bg); font-size: 14px;">8. 데이터베이스별 배열·제목·탭 설정</summary>
           <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">
-            <div style="font-size: 11px; color: #888;">이름은 자동으로 감지됩니다. 배열방식/제목/탭줄을 한 줄에서 함께 설정하세요.</div>
-
-            <div style="display:flex; gap:10px; align-items:center; background: var(--efc-summary-bg); padding: 10px; border-radius: 6px;">
-              <label style="color: #eee; font-weight: 600; font-size: 12px; flex:1;">기본 배열방식</label>
-              <select id="efc_defaultArrangeSel_w3b" class="efc_basicSel_h7k" style="width:auto;">
-                <option value="scroll">스크롤</option><option value="wrap">줄바꿈</option><option value="more">더보기 단추</option>
-              </select>
-              <label style="color: #eee; font-weight: 600; font-size: 12px;">기본 제목노출</label>
-              \${efc_toggleHtml_h8t('efc_titleDefaultToggle_h1n','title-default', window.efc_titleDefaultMode_h2k, 'efc_titleDefaultChk_h1n')}
-              <label style="color: #eee; font-weight: 600; font-size: 12px;">기본 탭노출</label>
-              \${efc_toggleHtml_h8t('efc_tabDefaultToggle_h2o','tab-default', window.efc_tabDefaultMode_h3k, 'efc_tabDefaultChk_h2o')}
+            <div style="font-size:11px; color:#888;">기본값을 먼저 정하고, 특정 데이터베이스만 다르게 하려면 그 행의 값을 바꾸세요. 기본값과 같은 행은 저장 시 제외됩니다.</div>
+            <div style="display:flex; gap:8px; align-items:center; background: var(--efc-summary-bg); padding: 10px; border-radius: 6px;">
+              <label style="color:#eee; font-weight:700; font-size:12px; flex:2;">기본값</label>
+              <select id="efc_dbLayoutDefaultSel_w3b" class="efc_basicSel_h7k" style="flex:1;"><option value="scroll">스크롤</option><option value="wrap" selected>줄바꿈</option><option value="more">더보기</option></select>
+              <select id="efc_dbTitleDefaultSel_h1n" class="efc_basicSel_h7k" style="flex:1;"><option value="show" selected>제목표시</option><option value="hide">제목숨김</option></select>
+              <select id="efc_dbTabDefaultSel_h2o" class="efc_basicSel_h7k" style="flex:1;"><option value="show" selected>탭표시</option><option value="hide">탭숨김</option></select>
             </div>
-
-            <div style="display:flex; gap:8px; font-size:11px; color:#888; padding: 0 4px;">
-              <div style="flex:2;">데이터베이스 이름</div>
-              <div style="flex:1; text-align:center;">배열방식</div>
-              <div style="width:50px; text-align:center;">제목</div>
-              <div style="width:50px; text-align:center;">탭줄</div>
-              <div style="width:44px;"></div>
+            <hr style="border:0; border-top:1px dashed #444; margin:4px 0;">
+            <div style="display:flex; gap:8px; font-size:11px; color:#888; padding:0 2px;">
+              <span style="flex:2;">데이터베이스 이름</span><span style="flex:1;">배열방식</span><span style="flex:1;">제목</span><span style="flex:1;">탭줄</span><span style="width:96px;"></span>
             </div>
             <div id="efc_dbRowsArea_t1x" style="display: flex; flex-direction: column; gap: 8px;"></div>
-            <button id="efc_addDbBtn_b2y" class="efc_actionBtn_q3w">+ 데이터베이스 항목 추가</button>
+            <button id="efc_addDbRowBtn_b2y" class="efc_actionBtn_q3w">+ 데이터베이스 설정 추가</button>
           </div>
         </details>
       </section>
@@ -364,8 +280,6 @@
       </footer>\`;
 
     document.getElementById('app').innerHTML = htmlBuilder;
-    document.getElementById('efc_defaultArrangeSel_w3b').value = window.efc_defaultArrangeMode_k9x;
-    if (efc_loadedPayload_h7q && efc_loadedPayload_h7q.themeLight) { document.body.classList.add('efc_lightMode_t8n'); document.getElementById('efc_themeToggleBtn_l4p').innerText = '☀️ 라이트'; }
 
     window.efc_currentStyles_v9b['--customTabPadding_r5q'] = (window.efc_currentStyles_v9b['--dash-pad-y'] || '6px') + ' ' + (window.efc_currentStyles_v9b['--dash-pad-x'] || '12px');
 
@@ -378,7 +292,6 @@
     document.getElementById('efc_themeToggleBtn_l4p').addEventListener('click', (e) => {
       const isLight = document.body.classList.toggle('efc_lightMode_t8n');
       e.target.innerText = isLight ? '☀️ 라이트' : '🌙 다크';
-      efc_saveToStorage_h4n();
     });
 
     document.getElementById('efc_searchInput_s7q').addEventListener('input', (e) => {
@@ -395,11 +308,31 @@
       });
     });
 
+    function efc_bindToggleReveal_h9q() {
+      document.querySelectorAll('.efc_toggleInput_b9w[data-reveal]').forEach(toggle => {
+        const targets = toggle.getAttribute('data-reveal').split(',').filter(Boolean);
+        const sync = () => {
+          targets.forEach(t => {
+            const targetInput = document.querySelector('[data-var="' + t + '"]');
+            const container = targetInput ? targetInput.closest('.efc_itemContainer_j3v') : null;
+            if (container) container.style.display = toggle.checked ? '' : 'none';
+          });
+        };
+        toggle.addEventListener('change', sync);
+        sync();
+      });
+    }
+    efc_bindToggleReveal_h9q();
+
+    document.getElementById('efc_dbLayoutDefaultSel_w3b').addEventListener('change', (e) => { window.efc_dbDefaults_h5k.layout = e.target.value; });
+    document.getElementById('efc_dbTitleDefaultSel_h1n').addEventListener('change', (e) => { window.efc_dbDefaults_h5k.title = e.target.value; });
+    document.getElementById('efc_dbTabDefaultSel_h2o').addEventListener('change', (e) => { window.efc_dbDefaults_h5k.tab = e.target.value; });
+
     const efc_applyShadowPreset_n8v = (presetKey) => {
       window.efc_shadowPresetMode_r6t = presetKey;
       const customArea = document.getElementById('efc_shadowCustomArea_c3v');
       customArea.style.display = (presetKey === 'custom') ? 'flex' : 'none';
-      if (presetKey === 'custom') { efc_saveToStorage_h4n(); return; }
+      if (presetKey === 'custom') return;
       const p = SHADOW_PRESETS_h9k[presetKey];
       efc_applyChange_p9m('--shadowToggle_u8f', p.toggle);
       efc_applyChange_p9m('--shadowX_b2c', p.x);
@@ -414,58 +347,53 @@
     document.getElementById('efc_shadowPresetSel_p7x').value = window.efc_shadowPresetMode_r6t;
     if (window.efc_shadowPresetMode_r6t === 'custom') document.getElementById('efc_shadowCustomArea_c3v').style.display = 'flex';
 
-    /* ---- 데이터베이스별 통합 표 렌더링 ---- */
-    function efc_renderDbRows_m5b() {
+    const efc_renderDbRows_p8c = () => {
       const rowArea = document.getElementById('efc_dbRowsArea_t1x');
       rowArea.innerHTML = '';
-      window.efc_dbSettingsList_p8c.forEach((row, idx) => {
+      window.efc_dbSettingsList_h4k.forEach((row, idx) => {
         const rowEl = document.createElement('div');
         rowEl.style.cssText = "display:flex; gap:8px; align-items:center;";
         rowEl.innerHTML =
           '<input type="text" class="efc_dbNameInput_v4x" data-idx="' + idx + '" value="' + row.name + '" placeholder="데이터베이스 이름" style="flex:2;">' +
-          '<select class="efc_dbArrangeSel_n9q" data-idx="' + idx + '" style="flex:1;">' +
-            '<option value="scroll" ' + (row.arrangeMode==='scroll'?'selected':'') + '>스크롤</option>' +
-            '<option value="wrap" ' + (row.arrangeMode==='wrap'?'selected':'') + '>줄바꿈</option>' +
-            '<option value="more" ' + (row.arrangeMode==='more'?'selected':'') + '>더보기</option>' +
+          '<select class="efc_dbLayoutSel_n9q" data-idx="' + idx + '" style="flex:1;">' +
+            '<option value="scroll" ' + (row.layout==='scroll'?'selected':'') + '>스크롤</option>' +
+            '<option value="wrap" ' + (row.layout==='wrap'?'selected':'') + '>줄바꿈</option>' +
+            '<option value="more" ' + (row.layout==='more'?'selected':'') + '>더보기</option>' +
           '</select>' +
-          '<div style="width:50px; display:flex; justify-content:center;">' + efc_toggleHtml_h8t('', '', row.titleShow, 'efc_dbTitleChk_k1a') + '</div>' +
-          '<div style="width:50px; display:flex; justify-content:center;">' + efc_toggleHtml_h8t('', '', row.tabShow, 'efc_dbTabChk_k2b') + '</div>' +
-          '<button class="efc_dbDelBtn_k7j" data-idx="' + idx + '" style="width:44px; padding: 6px 0; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">✕</button>';
+          '<select class="efc_dbTitleSel_n1r" data-idx="' + idx + '" style="flex:1;">' +
+            '<option value="show" ' + (row.title==='show'?'selected':'') + '>표시</option>' +
+            '<option value="hide" ' + (row.title==='hide'?'selected':'') + '>숨김</option>' +
+          '</select>' +
+          '<select class="efc_dbTabSel_n2s" data-idx="' + idx + '" style="flex:1;">' +
+            '<option value="show" ' + (row.tab==='show'?'selected':'') + '>표시</option>' +
+            '<option value="hide" ' + (row.tab==='hide'?'selected':'') + '>숨김</option>' +
+          '</select>' +
+          '<div style="display:flex; gap:4px; width:96px;">' +
+          '<button class="efc_dbDupBtn_k6i" data-idx="' + idx + '" title="복제" style="padding:6px 8px; background:#334155; color:#e5e5e5; border:none; border-radius:4px; cursor:pointer;">복제</button>' +
+          '<button class="efc_dbDelBtn_k7j" data-idx="' + idx + '" title="삭제" style="padding:6px 8px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;">삭제</button>' +
+          '</div>';
         rowArea.appendChild(rowEl);
       });
 
-      rowArea.querySelectorAll('.efc_dbNameInput_v4x').forEach(input => {
-        input.addEventListener('input', (e) => { window.efc_dbSettingsList_p8c[e.target.dataset.idx].name = e.target.value; efc_saveToStorage_h4n(); });
-      });
-      rowArea.querySelectorAll('.efc_dbArrangeSel_n9q').forEach(sel => {
-        sel.addEventListener('change', (e) => { window.efc_dbSettingsList_p8c[e.target.dataset.idx].arrangeMode = e.target.value; efc_saveToStorage_h4n(); });
-      });
-      rowArea.querySelectorAll('.efc_dbTitleChk_k1a').forEach((chk, i) => {
-        chk.addEventListener('change', (e) => { window.efc_dbSettingsList_p8c[i].titleShow = e.target.checked; efc_saveToStorage_h4n(); });
-      });
-      rowArea.querySelectorAll('.efc_dbTabChk_k2b').forEach((chk, i) => {
-        chk.addEventListener('change', (e) => { window.efc_dbSettingsList_p8c[i].tabShow = e.target.checked; efc_saveToStorage_h4n(); });
-      });
-      rowArea.querySelectorAll('.efc_dbDelBtn_k7j').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          window.efc_dbSettingsList_p8c.splice(e.target.dataset.idx, 1);
-          efc_renderDbRows_m5b();
-          efc_saveToStorage_h4n();
-        });
-      });
-    }
-    efc_renderDbRows_m5b();
+      rowArea.querySelectorAll('.efc_dbNameInput_v4x').forEach(el => el.addEventListener('input', (e) => { window.efc_dbSettingsList_h4k[e.target.dataset.idx].name = e.target.value; }));
+      rowArea.querySelectorAll('.efc_dbLayoutSel_n9q').forEach(el => el.addEventListener('change', (e) => { window.efc_dbSettingsList_h4k[e.target.dataset.idx].layout = e.target.value; }));
+      rowArea.querySelectorAll('.efc_dbTitleSel_n1r').forEach(el => el.addEventListener('change', (e) => { window.efc_dbSettingsList_h4k[e.target.dataset.idx].title = e.target.value; }));
+      rowArea.querySelectorAll('.efc_dbTabSel_n2s').forEach(el => el.addEventListener('change', (e) => { window.efc_dbSettingsList_h4k[e.target.dataset.idx].tab = e.target.value; }));
+      rowArea.querySelectorAll('.efc_dbDelBtn_k7j').forEach(el => el.addEventListener('click', (e) => { window.efc_dbSettingsList_h4k.splice(e.target.dataset.idx, 1); efc_renderDbRows_p8c(); }));
+      rowArea.querySelectorAll('.efc_dbDupBtn_k6i').forEach(el => el.addEventListener('click', (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        const src = window.efc_dbSettingsList_h4k[idx];
+        window.efc_dbSettingsList_h4k.splice(idx + 1, 0, { name: src.name + ' (복사)', layout: src.layout, title: src.title, tab: src.tab });
+        efc_renderDbRows_p8c();
+      }));
+    };
 
-    document.getElementById('efc_addDbBtn_b2y').addEventListener('click', () => {
-      window.efc_dbSettingsList_p8c.push({ name: '새 데이터베이스', arrangeMode: 'scroll', titleShow: true, tabShow: true });
-      efc_renderDbRows_m5b();
-      efc_saveToStorage_h4n();
+    document.getElementById('efc_addDbRowBtn_b2y').addEventListener('click', () => {
+      window.efc_dbSettingsList_h4k.push({ name: '새 데이터베이스', layout: window.efc_dbDefaults_h5k.layout, title: window.efc_dbDefaults_h5k.title, tab: window.efc_dbDefaults_h5k.tab });
+      efc_renderDbRows_p8c();
     });
-    document.getElementById('efc_defaultArrangeSel_w3b').addEventListener('change', (e) => { window.efc_defaultArrangeMode_k9x = e.target.value; efc_saveToStorage_h4n(); });
-    document.getElementById('efc_titleDefaultToggle_h1n').addEventListener('change', (e) => { window.efc_titleDefaultMode_h2k = e.target.checked; efc_saveToStorage_h4n(); });
-    document.getElementById('efc_tabDefaultToggle_h2o').addEventListener('change', (e) => { window.efc_tabDefaultMode_h3k = e.target.checked; efc_saveToStorage_h4n(); });
+    efc_renderDbRows_p8c();
 
-    /* ---- 실시간 미리보기 CSS 주입 ---- */
     const efc_generateCssRules_d7s = () => {
       let cssRules = '<style id="efc_dynamic_dashboard_style_z8c">\\n:root {\\n';
       for (let cssKey in window.efc_currentStyles_v9b) {
@@ -497,34 +425,43 @@
       if (targetVar === '--textLimitToggle_b4v' || targetVar === '--textLimitLength_c5x') {
         if (typeof window.opener.efc_updateTabLimits_w1v === 'function') { window.opener.efc_updateTabLimits_w1v(); }
       }
-      efc_saveToStorage_h4n();
     };
 
-    document.querySelectorAll('.efc_chkBox_b9w').forEach(chk => {
-      chk.addEventListener('change', (e) => {
+    document.querySelectorAll('.efc_toggleInput_b9w').forEach(toggle => {
+      toggle.addEventListener('change', (e) => {
         const varName = e.target.getAttribute('data-var');
-        if (varName === 'pad-link') { window.isPaddingLinked = e.target.checked; efc_saveToStorage_h4n(); }
-        else if (varName === 'margin-link') { window.isCalloutMarginLinked = e.target.checked; efc_saveToStorage_h4n(); }
+        if (varName === 'pad-link') { window.isPaddingLinked = e.target.checked; }
+        else if (varName === 'margin-link') { window.isCalloutMarginLinked = e.target.checked; }
         else { efc_applyChange_p9m(varName, e.target.checked); }
       });
     });
 
-    window.isPaddingLinked = efc_loadedPayload_h7q ? (efc_loadedPayload_h7q.isPaddingLinked !== false) : true;
-    window.isCalloutMarginLinked = efc_loadedPayload_h7q ? (efc_loadedPayload_h7q.isCalloutMarginLinked !== false) : true;
+    window.isPaddingLinked = true;
+    window.isCalloutMarginLinked = true;
 
+    /* ---- 색상 텍스트 입력 검증 (#hex / rgba(...) / transparent 만 허용) ---- */
     document.querySelectorAll('.efc_colorPicker_n5s, .efc_alphaRange_a1b, .efc_colorTxt_m8r').forEach(inputElem => {
       inputElem.addEventListener('input', (eventObj) => {
         const itemContainer = eventObj.target.closest('.efc_itemContainer_j3v');
         const varName = itemContainer.querySelector('.efc_colorPicker_n5s').getAttribute('data-var');
+
         if (eventObj.target.classList.contains('efc_colorTxt_m8r')) {
-          efc_applyChange_p9m(varName, eventObj.target.value);
+          const typedVal = eventObj.target.value.trim();
+          if (!EFC_COLOR_REGEX_h9d.test(typedVal)) {
+            eventObj.target.classList.add('efc_inputError_h7d');
+            return; // 형식이 맞지 않으면 적용하지 않고 대기
+          }
+          eventObj.target.classList.remove('efc_inputError_h7d');
+          efc_applyChange_p9m(varName, typedVal);
         } else {
           const hexPicker = itemContainer.querySelector('.efc_colorPicker_n5s');
           const alphaSlider = itemContainer.querySelector('.efc_alphaRange_a1b');
           itemContainer.querySelector('.efc_alphaVal_v2c').innerText = alphaSlider.value + '%';
           const rgbData = efc_hexToRgb_g3j(hexPicker.value);
           const finalColorString = parseInt(alphaSlider.value) === 0 ? 'transparent' : \`rgba(\${rgbData.r}, \${rgbData.g}, \${rgbData.b}, \${(parseInt(alphaSlider.value) / 100).toFixed(2)})\`;
-          itemContainer.querySelector('.efc_colorTxt_m8r').value = finalColorString;
+          const colorTxtEl = itemContainer.querySelector('.efc_colorTxt_m8r');
+          colorTxtEl.value = finalColorString;
+          colorTxtEl.classList.remove('efc_inputError_h7d');
           efc_applyChange_p9m(varName, finalColorString);
         }
       });
@@ -564,7 +501,7 @@
     });
 
     document.querySelectorAll('.efc_basicSel_h7k').forEach(selectElem => {
-      if (['efc_shadowPresetSel_p7x','efc_defaultArrangeSel_w3b'].includes(selectElem.id)) return;
+      if (['efc_shadowPresetSel_p7x','efc_dbLayoutDefaultSel_w3b','efc_dbTitleDefaultSel_h1n','efc_dbTabDefaultSel_h2o'].includes(selectElem.id)) return;
       selectElem.addEventListener('input', (eventObj) => efc_applyChange_p9m(eventObj.target.getAttribute('data-var'), eventObj.target.value));
     });
 
@@ -596,23 +533,238 @@
         const parentContainer = btnNode.closest('.efc_itemContainer_j3v');
         parentContainer.querySelectorAll('input, select').forEach(inputNode => {
           if (inputNode.classList.contains('efc_colorPicker_n5s') && defaultHex) { inputNode.value = defaultHex; }
-          else if (inputNode.classList.contains('efc_alphaRange_a1b') && defaultAlpha) {
-            inputNode.value = defaultAlpha;
-            parentContainer.querySelector('.efc_alphaVal_v2c').innerText = defaultAlpha + '%';
-          }
-          else if (inputNode.classList.contains('efc_colorTxt_m8r') || inputNode.classList.contains('efc_basicSel_h7k') || inputNode.classList.contains('efc_weightSel_h4p')) { inputNode.value = defaultVal; }
+          else if (inputNode.classList.contains('efc_alphaRange_a1b') && defaultAlpha) { inputNode.value = defaultAlpha; parentContainer.querySelector('.efc_alphaVal_v2c').innerText = defaultAlpha + '%'; }
+          else if (inputNode.classList.contains('efc_colorTxt_m8r') || inputNode.classList.contains('efc_basicSel_h7k') || inputNode.classList.contains('efc_weightSel_h4p')) { inputNode.value = defaultVal; inputNode.classList.remove('efc_inputError_h7d'); }
           else if (inputNode.classList.contains('efc_valRange_r9p') || inputNode.classList.contains('efc_inputNum_c4m') || inputNode.classList.contains('efc_weightRange_g3n')) { inputNode.value = parseFloat(defaultVal) || 0; }
         });
       });
     });
 
     document.getElementById('efc_globalResetBtn_x2k').addEventListener('click', () => {
-      if (confirm('모든 디자인 설정을 최초 상태로 초기화하시겠습니까? (저장된 설정도 함께 초기화됩니다)')) {
+      if (confirm('모든 디자인 설정을 최초 상태로 초기화하시겠습니까?')) {
         document.querySelectorAll('.efc_resetSingleBtn_k2n').forEach(resetBtn => resetBtn.click());
         efc_applyShadowPreset_n8v('none');
         document.getElementById('efc_shadowPresetSel_p7x').value = 'none';
-        window.opener.localStorage.removeItem(STORAGE_KEY_g8h);
       }
+    });
+
+    /* ---- 상태 문구 ---- */
+    const efc_setSaveStatus_h6c = (msg) => {
+      const el = document.getElementById('efc_saveStatus_h5b');
+      el.innerText = msg;
+      setTimeout(() => { if (el.innerText === msg) el.innerText = ''; }, 4000);
+    };
+
+    /* ---- 저장 슬롯 여러 개 ---- */
+    function efc_getSlots_h4q() { try { return JSON.parse(localStorage.getItem(EFC_STORAGE_LIST_KEY_t9q)) || []; } catch(e) { return []; } }
+    function efc_setSlots_h5r(arr) { localStorage.setItem(EFC_STORAGE_LIST_KEY_t9q, JSON.stringify(arr)); }
+
+    function efc_buildResolvedMap_h4x(sourceGetter) {
+      const map = {};
+      document.querySelectorAll('[data-var]').forEach(el => {
+        const v = el.getAttribute('data-var');
+        if (v && !(v in map)) {
+          const sv = sourceGetter(v);
+          if (sv !== undefined && sv !== null && sv !== '') map[v] = sv;
+        }
+      });
+      const paddingRaw = sourceGetter('--customTabPadding_r5q');
+      if (paddingRaw) {
+        const parts = String(paddingRaw).trim().split(/\\s+/);
+        if (parts[0]) map['--dash-pad-y'] = parts[0];
+        if (parts[1]) map['--dash-pad-x'] = parts[1];
+      }
+      return map;
+    }
+
+    function efc_refreshFormFromMap_h8p(map) {
+      document.querySelectorAll('[data-var]').forEach(el => {
+        const v = el.getAttribute('data-var');
+        if (!v || !(v in map)) return;
+        const sv = map[v];
+        if (el.classList.contains('efc_toggleInput_b9w')) { el.checked = (sv === true || sv === 'true'); el.dispatchEvent(new Event('change')); }
+        else if (el.classList.contains('efc_weightRange_g3n')) { const n = parseInt(sv, 10); if (!isNaN(n)) { el.value = n; el.dispatchEvent(new Event('input')); } }
+        else if (el.classList.contains('efc_valRange_r9p') || el.classList.contains('efc_inputNum_c4m')) { const n = parseFloat(sv); if (!isNaN(n)) { el.value = n; el.dispatchEvent(new Event('input')); } }
+        else if (el.classList.contains('efc_colorTxt_m8r')) { el.value = sv; el.classList.remove('efc_inputError_h7d'); el.dispatchEvent(new Event('input')); }
+        else if (el.classList.contains('efc_basicSel_h7k') && !el.classList.contains('efc_weightSel_h4p')) { el.value = sv; el.dispatchEvent(new Event('input')); }
+      });
+    }
+
+    function efc_renderSlotsList_h6s() {
+      const listEl = document.getElementById('efc_slotsList_h9g');
+      const slots = efc_getSlots_h4q();
+      if (slots.length === 0) { listEl.innerHTML = '<div style="font-size:11px; color:#888;">저장된 슬롯이 없습니다.</div>'; return; }
+      listEl.innerHTML = '';
+      slots.slice().reverse().forEach((slot) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:6px; align-items:center; background:var(--efc-summary-bg); padding:8px; border-radius:6px;';
+        row.innerHTML =
+          '<span style="flex:1; font-size:12px;">' + slot.label + '</span>' +
+          '<button class="efc_slotLoadBtn_h7t" data-id="' + slot.id + '" style="padding:5px 8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">불러오기</button>' +
+          '<button class="efc_slotDelBtn_h8u" data-id="' + slot.id + '" style="padding:5px 8px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">삭제</button>';
+        listEl.appendChild(row);
+      });
+      listEl.querySelectorAll('.efc_slotLoadBtn_h7t').forEach(btn => btn.addEventListener('click', (e) => efc_loadSlot_h9v(e.target.dataset.id)));
+      listEl.querySelectorAll('.efc_slotDelBtn_h8u').forEach(btn => btn.addEventListener('click', (e) => {
+        const remaining = efc_getSlots_h4q().filter(s => String(s.id) !== e.target.dataset.id);
+        efc_setSlots_h5r(remaining);
+        efc_renderSlotsList_h6s();
+      }));
+    }
+
+    function efc_applyLoadedPayload_h1w(payload) {
+      window.efc_dbSettingsList_h4k = payload.dbSettingsList || window.efc_dbSettingsList_h4k;
+      window.efc_dbDefaults_h5k = payload.dbDefaults || window.efc_dbDefaults_h5k;
+      efc_renderDbRows_p8c();
+      document.getElementById('efc_dbLayoutDefaultSel_w3b').value = window.efc_dbDefaults_h5k.layout;
+      document.getElementById('efc_dbTitleDefaultSel_h1n').value = window.efc_dbDefaults_h5k.title;
+      document.getElementById('efc_dbTabDefaultSel_h2o').value = window.efc_dbDefaults_h5k.tab;
+      if (payload.currentStyles) { efc_refreshFormFromMap_h8p(payload.currentStyles); }
+      if (payload.shadowPreset) {
+        document.getElementById('efc_shadowPresetSel_p7x').value = payload.shadowPreset;
+        efc_applyShadowPreset_n8v(payload.shadowPreset);
+      }
+      efc_bindToggleReveal_h9q();
+    }
+
+    function efc_loadSlot_h9v(id) {
+      const slot = efc_getSlots_h4q().find(s => String(s.id) === String(id));
+      if (!slot) { efc_setSaveStatus_h6c('해당 슬롯을 찾을 수 없습니다.'); return; }
+      efc_applyLoadedPayload_h1w(slot.payload);
+      efc_setSaveStatus_h6c('"' + slot.label + '" 슬롯을 불러왔습니다.');
+    }
+
+    document.getElementById('efc_saveLocalBtn_h1x').addEventListener('click', () => {
+      const nowLabel = new Date().toLocaleString('ko-KR');
+      const payload = {
+        currentStyles: window.efc_currentStyles_v9b,
+        dbSettingsList: window.efc_dbSettingsList_h4k,
+        dbDefaults: window.efc_dbDefaults_h5k,
+        shadowPreset: window.efc_shadowPresetMode_r6t
+      };
+      const slots = efc_getSlots_h4q();
+      slots.push({ id: Date.now(), label: nowLabel + ' 저장', payload: payload });
+      efc_setSlots_h5r(slots);
+      efc_renderSlotsList_h6s();
+      efc_setSaveStatus_h6c('새 슬롯으로 저장했습니다 (' + nowLabel + ')');
+    });
+
+    document.getElementById('efc_toggleSlotsBtn_h6d').addEventListener('click', () => {
+      const panel = document.getElementById('efc_slotsPanel_h8f');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      document.getElementById('efc_importPanel_h1h').style.display = 'none';
+      if (!isOpen) efc_renderSlotsList_h6s();
+    });
+
+    document.getElementById('efc_invalidateLocalBtn_h3z').addEventListener('click', () => {
+      if (!confirm('현재 미리보기 값을 지우고 웹사이트의 원래 기본 설정으로 되돌리시겠습니까? (저장된 슬롯은 유지됩니다)')) return;
+      let dyn = window.opener.document.getElementById('efc_dynamic_dashboard_style_z8c');
+      if (dyn) dyn.remove();
+      const freshStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
+      const freshMap = efc_buildResolvedMap_h4x((varName) => freshStyles.getPropertyValue(varName).trim());
+      efc_refreshFormFromMap_h8p(freshMap);
+      efc_setSaveStatus_h6c('현재 웹사이트 기본 설정으로 복원했습니다.');
+    });
+
+    /* ---- 가져오기(Import) ---- */
+    document.getElementById('efc_toggleImportBtn_h7e').addEventListener('click', () => {
+      const panel = document.getElementById('efc_importPanel_h1h');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      document.getElementById('efc_slotsPanel_h8f').style.display = 'none';
+    });
+
+    function efc_extractObjectLiteral_h1e(text, marker) {
+      const startIdx = text.indexOf(marker);
+      if (startIdx === -1) return null;
+      const braceStart = text.indexOf('{', startIdx);
+      if (braceStart === -1) return null;
+      let depth = 0, i = braceStart;
+      for (; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+      }
+      const literalStr = text.substring(braceStart, i);
+      try { return new Function('return ' + literalStr)(); } catch(e) { return null; }
+    }
+
+    function efc_extractCssVars_h2f(text) {
+      const rootIdx = text.indexOf(':root');
+      if (rootIdx === -1) return {};
+      const braceStart = text.indexOf('{', rootIdx);
+      if (braceStart === -1) return {};
+      let depth = 0, i = braceStart;
+      for (; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+      }
+      const block = text.substring(braceStart, i);
+      const map = {};
+      const re = /(--[a-zA-Z0-9_-]+)\\s*:\\s*([^;]+);/g;
+      let m;
+      while ((m = re.exec(block)) !== null) { map[m[1].trim()] = m[2].trim(); }
+      return map;
+    }
+
+    document.getElementById('efc_importApplyBtn_h3j').addEventListener('click', () => {
+      const raw = document.getElementById('efc_importTextarea_h2i').value;
+      if (!raw.trim()) { efc_setSaveStatus_h6c('붙여넣은 코드가 없습니다.'); return; }
+
+      const cssMap = efc_extractCssVars_h2f(raw);
+      const galleryCfg = efc_extractObjectLiteral_h1e(raw, 'efc_galleryConfig_v2');
+      const titleCfg = efc_extractObjectLiteral_h1e(raw, 'efc_titleVisibilityConfig_h8q');
+      const tabCfg = efc_extractObjectLiteral_h1e(raw, 'efc_tabVisibilityConfig_r4w');
+
+      if (!Object.keys(cssMap).length && !galleryCfg && !titleCfg && !tabCfg) {
+        efc_setSaveStatus_h6c('코드에서 인식 가능한 설정을 찾지 못했습니다.');
+        return;
+      }
+
+      if (galleryCfg || titleCfg || tabCfg) {
+        const mergedNames = {};
+        window.efc_dbSettingsList_h4k.forEach(r => { mergedNames[r.name] = r; });
+        if (galleryCfg) {
+          window.efc_dbDefaults_h5k.layout = galleryCfg.default || window.efc_dbDefaults_h5k.layout;
+          Object.keys(mergedNames).forEach(n => { mergedNames[n].layout = window.efc_dbDefaults_h5k.layout; });
+          Object.entries(galleryCfg.exceptions || {}).forEach(([n, v]) => {
+            if (!mergedNames[n]) mergedNames[n] = { name: n, layout: window.efc_dbDefaults_h5k.layout, title: window.efc_dbDefaults_h5k.title, tab: window.efc_dbDefaults_h5k.tab };
+            mergedNames[n].layout = v;
+          });
+        }
+        if (titleCfg) {
+          window.efc_dbDefaults_h5k.title = titleCfg.default ? 'show' : 'hide';
+          Object.keys(mergedNames).forEach(n => { mergedNames[n].title = window.efc_dbDefaults_h5k.title; });
+          Object.entries(titleCfg.exceptions || {}).forEach(([n, v]) => {
+            if (!mergedNames[n]) mergedNames[n] = { name: n, layout: window.efc_dbDefaults_h5k.layout, title: window.efc_dbDefaults_h5k.title, tab: window.efc_dbDefaults_h5k.tab };
+            mergedNames[n].title = v ? 'show' : 'hide';
+          });
+        }
+        if (tabCfg) {
+          window.efc_dbDefaults_h5k.tab = tabCfg.default ? 'show' : 'hide';
+          Object.keys(mergedNames).forEach(n => { mergedNames[n].tab = window.efc_dbDefaults_h5k.tab; });
+          Object.entries(tabCfg.exceptions || {}).forEach(([n, v]) => {
+            if (!mergedNames[n]) mergedNames[n] = { name: n, layout: window.efc_dbDefaults_h5k.layout, title: window.efc_dbDefaults_h5k.title, tab: window.efc_dbDefaults_h5k.tab };
+            mergedNames[n].tab = v ? 'show' : 'hide';
+          });
+        }
+        window.efc_dbSettingsList_h4k = Object.values(mergedNames);
+        efc_renderDbRows_p8c();
+        document.getElementById('efc_dbLayoutDefaultSel_w3b').value = window.efc_dbDefaults_h5k.layout;
+        document.getElementById('efc_dbTitleDefaultSel_h1n').value = window.efc_dbDefaults_h5k.title;
+        document.getElementById('efc_dbTabDefaultSel_h2o').value = window.efc_dbDefaults_h5k.tab;
+      }
+
+      if (Object.keys(cssMap).length) {
+        efc_refreshFormFromMap_h8p(cssMap);
+        const shadowOn = cssMap['--shadowToggle_u8f'] === 'true';
+        document.getElementById('efc_shadowPresetSel_p7x').value = shadowOn ? 'custom' : 'none';
+        efc_applyShadowPreset_n8v(shadowOn ? 'custom' : 'none');
+      }
+
+      efc_bindToggleReveal_h9q();
+      document.getElementById('efc_importPanel_h1h').style.display = 'none';
+      efc_setSaveStatus_h6c('가져온 코드로 설정값을 채웠습니다. 세부 조정 후 다시 출력하세요.');
     });
 
     const efc_createFinalExportText_j3w = () => {
@@ -623,38 +775,30 @@
       }
       exportText += "  }\\n</style>\\n\\n";
 
+      const layoutExceptions = [];
+      const titleExceptions = [];
+      const tabExceptions = [];
+      window.efc_dbSettingsList_h4k.forEach(row => {
+        if (!row.name || row.name === '새 데이터베이스') return;
+        if (row.layout !== window.efc_dbDefaults_h5k.layout) layoutExceptions.push(\`      "\${row.name}": "\${row.layout}"\`);
+        if (row.title !== window.efc_dbDefaults_h5k.title) titleExceptions.push(\`      "\${row.name}": \${row.title === 'show'}\`);
+        if (row.tab !== window.efc_dbDefaults_h5k.tab) tabExceptions.push(\`      "\${row.name}": \${row.tab === 'show'}\`);
+      });
+
       exportText += "<script>\\n  /* 배열 방식 설정 객체 */\\n";
       exportText += "  window.efc_galleryConfig_v2 = {\\n";
-      exportText += \`    default: "\${window.efc_defaultArrangeMode_k9x}",\\n\`;
-      exportText += "    exceptions: {\\n";
-      const arrangeEx = [];
-      window.efc_dbSettingsList_p8c.forEach(row => {
-        if (row.name && row.arrangeMode !== window.efc_defaultArrangeMode_k9x) arrangeEx.push(\`      "\${row.name}": "\${row.arrangeMode}"\`);
-      });
-      exportText += arrangeEx.join(',\\n');
-      exportText += "\\n    }\\n  };\\n\\n";
+      exportText += \`    default: "\${window.efc_dbDefaults_h5k.layout}",\\n\`;
+      exportText += "    exceptions: {\\n" + layoutExceptions.join(',\\n') + "\\n    }\\n  };\\n\\n";
 
       exportText += "  /* 제목 노출 설정 객체 */\\n";
       exportText += "  window.efc_titleVisibilityConfig_h8q = {\\n";
-      exportText += \`    default: \${window.efc_titleDefaultMode_h2k},\\n\`;
-      exportText += "    exceptions: {\\n";
-      const titleEx = [];
-      window.efc_dbSettingsList_p8c.forEach(row => {
-        if (row.name && row.titleShow !== window.efc_titleDefaultMode_h2k) titleEx.push(\`      "\${row.name}": \${row.titleShow}\`);
-      });
-      exportText += titleEx.join(',\\n');
-      exportText += "\\n    }\\n  };\\n\\n";
+      exportText += \`    default: \${window.efc_dbDefaults_h5k.title === 'show'},\\n\`;
+      exportText += "    exceptions: {\\n" + titleExceptions.join(',\\n') + "\\n    }\\n  };\\n\\n";
 
       exportText += "  /* 탭줄 노출 설정 객체 */\\n";
       exportText += "  window.efc_tabVisibilityConfig_r4w = {\\n";
-      exportText += \`    default: \${window.efc_tabDefaultMode_h3k},\\n\`;
-      exportText += "    exceptions: {\\n";
-      const tabEx = [];
-      window.efc_dbSettingsList_p8c.forEach(row => {
-        if (row.name && row.tabShow !== window.efc_tabDefaultMode_h3k) tabEx.push(\`      "\${row.name}": \${row.tabShow}\`);
-      });
-      exportText += tabEx.join(',\\n');
-      exportText += "\\n    }\\n  };\\n<\\/script>";
+      exportText += \`    default: \${window.efc_dbDefaults_h5k.tab === 'show'},\\n\`;
+      exportText += "    exceptions: {\\n" + tabExceptions.join(',\\n') + "\\n    }\\n  };\\n<\\/script>";
 
       return exportText;
     };
@@ -684,51 +828,7 @@
       alert('압축된(Minify) 코드가 복사되었습니다. 우피 코드 주입구에 바로 붙여넣으십시오.');
     });
 
-    /* ---- 설정 내보내기/가져오기 (JSON 파일, 다른 기기로 옮기고 싶을 때) ---- */
-    document.getElementById('efc_exportJsonBtn_j5r').addEventListener('click', () => {
-      const payload = {
-        currentStyles: window.efc_currentStyles_v9b,
-        defaultArrangeMode: window.efc_defaultArrangeMode_k9x,
-        titleDefaultMode: window.efc_titleDefaultMode_h2k,
-        tabDefaultMode: window.efc_tabDefaultMode_h3k,
-        shadowPresetMode: window.efc_shadowPresetMode_r6t,
-        dbSettingsList: window.efc_dbSettingsList_p8c,
-        isPaddingLinked: window.isPaddingLinked,
-        isCalloutMarginLinked: window.isCalloutMarginLinked,
-        themeLight: document.body.classList.contains('efc_lightMode_t8n'),
-        savedAt: new Date().toISOString()
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'efc_tab_dashboard_settings.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    document.getElementById('efc_importJsonInput_j6s').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = JSON.parse(reader.result);
-          window.opener.localStorage.setItem(STORAGE_KEY_g8h, JSON.stringify(parsed));
-          alert('설정을 불러왔습니다. 대시보드를 새로고침(닫고 다시 열기)하면 반영됩니다.');
-        } catch(err) {
-          alert('올바른 설정 파일이 아닙니다.');
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    /* 저장된 값이 있었다면, 화면에 즉시 반영 */
-    if (efc_loadedPayload_h7q) {
-      window.opener.document.head.insertAdjacentHTML('beforeend', efc_generateCssRules_d7s());
-    } else {
-      efc_applyChange_p9m('init', null);
-    }
+    efc_applyChange_p9m('init', null);
   `;
 
   popupWindow.document.open();
@@ -746,7 +846,12 @@
       .topBar_t2b { display: flex; justify-content: space-between; align-items: center; }
       .efc_themeBtn_q8r { background: transparent; border: 1px solid #444; color: inherit; border-radius: 6px; cursor: pointer; padding: 6px 10px; }
       .efc_searchBox_a2c { width: 100%; box-sizing: border-box; padding: 8px 12px; background: var(--efc-summary-bg); color: inherit; border: 1px solid var(--efc-panel-border); border-radius: 6px; outline: none; }
-      .efc_smallBtn_h9s { flex:1; padding: 8px; background: var(--efc-summary-bg); color: #10b981; border: 1px dashed #555; border-radius: 6px; cursor: pointer; font-size: 12px; }
+      .efc_storageBar_h1t { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+      .efc_storageBtn_h2u { background: var(--efc-summary-bg); border: 1px solid var(--efc-panel-border); color: inherit; border-radius: 6px; cursor: pointer; padding: 5px 9px; font-size: 11px; }
+      .efc_storageBtnDanger_h4a { color: #ef4444; }
+      .efc_saveStatus_h5b { font-size: 11px; color: #10b981; min-height:14px; }
+      .efc_slotsPanel_h8f, .efc_importPanel_h1h { background: var(--efc-summary-bg); border: 1px solid var(--efc-panel-border); border-radius: 8px; padding: 10px; }
+      #efc_importTextarea_h2i { width:100%; height:120px; background:#000; color:#10b981; border:1px solid #444; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; box-sizing:border-box; resize:vertical; }
       .mainLayout_m8l { padding: 12px 20px; }
       .panelSection_p9s { opacity: 1; transform: translateY(0); }
       .efc_itemContainer_j3v { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; border-bottom: 1px dashed #333; }
@@ -755,19 +860,19 @@
       .efc_basicSel_h7k { padding: 6px; background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; width: 100%; outline: none;}
       body.efc_lightMode_t8n .efc_basicSel_h7k, body.efc_lightMode_t8n .efc_inputNum_c4m, body.efc_lightMode_t8n .efc_colorTxt_m8r, body.efc_lightMode_t8n input[type="text"] { background:#fff; color:#1f2937; border-color:#d1d5db; }
       input[type="text"], .efc_colorTxt_m8r { background: #111; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 6px 10px; box-sizing: border-box; outline:none; flex:1;}
+      .efc_colorTxt_m8r.efc_inputError_h7d { border-color: #ef4444 !important; box-shadow: 0 0 0 1px #ef4444; }
       .efc_colorPicker_n5s { width: 34px; height: 26px; padding: 0; border: none; border-radius: 4px; background: transparent; cursor: pointer; }
       .efc_inputRange_x8p { flex: 1; accent-color: #10b981; cursor: pointer; }
       .efc_inputNum_c4m { width: 75px; padding: 6px; background: #111; color: #10b981; border: 1px solid #444; border-radius: 6px; font-weight: 700; text-align: center; outline:none;}
       .efc_actionBtn_q3w { width: 100%; padding: 10px; background: #333; color: #10b981; border: 1px dashed #555; border-radius: 6px; cursor: pointer; font-weight: bold; }
       .efc_actionBtn_q3w:hover { background: #444; }
       #efc_exportTextarea_f4v { width: 100%; height: 250px; background: #000; color: #10b981; border: 1px solid #444; border-radius: 8px; padding: 10px; font-family: monospace; resize: vertical; outline:none; box-sizing: border-box; font-size:12px; white-space: pre;}
-      /* 토글 스위치 */
-      .efc_toggleSwitch_h5w { position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
-      .efc_toggleSwitch_h5w input { opacity:0; width:0; height:0; position:absolute; }
-      .efc_toggleSlider_h7y { position:absolute; inset:0; background:#444; cursor:pointer; transition:.2s; border-radius:24px; }
-      .efc_toggleSlider_h7y:before { content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:white; transition:.2s; border-radius:50%; }
-      .efc_toggleSwitch_h5w input:checked + .efc_toggleSlider_h7y { background:#10b981; }
-      .efc_toggleSwitch_h5w input:checked + .efc_toggleSlider_h7y:before { transform: translateX(18px); }
+      .efc_toggleWrap_q1p { position: relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+      .efc_toggleInput_b9w { opacity:0; width:0; height:0; position:absolute; }
+      .efc_toggleSlider_s2q { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#444; transition:.2s; border-radius:22px; }
+      .efc_toggleSlider_s2q:before { position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:white; transition:.2s; border-radius:50%; }
+      .efc_toggleInput_b9w:checked + .efc_toggleSlider_s2q { background:#10b981; }
+      .efc_toggleInput_b9w:checked + .efc_toggleSlider_s2q:before { transform: translateX(18px); }
       ::-webkit-scrollbar { width: 8px; }
       ::-webkit-scrollbar-track { background: var(--efc-panel-bg); }
       ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }

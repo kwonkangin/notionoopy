@@ -1,4 +1,5 @@
- window.efc_clickLock_m9q = false;
+
+  window.efc_clickLock_m9q = false;
   const efc_parsedCalloutList_p7z = {};
 
   function efc_normalizeString_c4f(rawString) {
@@ -68,8 +69,11 @@
       animWrapper.appendChild(clonedCallout);
 
       requestAnimationFrame(function() {
-        const requiredHeight = clonedCallout.scrollHeight + 30;
-        animWrapper.style.maxHeight = requiredHeight + 'px';
+  const rootStyles = getComputedStyle(document.documentElement);
+  const marginTop = parseFloat(rootStyles.getPropertyValue('--calloutMarginTop_v5x')) || 0;
+  const marginBottom = parseFloat(rootStyles.getPropertyValue('--calloutMarginBottom_w6y')) || 0;
+  const requiredHeight = clonedCallout.scrollHeight + marginTop + marginBottom;
+  animWrapper.style.maxHeight = requiredHeight + 'px';
         
         setTimeout(function() {
           const insertedText = animWrapper.querySelector('.efc_textFade_z9m');
