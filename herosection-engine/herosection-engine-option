@@ -6,27 +6,28 @@
 
 <style>
 :root {
-  --efh-mainTitleSize_a6: 40px !important;
-  --efh-mainTitleWeight_c1: 800 !important;
+  --efh-mainTitleSize_a6: 80px !important;
+  --efh-mainTitleWeight_c1: 700 !important;
   --efh-titleColor_c4: rgba(255,255,255,1.00) !important;
-  --efh-subtitleSize_a7: 16px !important;
-  --efh-subtitleWeight_c2: 400 !important;
+  --efh-subtitleSize_a7: 28px !important;
+  --efh-subtitleWeight_c2: 500 !important;
   --efh-subtitleColor_c5: rgba(255,255,255,1.00) !important;
-  --efh-buttonColumns_a8: 3 !important;
+  --efh-buttonColumns_a8: 1 !important;
   --efh-buttonColumnsMobile_b16: 1 !important;
-  --efh-btnFontSize_c8: 16px !important;
-  --efh-btnPadY_c6: 12px !important;
-  --efh-btnPadX_c7: 24px !important;
+  --efh-btnFontSize_c8: 20px !important;
+  --efh-btnPadY_c6: 16px !important;
+  --efh-btnPadX_c7: 32px !important;
   --efh-btnRadius_c9: 999px !important;
-  --efh-btnSolidBg_a11: rgba(192,57,43,1.00) !important;
+  --efh-btnSolidBg_a11: rgba(47,107,74,1.00) !important;
   --efh-btnSolidColor_a12: rgba(255,255,255,1.00) !important;
   --efh-btnSolidBorderColor_c15: transparent !important;
   --efh-btnSolidBorderWidth_c16: 1px !important;
   --efh-btnOutlineColor_a13: rgba(255,255,255,1.00) !important;
   --efh-btnOutlineBorderColor_c17: rgba(255,255,255,0.60) !important;
   --efh-btnOutlineBorderWidth_c18: 1px !important;
-  --efh-btnHoverSolidBg_a14: rgba(169,50,38,1.00) !important;
+  --efh-btnHoverSolidBg_a14: rgba(255,255,255,1.00) !important;
   --efh-btnHoverOutlineBg_a15: rgba(255,255,255,0.15) !important;
+  --efh-btnHoverColor_a17: rgba(47,107,74,1.00) !important;
   --efh-mainHeight_a2: 100vh !important;
   --efh-subHeight_a3: 30vh !important;
   --efh-contentSidePad_b13: 6vw !important;
@@ -37,14 +38,21 @@
   --efh-bgFallbackColor_b12: rgba(17,17,17,1.00) !important;
   --efh-slideSpeed_a9: 0.8s !important;
   --efh-bgFadeSpeed_a10: 1s !important;
-  --efh-dotColor_b9: rgba(255,255,255,0.40) !important;
-  --efh-dotActiveColor_b10: rgba(255,255,255,1.00) !important;
+  --efh-dotColor_b9: rgba(47,107,74,0.51) !important;
+  --efh-dotActiveColor_b10: rgba(47,107,74,1.00) !important;
   --efh-dotSize_c10: 8px !important;
   --efh-pauseIconColor_b6: rgba(255,255,255,1.00) !important;
   --efh-pauseIconSize_b7: 16px !important;
-  --efh-controlsGap_c19: 36px !important;
+  --efh-controlsGap_c19: 88px !important;
   --efh-scrollIconColor_b4: rgba(255,255,255,1.00) !important;
   --efh-scrollIconSize_b5: 22px !important;
+  --efh-buttonColumnsTablet_c30: 1 !important;
+  --efh-mainTitleLineHeight_c26: 1.2 !important;
+  --efh-mainTitleSizeMobile_c25: 36px !important;
+  --efh-subtitleSizeMobile_c32: 21px !important;
+  --efh-btnFontSizeMobile_c34: 20px !important;
+  --efh-btnPadYMobile_c36: 12px !important;
+  --efh-mainHeightMobile_c40: 84vh !important;
 }
 </style>
 
@@ -52,18 +60,19 @@
 (function () {
   function efhApplySavedSettings() {
     if (!window.efhDashboardAPI) { setTimeout(efhApplySavedSettings, 200); return; }
-    window.efhDashboardAPI.setPageTitleVisible(true);
-    window.efhDashboardAPI.setPageTitleAreaVisible(true);
+    window.efhDashboardAPI.setPageTitleVisible(false);
+    window.efhDashboardAPI.setPageTitleAreaVisible(false);
     document.querySelectorAll(".efh_hero_r1f").forEach(function (h) { h.setAttribute("data-textshadow", "1"); });
     window.efhDashboardAPI.setTitleVisible(true);
     window.efhDashboardAPI.setSubtitleVisible(true);
     window.efhDashboardAPI.setMobileBreakpoint("768");
-    window.efhDashboardAPI.setDotShape("dot");
+    window.efhDashboardAPI.setTransitionStyle("fade");
+    window.efhDashboardAPI.setDotShape("bar");
     window.efhDashboardAPI.setAutoplay(true);
     window.efhDashboardAPI.setDefaultSlideDuration("6");
-    window.efhDashboardAPI.setScrollIcon("fa-solid fa-chevron-down");
+    window.efhDashboardAPI.setScrollIcon("fa-solid fa-angles-down");
     document.querySelectorAll(".efh_scrollHint_g1d").forEach(function (el) { el.style.display = ""; });
-    window.efhDashboardAPI.setPauseIcons("fa-solid fa-circle-pause", "fa-solid fa-circle-play");
+    window.efhDashboardAPI.setPauseIcons("fa-solid fa-pause", "fa-solid fa-play");
   }
   efhApplySavedSettings();
 })();

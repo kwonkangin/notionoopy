@@ -1,9 +1,12 @@
 (function () {
   const EFH_LOG_PREFIX = '[히어로엔진]';
 
-  /* ---- 모바일 브레이크포인트 / 기본 노출시간 전역 상태 ---- */
   window.efh_mobileBreakpoint_v1 = window.efh_mobileBreakpoint_v1 || 768;
-  window.efh_defaultSlideDuration_v1 = window.efh_defaultSlideDuration_v1 || 6; // 초 단위
+  window.efh_defaultSlideDuration_v1 = window.efh_defaultSlideDuration_v1 || 6;
+  window.efh_transitionStyle_v1 = window.efh_transitionStyle_v1 || 'fade';
+  window.efh_transitionDirH_v1 = window.efh_transitionDirH_v1 || 'right';
+  window.efh_transitionDirV_v1 = window.efh_transitionDirV_v1 || 'up';
+  window.efh_contentMode_v1 = window.efh_contentMode_v1 || 'together';
 
   function efh_ensureFontAwesome_c1a() {
     const already = document.querySelector('link[href*="font-awesome"], link[href*="fontawesome"]');
@@ -22,6 +25,20 @@
     link.href = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
     link.crossOrigin = 'anonymous';
     document.head.appendChild(link);
+  }
+
+  /* v8: 전환 방식/방향/콘텐츠모드 속성 일괄 적용 */
+  function efh_applyTransitionAttrs_v1() {
+    const t = window.efh_transitionStyle_v1 || 'fade';
+    let dir = '';
+    if (t === 'slideh') dir = window.efh_transitionDirH_v1 || 'right';
+    else if (t === 'slidev') dir = window.efh_transitionDirV_v1 || 'up';
+    document.querySelectorAll('.efh_hero_r1f').forEach(function (el) {
+      el.setAttribute('data-transition', t);
+      if (dir) el.setAttribute('data-transition-direction', dir);
+      else el.removeAttribute('data-transition-direction');
+      el.setAttribute('data-content-mode', window.efh_contentMode_v1 || 'together');
+    });
   }
 
   function efh_parseIconSpec_c2b(raw) {
@@ -69,7 +86,6 @@
     return colorStr;
   }
 
-  /* 제목/부제용 단독 간격 태그: [% GA 1.5 :: hero | gap %] (GA 또는 Gap, 대소문자 무관) */
   function efh_parseGapTag_c7a(text) {
     let gap = 0;
     let clean = text;
@@ -82,7 +98,6 @@
     return { clean: clean, gap: gap };
   }
 
-  /* 버튼 통합 태그: [% ST line/full :: IC ... :: Ga N :: hero | button %] */
   function efh_parseButtonTag_c6z(text) {
     const result = { clean: text, style: 'auto', icon: '', gap: 0 };
     const m = text.match(/\[%\s*(.+?)\s*::\s*hero\s*\|\s*button\s*%\]/i);
@@ -201,7 +216,6 @@
     return /fit|본문/i.test(raw) ? 'fit' : 'full';
   }
 
-  /* 슬라이드에 정렬값이 없으면 null 반환 → 인라인 style을 아예 안 써서 CSS 변수 기본값이 살아나게 함 */
   function efh_resolveAlignX_c9k(raw) {
     if (/좌/.test(raw)) return { items: 'flex-start', text: 'left' };
     if (/우/.test(raw)) return { items: 'flex-end', text: 'right' };
@@ -307,7 +321,6 @@
     if (!headerEl.classList.contains('efh_panelHidden_q9m')) headerEl.classList.add('efh_panelHidden_q9m');
   }
 
-  /* ---------- 유튜브 IFrame API (재생 실패 시 자동 대체) ---------- */
   window.__efhYTQueue_j1 = window.__efhYTQueue_j1 || [];
   function efh_flushYTQueue_j2() {
     const queue = window.__efhYTQueue_j1.slice();
@@ -440,14 +453,18 @@
     if (count <= 1) return;
     let current = 0;
 
-    function goTo(idx) {
+    function goTo(idx, forward) {
       const slides = container.querySelectorAll('.efh_slide_r3h');
       const dots = container.querySelectorAll('.efh_dot_s8w');
-      slides[current].classList.remove('efh_slideActive_r4i');
+      const outgoing = slides[current];
+      outgoing.classList.remove('efh_slideActive_r4i');
+      if (forward === false) outgoing.classList.add('efh_slidePrev_r5j2');
       if (dots[current]) dots[current].classList.remove('efh_dotActive_s9x');
       current = idx;
+      slides[current].classList.remove('efh_slidePrev_r5j2');
       slides[current].classList.add('efh_slideActive_r4i');
       if (dots[current]) dots[current].classList.add('efh_dotActive_s9x');
+      setTimeout(function () { outgoing.classList.remove('efh_slidePrev_r5j2'); }, 1200);
     }
 
     function scheduleNext() {
@@ -456,13 +473,16 @@
       const durationSec = activeSlide ? parseFloat(activeSlide.getAttribute('data-duration')) : 0;
       const ms = durationSec > 0 ? durationSec * 1000 : (window.efh_defaultSlideDuration_v1 || 6) * 1000;
       setTimeout(function () {
-        if (!container.__efhPaused) goTo((current + 1) % count);
+        if (!container.__efhPaused) goTo((current + 1) % count, true);
         scheduleNext();
       }, ms);
     }
 
     container.querySelectorAll('.efh_dot_s8w').forEach(function (dot) {
-      dot.addEventListener('click', function () { goTo(parseInt(this.getAttribute('data-idx'), 10)); });
+      dot.addEventListener('click', function () {
+        const idx = parseInt(this.getAttribute('data-idx'), 10);
+        goTo(idx, idx > current);
+      });
     });
 
     container.addEventListener('mouseenter', function () { container.__efhHoverPause = true; });
@@ -481,7 +501,7 @@
     });
 
     const trackEl = container.querySelector('.efh_slidesTrack_r2g');
-    if (trackEl) efh_attachSwipe_d6o(trackEl, function () { goTo((current + 1) % count); }, function () { goTo((current - 1 + count) % count); });
+    if (trackEl) efh_attachSwipe_d6o(trackEl, function () { goTo((current + 1) % count, true); }, function () { goTo((current - 1 + count) % count, false); });
 
     if (!efh_reducedMotion_k1a) scheduleNext();
   }
@@ -556,7 +576,6 @@
       if (src) efh_preloadAndFade_t7g(bgDiv, src);
     });
 
-    /* 파일 영상/비메오 로딩 감지 */
     container.querySelectorAll('.efh_bgVideoWrap_t2b video, .efh_bgVideoWrap_t2b[data-kind="vimeo"] iframe').forEach(function (el) {
       const wrap = el.closest('.efh_bgVideoWrap_t2b');
       const markLoaded = function () { wrap.classList.add('efh_bgVideoLoaded_t9i'); };
@@ -564,7 +583,6 @@
       else el.addEventListener('load', markLoaded);
     });
 
-    /* 유튜브: IFrame API로 생성 + 재생 실패 시 자동 제거(배경색/기본배경으로 대체) */
     const ytPlaceholders = container.querySelectorAll('[data-video-id]');
     if (ytPlaceholders.length > 0) {
       ytPlaceholders.forEach(function (el) {
@@ -602,6 +620,8 @@
       const images = (isMobileViewport && slide.bgImagesMobile.length) ? slide.bgImagesMobile : slide.bgImages;
       if (images.length > 1) efh_startBgRotation_v2l(container, slideIdx, images.length);
     });
+
+    efh_applyTransitionAttrs_v1();
 
     if (isCarousel) efh_startSlideRotation_v3m(container, slidesData.length);
   }
@@ -692,10 +712,6 @@
   }
   window.addEventListener('resize', efh_debounce_z1(efh_refreshMobileBg_v2, 300));
 
-  /* ==================================================================
-     대시보드 실시간 제어 API
-     팝업 대시보드에서 window.opener.efhDashboardAPI.xxx() 형태로 호출
-     ================================================================== */
   window.efhDashboardAPI = {
     setPageTitleVisible: function (visible) {
       const el = window.document.querySelector('.notion-page-block');
@@ -748,13 +764,28 @@
     },
     setDefaultSlideDuration: function (sec) {
       window.efh_defaultSlideDuration_v1 = parseFloat(sec) || 6;
+    },
+    /* v8: 전환 방식 — 'fade'|'zoom'|'crosszoom'|'slideh'|'slidev'|'cover'|'blur' */
+    setTransitionStyle: function (style) {
+      window.efh_transitionStyle_v1 = style;
+      efh_applyTransitionAttrs_v1();
+    },
+    /* v8: 방향 — slideh:'left'|'right', slidev:'up'|'down' */
+    setTransitionDirection: function (direction) {
+      if (direction === 'left' || direction === 'right') window.efh_transitionDirH_v1 = direction;
+      else if (direction === 'up' || direction === 'down') window.efh_transitionDirV_v1 = direction;
+      efh_applyTransitionAttrs_v1();
+    },
+    /* v8: 콘텐츠 이동 방식 — 'together'|'split' (slideh/slidev 전용) */
+    setContentMode: function (mode) {
+      window.efh_contentMode_v1 = mode;
+      efh_applyTransitionAttrs_v1();
     }
   };
 
-  /* 콘솔 디버깅용 진입점 */
   window.efhDebug = {
-  init: efh_initHeroEngine_x1z,
-  findHeaders: efh_findAllHeaders_h1x,
-  version: 'v6'
-};
+    init: efh_initHeroEngine_x1z,
+    findHeaders: efh_findAllHeaders_h1x,
+    version: 'v8'
+  };
 })();

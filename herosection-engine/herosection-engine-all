@@ -1,16 +1,18 @@
 <!--
   ====================================================================
-  히어로 섹션 엔진 v6 (GitHub 고정 코드 — style/script 분리 최종본)
-  포함된 내용:
-  - v5 기본 구조 + 버튼 테두리 색/굵기 변수
-  - 닷 아이콘 지원(data-indicator="icon") + 컨트롤 간격 변수
-  - window.efhDashboardAPI (쉼표 오류 수정 완료본)
-  - Pretendard Variable 가변폰트 적용
+  히어로 섹션 엔진 v8
+  v7 → v8 변경사항:
+  - 슬라이드 전환 방식 고도화: fade / zoom / crosszoom / slideh(좌우) /
+    slidev(상하) / cover / blur
+  - 가로(slideh)·세로(slidev) 전환은 방향(좌/우, 상/하) 선택 가능
+  - 가로/세로 전환에 "배경+텍스트 함께 이동" / "배경만 이동, 텍스트 페이드"
+    콘텐츠 모드 선택 가능 (data-content-mode="together"|"split")
+  - 전환 중 흰색 번쩍임 제거: 슬라이드 트랙에 항상 배경색 적용
+  - efhDashboardAPI.setTransitionDirection(), setContentMode() 추가
   ====================================================================
 -->
 <style>
   :root {
-    /* ---- 색상/레이아웃 기본값 ---- */
     --efh-shadowColor_a1: rgba(0,0,0,0.35);
     --efh-mainHeight_a2: 100vh;
     --efh-subHeight_a3: 30vh;
@@ -44,7 +46,6 @@
     --efh-fitBorderRadius_b15: 0px;
     --efh-buttonColumnsMobile_b16: 1;
 
-    /* ---- v5 신규 변수 ---- */
     --efh-mainTitleWeight_c1: 800;
     --efh-subtitleWeight_c2: 400;
     --efh-btnTextWeight_c3: 700;
@@ -57,12 +58,38 @@
     --efh-dotSize_c10: 8px;
     --efh-contentAlignText_c14: center;
 
-    /* ---- 버튼 테두리 / 컨트롤 간격 ---- */
     --efh-btnSolidBorderColor_c15: transparent;
     --efh-btnSolidBorderWidth_c16: 1px;
     --efh-btnOutlineBorderColor_c17: rgba(255,255,255,.6);
     --efh-btnOutlineBorderWidth_c18: 1px;
     --efh-controlsGap_c19: 36px;
+
+    --efh-mainTitleSizeTablet_c24: var(--efh-mainTitleSize_a6);
+    --efh-mainTitleSizeMobile_c25: var(--efh-mainTitleSize_a6);
+    --efh-subtitleSizeTablet_c31: var(--efh-subtitleSize_a7);
+    --efh-subtitleSizeMobile_c32: var(--efh-subtitleSize_a7);
+    --efh-btnFontSizeTablet_c33: var(--efh-btnFontSize_c8);
+    --efh-btnFontSizeMobile_c34: var(--efh-btnFontSize_c8);
+    --efh-btnPadYTablet_c35: var(--efh-btnPadY_c6);
+    --efh-btnPadYMobile_c36: var(--efh-btnPadY_c6);
+    --efh-btnPadXTablet_c37: var(--efh-btnPadX_c7);
+    --efh-btnPadXMobile_c38: var(--efh-btnPadX_c7);
+    --efh-mainHeightTablet_c39: var(--efh-mainHeight_a2);
+    --efh-mainHeightMobile_c40: var(--efh-mainHeight_a2);
+    --efh-subHeightTablet_c41: var(--efh-subHeight_a3);
+    --efh-subHeightMobile_c42: var(--efh-subHeight_a3);
+    --efh-dotSizeTablet_c43: var(--efh-dotSize_c10);
+    --efh-dotSizeMobile_c44: var(--efh-dotSize_c10);
+    --efh-scrollIconSizeTablet_c45: var(--efh-scrollIconSize_b5);
+    --efh-scrollIconSizeMobile_c46: var(--efh-scrollIconSize_b5);
+    --efh-contentSidePadTablet_c47: var(--efh-contentSidePad_b13);
+    --efh-contentSidePadMobile_c48: var(--efh-contentSidePad_b13);
+    --efh-buttonColumnsTablet_c30: 2;
+
+    --efh-mainTitleLineHeight_c26: 1.3;
+    --efh-mainTitleLetterSpacing_c27: 0;
+    --efh-subtitleLineHeight_c28: 1.5;
+    --efh-subtitleLetterSpacing_c29: 0;
   }
 
   .efh_hero_r1f { position: relative; width: 100%; overflow: hidden; }
@@ -70,16 +97,81 @@
   .efh_hero_r1f, .efh_hero_r1f *:not([class*="fa-"]) { font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
   .efh_hero_r1f * { box-sizing: border-box; }
 
-  .efh_slidesTrack_r2g { position: relative; width: 100%; height: 100%; touch-action: pan-y; }
+  /* v8: 전환 중 흰색 번쩍임 방지 — 트랙 자체에 항상 배경색 */
+  .efh_slidesTrack_r2g { position: relative; width: 100%; height: 100%; touch-action: pan-y; overflow: hidden; background-color: var(--efh-bgFallbackColor_b12); }
 
   .efh_slide_r3h {
     position: absolute; inset: 0; width: 100%;
     opacity: 0; visibility: hidden;
-    transition: opacity var(--efh-slideSpeed_a9) ease;
+    transition: opacity var(--efh-slideSpeed_a9) ease, transform var(--efh-slideSpeed_a9) ease, filter var(--efh-slideSpeed_a9) ease;
     display: flex;
     background-color: var(--efh-bgFallbackColor_b12);
   }
-  .efh_slide_r3h.efh_slideActive_r4i { position: relative; opacity: 1; visibility: visible; z-index: 1; }
+  .efh_slide_r3h.efh_slideActive_r4i { position: relative; opacity: 1; visibility: visible; z-index: 2; }
+
+  /* ---- v8: 전환 방식 ---- */
+  .efh_hero_r1f[data-transition="zoom"] .efh_slide_r3h { transform: scale(1.12); transition-timing-function: cubic-bezier(.4,0,.2,1); }
+  .efh_hero_r1f[data-transition="zoom"] .efh_slide_r3h.efh_slideActive_r4i { transform: scale(1); }
+
+  .efh_hero_r1f[data-transition="crosszoom"] .efh_slide_r3h { transform: scale(0.92); }
+  .efh_hero_r1f[data-transition="crosszoom"] .efh_slide_r3h.efh_slideActive_r4i { transform: scale(1); }
+  .efh_hero_r1f[data-transition="crosszoom"] .efh_slide_r3h.efh_slidePrev_r5j2 { transform: scale(1.08); opacity: 0; }
+
+  .efh_hero_r1f[data-transition="cover"] .efh_slide_r3h { opacity: 1; visibility: visible; transform: translateY(100%); z-index: 1; }
+  .efh_hero_r1f[data-transition="cover"] .efh_slide_r3h.efh_slideActive_r4i { transform: translateY(0%); z-index: 3; }
+  .efh_hero_r1f[data-transition="cover"] .efh_slide_r3h.efh_slidePrev_r5j2 { transform: translateY(0%); z-index: 2; }
+
+  .efh_hero_r1f[data-transition="blur"] .efh_slide_r3h { filter: blur(0px); }
+  .efh_hero_r1f[data-transition="blur"] .efh_slide_r3h.efh_slidePrev_r5j2 { filter: blur(24px); opacity: 0; }
+
+  /* 가로/세로 슬라이드 — "함께 이동"(기본, data-content-mode="together") */
+  .efh_hero_r1f[data-transition="slideh"] .efh_slide_r3h,
+  .efh_hero_r1f[data-transition="slidev"] .efh_slide_r3h { opacity: 1; visibility: visible; z-index: 1; }
+  .efh_hero_r1f[data-transition="slideh"] .efh_slide_r3h.efh_slideActive_r4i,
+  .efh_hero_r1f[data-transition="slidev"] .efh_slide_r3h.efh_slideActive_r4i { z-index: 2; }
+
+  .efh_hero_r1f[data-transition="slideh"][data-transition-direction="right"] .efh_slide_r3h { transform: translateX(100%); }
+  .efh_hero_r1f[data-transition="slideh"][data-transition-direction="right"] .efh_slide_r3h.efh_slideActive_r4i { transform: translateX(0%); }
+  .efh_hero_r1f[data-transition="slideh"][data-transition-direction="right"] .efh_slide_r3h.efh_slidePrev_r5j2 { transform: translateX(-100%); }
+
+  .efh_hero_r1f[data-transition="slideh"][data-transition-direction="left"] .efh_slide_r3h { transform: translateX(-100%); }
+  .efh_hero_r1f[data-transition="slideh"][data-transition-direction="left"] .efh_slide_r3h.efh_slideActive_r4i { transform: translateX(0%); }
+  .efh_hero_r1f[data-transition="slideh"][data-transition-direction="left"] .efh_slide_r3h.efh_slidePrev_r5j2 { transform: translateX(100%); }
+
+  .efh_hero_r1f[data-transition="slidev"][data-transition-direction="up"] .efh_slide_r3h { transform: translateY(100%); }
+  .efh_hero_r1f[data-transition="slidev"][data-transition-direction="up"] .efh_slide_r3h.efh_slideActive_r4i { transform: translateY(0%); }
+  .efh_hero_r1f[data-transition="slidev"][data-transition-direction="up"] .efh_slide_r3h.efh_slidePrev_r5j2 { transform: translateY(-100%); }
+
+  .efh_hero_r1f[data-transition="slidev"][data-transition-direction="down"] .efh_slide_r3h { transform: translateY(-100%); }
+  .efh_hero_r1f[data-transition="slidev"][data-transition-direction="down"] .efh_slide_r3h.efh_slideActive_r4i { transform: translateY(0%); }
+  .efh_hero_r1f[data-transition="slidev"][data-transition-direction="down"] .efh_slide_r3h.efh_slidePrev_r5j2 { transform: translateY(100%); }
+
+  /* 가로/세로 슬라이드 — "배경만 이동, 텍스트 페이드"(data-content-mode="split") */
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"] .efh_slide_r3h,
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"] .efh_slide_r3h {
+    transform: none !important; opacity: 0; visibility: hidden; z-index: 1;
+  }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"] .efh_slide_r3h.efh_slideActive_r4i,
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"] .efh_slide_r3h.efh_slideActive_r4i {
+    opacity: 1; visibility: visible; z-index: 2;
+  }
+  .efh_hero_r1f[data-content-mode="split"] .efh_bgLayer_r5j { transition: transform var(--efh-slideSpeed_a9) ease; }
+
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"][data-transition-direction="right"] .efh_bgLayer_r5j { transform: translateX(100%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"][data-transition-direction="right"] .efh_slide_r3h.efh_slideActive_r4i .efh_bgLayer_r5j { transform: translateX(0%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"][data-transition-direction="right"] .efh_slide_r3h.efh_slidePrev_r5j2 .efh_bgLayer_r5j { transform: translateX(-100%); }
+
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"][data-transition-direction="left"] .efh_bgLayer_r5j { transform: translateX(-100%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"][data-transition-direction="left"] .efh_slide_r3h.efh_slideActive_r4i .efh_bgLayer_r5j { transform: translateX(0%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slideh"][data-transition-direction="left"] .efh_slide_r3h.efh_slidePrev_r5j2 .efh_bgLayer_r5j { transform: translateX(100%); }
+
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"][data-transition-direction="up"] .efh_bgLayer_r5j { transform: translateY(100%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"][data-transition-direction="up"] .efh_slide_r3h.efh_slideActive_r4i .efh_bgLayer_r5j { transform: translateY(0%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"][data-transition-direction="up"] .efh_slide_r3h.efh_slidePrev_r5j2 .efh_bgLayer_r5j { transform: translateY(-100%); }
+
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"][data-transition-direction="down"] .efh_bgLayer_r5j { transform: translateY(-100%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"][data-transition-direction="down"] .efh_slide_r3h.efh_slideActive_r4i .efh_bgLayer_r5j { transform: translateY(0%); }
+  .efh_hero_r1f[data-content-mode="split"][data-transition="slidev"][data-transition-direction="down"] .efh_slide_r3h.efh_slidePrev_r5j2 .efh_bgLayer_r5j { transform: translateY(100%); }
 
   .efh_bgLayer_r5j { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: transparent; }
 
@@ -114,7 +206,8 @@
   .efh_contentInner_s0z { max-width: var(--efh-contentTextMaxWidth_b14); width: 100%; }
 
   .efh_mainTitle_s1o {
-    font-size: var(--efh-mainTitleSize_a6); font-weight: var(--efh-mainTitleWeight_c1, 800); margin: 0 0 16px; line-height: 1.3;
+    font-size: var(--efh-mainTitleSize_a6); font-weight: var(--efh-mainTitleWeight_c1, 800); margin: 0 0 16px;
+    line-height: var(--efh-mainTitleLineHeight_c26, 1.3); letter-spacing: var(--efh-mainTitleLetterSpacing_c27, 0);
     text-shadow: var(--efh-textShadow_b3);
     color: var(--efh-titleColor_c4, #fff);
   }
@@ -122,6 +215,7 @@
   .efh_hero_r1f[data-textshadow="0"] .efh_subtitle_s8v { text-shadow: none; }
   .efh_subtitle_s8v {
     font-size: var(--efh-subtitleSize_a7); font-weight: var(--efh-subtitleWeight_c2, 400);
+    line-height: var(--efh-subtitleLineHeight_c28, 1.5); letter-spacing: var(--efh-subtitleLetterSpacing_c29, 0);
     margin: 4px 0; opacity: .92; text-shadow: var(--efh-textShadow_b3);
     color: var(--efh-subtitleColor_c5, #fff);
   }
@@ -187,7 +281,27 @@
   .efh_panelHidden_q9m { display: none !important; }
   .efh_hero_r1f.efh_isCarousel_v1k .efh_dots_s7u { bottom: calc(24px + var(--efh-controlsGap_c19, 36px)); }
 
+  @media (max-width: 1024px) {
+    .efh_mainTitle_s1o { font-size: var(--efh-mainTitleSizeTablet_c24); }
+    .efh_subtitle_s8v { font-size: var(--efh-subtitleSizeTablet_c31); }
+    .efh_btn_s4r { font-size: var(--efh-btnFontSizeTablet_c33); padding: var(--efh-btnPadYTablet_c35) var(--efh-btnPadXTablet_c37); }
+    .efh_hero_r1f.efh_usage_main .efh_slide_r3h { height: var(--efh-mainHeightTablet_c39) !important; }
+    .efh_hero_r1f.efh_usage_sub .efh_slide_r3h { height: var(--efh-subHeightTablet_c41) !important; }
+    .efh_dot_s8w::after, .efh_dotIcon_s10z { width: var(--efh-dotSizeTablet_c43); height: var(--efh-dotSizeTablet_c43); font-size: var(--efh-dotSizeTablet_c43); }
+    .efh_scrollHint_g1d { font-size: var(--efh-scrollIconSizeTablet_c45); }
+    .efh_contentLayer_r9n { padding: 5vh var(--efh-contentSidePadTablet_c47); }
+    .efh_buttonGrid_s3q { grid-template-columns: repeat(var(--efh-buttonColumnsTablet_c30, 2), auto); }
+  }
+
   @media (max-width: 768px) {
+    .efh_mainTitle_s1o { font-size: var(--efh-mainTitleSizeMobile_c25); }
+    .efh_subtitle_s8v { font-size: var(--efh-subtitleSizeMobile_c32); }
+    .efh_btn_s4r { font-size: var(--efh-btnFontSizeMobile_c34); padding: var(--efh-btnPadYMobile_c36) var(--efh-btnPadXMobile_c38); }
+    .efh_hero_r1f.efh_usage_main .efh_slide_r3h { height: var(--efh-mainHeightMobile_c40) !important; }
+    .efh_hero_r1f.efh_usage_sub .efh_slide_r3h { height: var(--efh-subHeightMobile_c42) !important; }
+    .efh_dot_s8w::after, .efh_dotIcon_s10z { width: var(--efh-dotSizeMobile_c44); height: var(--efh-dotSizeMobile_c44); font-size: var(--efh-dotSizeMobile_c44); }
+    .efh_scrollHint_g1d { font-size: var(--efh-scrollIconSizeMobile_c46); }
+    .efh_contentLayer_r9n { padding: 5vh var(--efh-contentSidePadMobile_c48); }
     .efh_buttonGrid_s3q {
       grid-template-columns: repeat(var(--efh-buttonColumnsMobile_b16, 1), 1fr);
       justify-content: center !important;
@@ -202,9 +316,12 @@
 (function () {
   const EFH_LOG_PREFIX = '[히어로엔진]';
 
-  /* ---- 모바일 브레이크포인트 / 기본 노출시간 전역 상태 ---- */
   window.efh_mobileBreakpoint_v1 = window.efh_mobileBreakpoint_v1 || 768;
-  window.efh_defaultSlideDuration_v1 = window.efh_defaultSlideDuration_v1 || 6; // 초 단위
+  window.efh_defaultSlideDuration_v1 = window.efh_defaultSlideDuration_v1 || 6;
+  window.efh_transitionStyle_v1 = window.efh_transitionStyle_v1 || 'fade';
+  window.efh_transitionDirH_v1 = window.efh_transitionDirH_v1 || 'right';
+  window.efh_transitionDirV_v1 = window.efh_transitionDirV_v1 || 'up';
+  window.efh_contentMode_v1 = window.efh_contentMode_v1 || 'together';
 
   function efh_ensureFontAwesome_c1a() {
     const already = document.querySelector('link[href*="font-awesome"], link[href*="fontawesome"]');
@@ -223,6 +340,20 @@
     link.href = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
     link.crossOrigin = 'anonymous';
     document.head.appendChild(link);
+  }
+
+  /* v8: 전환 방식/방향/콘텐츠모드 속성 일괄 적용 */
+  function efh_applyTransitionAttrs_v1() {
+    const t = window.efh_transitionStyle_v1 || 'fade';
+    let dir = '';
+    if (t === 'slideh') dir = window.efh_transitionDirH_v1 || 'right';
+    else if (t === 'slidev') dir = window.efh_transitionDirV_v1 || 'up';
+    document.querySelectorAll('.efh_hero_r1f').forEach(function (el) {
+      el.setAttribute('data-transition', t);
+      if (dir) el.setAttribute('data-transition-direction', dir);
+      else el.removeAttribute('data-transition-direction');
+      el.setAttribute('data-content-mode', window.efh_contentMode_v1 || 'together');
+    });
   }
 
   function efh_parseIconSpec_c2b(raw) {
@@ -270,7 +401,6 @@
     return colorStr;
   }
 
-  /* 제목/부제용 단독 간격 태그: [% GA 1.5 :: hero | gap %] (GA 또는 Gap, 대소문자 무관) */
   function efh_parseGapTag_c7a(text) {
     let gap = 0;
     let clean = text;
@@ -283,7 +413,6 @@
     return { clean: clean, gap: gap };
   }
 
-  /* 버튼 통합 태그: [% ST line/full :: IC ... :: Ga N :: hero | button %] */
   function efh_parseButtonTag_c6z(text) {
     const result = { clean: text, style: 'auto', icon: '', gap: 0 };
     const m = text.match(/\[%\s*(.+?)\s*::\s*hero\s*\|\s*button\s*%\]/i);
@@ -402,7 +531,6 @@
     return /fit|본문/i.test(raw) ? 'fit' : 'full';
   }
 
-  /* 슬라이드에 정렬값이 없으면 null 반환 → 인라인 style을 아예 안 써서 CSS 변수 기본값이 살아나게 함 */
   function efh_resolveAlignX_c9k(raw) {
     if (/좌/.test(raw)) return { items: 'flex-start', text: 'left' };
     if (/우/.test(raw)) return { items: 'flex-end', text: 'right' };
@@ -508,7 +636,6 @@
     if (!headerEl.classList.contains('efh_panelHidden_q9m')) headerEl.classList.add('efh_panelHidden_q9m');
   }
 
-  /* ---------- 유튜브 IFrame API (재생 실패 시 자동 대체) ---------- */
   window.__efhYTQueue_j1 = window.__efhYTQueue_j1 || [];
   function efh_flushYTQueue_j2() {
     const queue = window.__efhYTQueue_j1.slice();
@@ -641,14 +768,18 @@
     if (count <= 1) return;
     let current = 0;
 
-    function goTo(idx) {
+    function goTo(idx, forward) {
       const slides = container.querySelectorAll('.efh_slide_r3h');
       const dots = container.querySelectorAll('.efh_dot_s8w');
-      slides[current].classList.remove('efh_slideActive_r4i');
+      const outgoing = slides[current];
+      outgoing.classList.remove('efh_slideActive_r4i');
+      if (forward === false) outgoing.classList.add('efh_slidePrev_r5j2');
       if (dots[current]) dots[current].classList.remove('efh_dotActive_s9x');
       current = idx;
+      slides[current].classList.remove('efh_slidePrev_r5j2');
       slides[current].classList.add('efh_slideActive_r4i');
       if (dots[current]) dots[current].classList.add('efh_dotActive_s9x');
+      setTimeout(function () { outgoing.classList.remove('efh_slidePrev_r5j2'); }, 1200);
     }
 
     function scheduleNext() {
@@ -657,13 +788,16 @@
       const durationSec = activeSlide ? parseFloat(activeSlide.getAttribute('data-duration')) : 0;
       const ms = durationSec > 0 ? durationSec * 1000 : (window.efh_defaultSlideDuration_v1 || 6) * 1000;
       setTimeout(function () {
-        if (!container.__efhPaused) goTo((current + 1) % count);
+        if (!container.__efhPaused) goTo((current + 1) % count, true);
         scheduleNext();
       }, ms);
     }
 
     container.querySelectorAll('.efh_dot_s8w').forEach(function (dot) {
-      dot.addEventListener('click', function () { goTo(parseInt(this.getAttribute('data-idx'), 10)); });
+      dot.addEventListener('click', function () {
+        const idx = parseInt(this.getAttribute('data-idx'), 10);
+        goTo(idx, idx > current);
+      });
     });
 
     container.addEventListener('mouseenter', function () { container.__efhHoverPause = true; });
@@ -682,7 +816,7 @@
     });
 
     const trackEl = container.querySelector('.efh_slidesTrack_r2g');
-    if (trackEl) efh_attachSwipe_d6o(trackEl, function () { goTo((current + 1) % count); }, function () { goTo((current - 1 + count) % count); });
+    if (trackEl) efh_attachSwipe_d6o(trackEl, function () { goTo((current + 1) % count, true); }, function () { goTo((current - 1 + count) % count, false); });
 
     if (!efh_reducedMotion_k1a) scheduleNext();
   }
@@ -757,7 +891,6 @@
       if (src) efh_preloadAndFade_t7g(bgDiv, src);
     });
 
-    /* 파일 영상/비메오 로딩 감지 */
     container.querySelectorAll('.efh_bgVideoWrap_t2b video, .efh_bgVideoWrap_t2b[data-kind="vimeo"] iframe').forEach(function (el) {
       const wrap = el.closest('.efh_bgVideoWrap_t2b');
       const markLoaded = function () { wrap.classList.add('efh_bgVideoLoaded_t9i'); };
@@ -765,7 +898,6 @@
       else el.addEventListener('load', markLoaded);
     });
 
-    /* 유튜브: IFrame API로 생성 + 재생 실패 시 자동 제거(배경색/기본배경으로 대체) */
     const ytPlaceholders = container.querySelectorAll('[data-video-id]');
     if (ytPlaceholders.length > 0) {
       ytPlaceholders.forEach(function (el) {
@@ -803,6 +935,8 @@
       const images = (isMobileViewport && slide.bgImagesMobile.length) ? slide.bgImagesMobile : slide.bgImages;
       if (images.length > 1) efh_startBgRotation_v2l(container, slideIdx, images.length);
     });
+
+    efh_applyTransitionAttrs_v1();
 
     if (isCarousel) efh_startSlideRotation_v3m(container, slidesData.length);
   }
@@ -893,10 +1027,6 @@
   }
   window.addEventListener('resize', efh_debounce_z1(efh_refreshMobileBg_v2, 300));
 
-  /* ==================================================================
-     대시보드 실시간 제어 API
-     팝업 대시보드에서 window.opener.efhDashboardAPI.xxx() 형태로 호출
-     ================================================================== */
   window.efhDashboardAPI = {
     setPageTitleVisible: function (visible) {
       const el = window.document.querySelector('.notion-page-block');
@@ -949,14 +1079,29 @@
     },
     setDefaultSlideDuration: function (sec) {
       window.efh_defaultSlideDuration_v1 = parseFloat(sec) || 6;
+    },
+    /* v8: 전환 방식 — 'fade'|'zoom'|'crosszoom'|'slideh'|'slidev'|'cover'|'blur' */
+    setTransitionStyle: function (style) {
+      window.efh_transitionStyle_v1 = style;
+      efh_applyTransitionAttrs_v1();
+    },
+    /* v8: 방향 — slideh:'left'|'right', slidev:'up'|'down' */
+    setTransitionDirection: function (direction) {
+      if (direction === 'left' || direction === 'right') window.efh_transitionDirH_v1 = direction;
+      else if (direction === 'up' || direction === 'down') window.efh_transitionDirV_v1 = direction;
+      efh_applyTransitionAttrs_v1();
+    },
+    /* v8: 콘텐츠 이동 방식 — 'together'|'split' (slideh/slidev 전용) */
+    setContentMode: function (mode) {
+      window.efh_contentMode_v1 = mode;
+      efh_applyTransitionAttrs_v1();
     }
   };
 
-  /* 콘솔 디버깅용 진입점 */
   window.efhDebug = {
-  init: efh_initHeroEngine_x1z,
-  findHeaders: efh_findAllHeaders_h1x,
-  version: 'v6'
-};
+    init: efh_initHeroEngine_x1z,
+    findHeaders: efh_findAllHeaders_h1x,
+    version: 'v8'
+  };
 })();
 </script>

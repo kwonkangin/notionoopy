@@ -1,12 +1,18 @@
 /*
   ====================================================================
-  히어로 대시보드 런처 v3 (v2 + 코드 출력/복사/미니파이 기능 통합)
-  - 사용법: 히어로가 있는 노션 페이지에서 콘솔에 이 전체를 붙여넣고 Enter.
+  히어로 대시보드 런처 v5
+  v4 → v5 변경사항:
+  - 전환 방식 7종(페이드/줌/크로스줌/가로/세로/커버/블러) + 방향 선택
+    (가로: 좌/우, 세로: 상/하) + 콘텐츠 이동 방식(함께이동/배경만이동) 추가
+  - "코드 출력" 버튼 다시 눌러도 안 닫히던 버그 수정
+  - "7. 반응형" 그룹의 PC 슬라이더 중복 제거(태블릿/모바일 토글만 남김)
+  - 버튼 호버 시 텍스트 색상 항목 추가
+  - v8 엔진코드와 함께 사용하세요.
   ====================================================================
 */
 (function () {
   const hostWin = window;
-  const dash = window.open('', 'EfhHeroDashboard', 'width=720,height=1020,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  const dash = window.open('', 'EfhHeroDashboard', 'width=760,height=1020,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
   if (!dash) { alert('팝업 창 차단을 해제해 주십시오.'); return; }
 
   const D = dash.document;
@@ -32,6 +38,7 @@
     '.panelSection { margin-bottom:12px; background:var(--efh-panel-bg); border-radius:8px; border:1px solid var(--efh-panel-border); }',
     '.efh_summary { font-weight:700; cursor:pointer; color:#38bdf8; outline:none; padding:12px; background:var(--efh-summary-bg); font-size:14px; display:block; }',
     '.efh_itemContainer { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-bottom:1px dashed #333; }',
+    '.efh_varTag { font-size:10px; color:#666; font-family:monospace; }',
     '.efh_resetSingleBtn { display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:#888; cursor:pointer; padding:4px; }',
     '.efh_resetSingleBtn:hover { color:#10b981 !important; }',
     '.efh_basicSel { padding:6px; background:#111; color:#eee; border:1px solid #444; border-radius:6px; outline:none; }',
@@ -54,7 +61,10 @@
     '.efh_iconBtn:hover { border-color:#10b981; color:#10b981; }',
     '.efh_iconBtnActive { background:#10b981; color:#000; border-color:#10b981; }',
     '.efh_iconCustomApply { padding:6px 12px; background:#333; color:#10b981; border:1px dashed #555; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px; }',
-    '.efh_notionBadge { font-size:10px; padding:2px 6px; background:rgba(16,185,129,0.15); color:#10b981; border-radius:4px; }'
+    '.efh_notionBadge { font-size:10px; padding:2px 6px; background:rgba(16,185,129,0.15); color:#10b981; border-radius:4px; }',
+    '.efh_subToggleRow { display:flex; gap:8px; align-items:center; margin-top:8px; }',
+    '.efh_subToggleLabel { font-size:11px; color:#888; }',
+    '.efh_subRow { margin-top:6px; padding-left:16px; border-left:2px solid #333; }'
   ].join('\n');
   D.head.appendChild(styleEl);
 
@@ -84,67 +94,86 @@
       { key: 'pageTitleAreaVisible', label: '타이틀 위 여백 영역 노출', type: 'api-toggle', def: true, apiOn: 'setPageTitleAreaVisible', tip: '타이틀 위쪽 빈 컨트롤 여백을 숨깁니다.' }
     ]},
     { group: '1. 텍스트 서식 (메인/서브타이틀)', items: [
-      { key: '--efh-mainTitleSize_a6', label: '메인타이틀 크기 --efh-mainTitleSize_a6', type: 'range', min: 16, max: 80, unit: 'px', def: '40' },
-      { key: '--efh-mainTitleWeight_c1', label: '메인타이틀 굵기 --efh-mainTitleWeight_c1', type: 'weight', min: 100, max: 900, step: 100, def: '800' },
-      { key: '--efh-titleColor_c4', label: '메인타이틀 색상 --efh-titleColor_c4', type: 'color', defHex: '#ffffff', defAlpha: '100' },
-      { key: '--efh-subtitleSize_a7', label: '서브타이틀 크기 --efh-subtitleSize_a7', type: 'range', min: 10, max: 40, unit: 'px', def: '16' },
-      { key: '--efh-subtitleWeight_c2', label: '서브타이틀 굵기 --efh-subtitleWeight_c2', type: 'weight', min: 100, max: 900, step: 100, def: '400' },
-      { key: '--efh-subtitleColor_c5', label: '서브타이틀 색상 --efh-subtitleColor_c5', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-mainTitleSize_a6', label: '메인타이틀 크기', type: 'range', min: 16, max: 80, unit: 'px', def: '40' },
+      { key: '--efh-mainTitleWeight_c1', label: '메인타이틀 굵기', type: 'weight', min: 100, max: 900, step: 100, def: '800' },
+      { key: '--efh-titleColor_c4', label: '메인타이틀 색상', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-mainTitleLineHeight_c26', label: '메인타이틀 행간', type: 'select-custom', min: 1.0, max: 2.0, step: 0.05, unit: '', def: '1.3' },
+      { key: '--efh-mainTitleLetterSpacing_c27', label: '메인타이틀 자간', type: 'select-custom', min: -2, max: 8, step: 0.5, unit: 'px', def: '0' },
+      { key: '--efh-subtitleSize_a7', label: '서브타이틀 크기', type: 'range', min: 10, max: 40, unit: 'px', def: '16' },
+      { key: '--efh-subtitleWeight_c2', label: '서브타이틀 굵기', type: 'weight', min: 100, max: 900, step: 100, def: '400' },
+      { key: '--efh-subtitleColor_c5', label: '서브타이틀 색상', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-subtitleLineHeight_c28', label: '서브타이틀 행간', type: 'select-custom', min: 1.0, max: 2.0, step: 0.05, unit: '', def: '1.5' },
+      { key: '--efh-subtitleLetterSpacing_c29', label: '서브타이틀 자간', type: 'select-custom', min: -2, max: 8, step: 0.5, unit: 'px', def: '0' },
       { key: 'textShadow', label: '텍스트 쉐도우 사용', type: 'textshadow-toggle', def: true },
       { key: 'titleVisible', label: '메인타이틀 노출', type: 'api-toggle', def: true, apiOn: 'setTitleVisible' },
       { key: 'subtitleVisible', label: '서브타이틀 노출', type: 'api-toggle', def: true, apiOn: 'setSubtitleVisible' }
     ]},
     { group: '2. 버튼 서식', items: [
-      { key: '--efh-buttonColumns_a8', label: '버튼 열 개수(PC) --efh-buttonColumns_a8', type: 'range', min: 1, max: 5, step: 1, unit: '', def: '3' },
-      { key: '--efh-buttonColumnsMobile_b16', label: '버튼 열 개수(모바일) --efh-buttonColumnsMobile_b16', type: 'range', min: 1, max: 3, step: 1, unit: '', def: '1' },
-      { key: '--efh-btnFontSize_c8', label: '버튼 글자 크기 --efh-btnFontSize_c8', type: 'range', min: 10, max: 28, unit: 'px', def: '16' },
-      { key: '--efh-btnPadY_c6', label: '버튼 상하 여백 --efh-btnPadY_c6', type: 'range', min: 0, max: 30, unit: 'px', def: '12' },
-      { key: '--efh-btnPadX_c7', label: '버튼 좌우 여백 --efh-btnPadX_c7', type: 'range', min: 0, max: 50, unit: 'px', def: '24' },
-      { key: '--efh-btnRadius_c9', label: '버튼 모서리 둥글기 --efh-btnRadius_c9', type: 'range', min: 0, max: 999, unit: 'px', def: '999' },
-      { key: '--efh-btnSolidBg_a11', label: '솔리드 버튼 배경색 --efh-btnSolidBg_a11', type: 'color', defHex: '#c0392b', defAlpha: '100' },
-      { key: '--efh-btnSolidColor_a12', label: '솔리드 버튼 글자색 --efh-btnSolidColor_a12', type: 'color', defHex: '#ffffff', defAlpha: '100' },
-      { key: '--efh-btnSolidBorderColor_c15', label: '솔리드 버튼 테두리색 --efh-btnSolidBorderColor_c15', type: 'color', defHex: '#000000', defAlpha: '0' },
-      { key: '--efh-btnSolidBorderWidth_c16', label: '솔리드 버튼 테두리 굵기 --efh-btnSolidBorderWidth_c16', type: 'range', min: 0, max: 10, unit: 'px', def: '1' },
-      { key: '--efh-btnOutlineColor_a13', label: '아웃라인 버튼 글자색 --efh-btnOutlineColor_a13', type: 'color', defHex: '#ffffff', defAlpha: '100' },
-      { key: '--efh-btnOutlineBorderColor_c17', label: '아웃라인 버튼 테두리색 --efh-btnOutlineBorderColor_c17', type: 'color', defHex: '#ffffff', defAlpha: '60' },
-      { key: '--efh-btnOutlineBorderWidth_c18', label: '아웃라인 버튼 테두리 굵기 --efh-btnOutlineBorderWidth_c18', type: 'range', min: 0, max: 10, unit: 'px', def: '1' },
-      { key: '--efh-btnHoverSolidBg_a14', label: '솔리드 버튼 호버 배경 --efh-btnHoverSolidBg_a14', type: 'color', defHex: '#a93226', defAlpha: '100' },
-      { key: '--efh-btnHoverOutlineBg_a15', label: '아웃라인 버튼 호버 배경 --efh-btnHoverOutlineBg_a15', type: 'color', defHex: '#ffffff', defAlpha: '15' }
+      { key: '--efh-buttonColumns_a8', label: '버튼 열 개수(PC)', type: 'range', min: 1, max: 5, step: 1, unit: '', def: '3' },
+      { key: '--efh-buttonColumnsMobile_b16', label: '버튼 열 개수(모바일)', type: 'range', min: 1, max: 3, step: 1, unit: '', def: '1' },
+      { key: '--efh-btnFontSize_c8', label: '버튼 글자 크기', type: 'range', min: 10, max: 28, unit: 'px', def: '16' },
+      { key: '--efh-btnPadY_c6', label: '버튼 상하 여백', type: 'range', min: 0, max: 30, unit: 'px', def: '12' },
+      { key: '--efh-btnPadX_c7', label: '버튼 좌우 여백', type: 'range', min: 0, max: 50, unit: 'px', def: '24' },
+      { key: '--efh-btnRadius_c9', label: '버튼 모서리 둥글기', type: 'range', min: 0, max: 999, unit: 'px', def: '999' },
+      { key: '--efh-btnSolidBg_a11', label: '솔리드 버튼 배경색', type: 'color', defHex: '#c0392b', defAlpha: '100' },
+      { key: '--efh-btnSolidColor_a12', label: '솔리드 버튼 글자색', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-btnSolidBorderColor_c15', label: '솔리드 버튼 테두리색', type: 'color', defHex: '#000000', defAlpha: '0' },
+      { key: '--efh-btnSolidBorderWidth_c16', label: '솔리드 버튼 테두리 굵기', type: 'range', min: 0, max: 10, unit: 'px', def: '1' },
+      { key: '--efh-btnOutlineColor_a13', label: '아웃라인 버튼 글자색', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-btnOutlineBorderColor_c17', label: '아웃라인 버튼 테두리색', type: 'color', defHex: '#ffffff', defAlpha: '60' },
+      { key: '--efh-btnOutlineBorderWidth_c18', label: '아웃라인 버튼 테두리 굵기', type: 'range', min: 0, max: 10, unit: 'px', def: '1' },
+      { key: '--efh-btnHoverSolidBg_a14', label: '솔리드 버튼 호버 배경', type: 'color', defHex: '#a93226', defAlpha: '100' },
+      { key: '--efh-btnHoverOutlineBg_a15', label: '아웃라인 버튼 호버 배경', type: 'color', defHex: '#ffffff', defAlpha: '15' },
+      { key: '--efh-btnHoverColor_a17', label: '버튼 호버 시 텍스트 색상', type: 'color', defHex: '#ffffff', defAlpha: '100' }
     ]},
     { group: '3. 레이아웃 / 여백', items: [
-      { key: '--efh-mainHeight_a2', label: '메인 히어로 높이 --efh-mainHeight_a2', type: 'range', min: 30, max: 100, unit: 'vh', def: '100' },
-      { key: '--efh-subHeight_a3', label: '서브 히어로 높이 --efh-subHeight_a3', type: 'range', min: 10, max: 100, unit: 'vh', def: '30' },
-      { key: '--efh-contentSidePad_b13', label: '콘텐츠 좌우 여백 --efh-contentSidePad_b13', type: 'range', min: 0, max: 20, unit: 'vw', def: '6' },
-      { key: '--efh-contentTextMaxWidth_b14', label: '콘텐츠 텍스트 최대폭 --efh-contentTextMaxWidth_b14', type: 'range', min: 300, max: 1000, unit: 'px', def: '640' },
-      { key: '--efh-contentMaxWidth_b11', label: 'Fit모드 전체 최대폭 --efh-contentMaxWidth_b11', type: 'range', min: 800, max: 1920, unit: 'px', def: '1200' },
-      { key: '--efh-fitBorderRadius_b15', label: 'Fit모드 모서리 둥글기 --efh-fitBorderRadius_b15', type: 'range', min: 0, max: 60, unit: 'px', def: '0' },
+      { key: '--efh-mainHeight_a2', label: '메인 히어로 높이', type: 'range', min: 30, max: 100, unit: 'vh', def: '100' },
+      { key: '--efh-subHeight_a3', label: '서브 히어로 높이', type: 'range', min: 10, max: 100, unit: 'vh', def: '30' },
+      { key: '--efh-contentSidePad_b13', label: '콘텐츠 좌우 여백', type: 'range', min: 0, max: 20, unit: 'vw', def: '6' },
+      { key: '--efh-contentTextMaxWidth_b14', label: '콘텐츠 텍스트 최대폭', type: 'range', min: 300, max: 1000, unit: 'px', def: '640' },
+      { key: '--efh-contentMaxWidth_b11', label: 'Fit모드 전체 최대폭', type: 'range', min: 800, max: 1920, unit: 'px', def: '1200' },
+      { key: '--efh-fitBorderRadius_b15', label: 'Fit모드 모서리 둥글기', type: 'range', min: 0, max: 60, unit: 'px', def: '0' },
       { key: 'mobileBreakpoint', label: '모바일 판정 기준폭', type: 'api-range', min: 480, max: 1024, unit: '', def: '768', apiFn: 'setMobileBreakpoint' }
     ]},
-    { group: '4. 배경 / 그림자', items: [
-      { key: '--efh-shadowColor_a1', label: '그림자 기본 색상 --efh-shadowColor_a1', type: 'color', defHex: '#000000', defAlpha: '35' },
-      { key: '--efh-bgFallbackColor_b12', label: '배경 대체(로딩중) 색상 --efh-bgFallbackColor_b12', type: 'color', defHex: '#111111', defAlpha: '100' },
-      { key: '--efh-slideSpeed_a9', label: '슬라이드 전환 속도 --efh-slideSpeed_a9', type: 'range', min: 0.1, max: 2, step: 0.1, unit: 's', def: '0.8' },
-      { key: '--efh-bgFadeSpeed_a10', label: '배경이미지 페이드 속도 --efh-bgFadeSpeed_a10', type: 'range', min: 0.1, max: 2, step: 0.1, unit: 's', def: '1' }
+    { group: '4. 배경 / 그림자 / 전환효과', items: [
+      { key: '--efh-shadowColor_a1', label: '그림자 기본 색상', type: 'color', defHex: '#000000', defAlpha: '35' },
+      { key: '--efh-bgFallbackColor_b12', label: '배경 대체(로딩중) 색상', type: 'color', defHex: '#111111', defAlpha: '100' },
+      { key: '--efh-slideSpeed_a9', label: '슬라이드 전환 속도', type: 'range', min: 0.1, max: 2, step: 0.1, unit: 's', def: '0.8' },
+      { key: '--efh-bgFadeSpeed_a10', label: '배경이미지 페이드 속도', type: 'range', min: 0.1, max: 2, step: 0.1, unit: 's', def: '1' },
+      { key: 'transitionStyle', label: '슬라이드 전환 방식', type: 'transition', def: 'fade' }
     ]},
     { group: '5. 캐러셀 컨트롤 (닷 · 재생/정지)', items: [
-      { key: '--efh-dotColor_b9', label: '닷 기본 색상 --efh-dotColor_b9', type: 'color', defHex: '#ffffff', defAlpha: '40' },
-      { key: '--efh-dotActiveColor_b10', label: '닷 활성 색상 --efh-dotActiveColor_b10', type: 'color', defHex: '#ffffff', defAlpha: '100' },
-      { key: '--efh-dotSize_c10', label: '닷 크기 --efh-dotSize_c10', type: 'range', min: 4, max: 20, unit: 'px', def: '8' },
+      { key: '--efh-dotColor_b9', label: '닷 기본 색상', type: 'color', defHex: '#ffffff', defAlpha: '40' },
+      { key: '--efh-dotActiveColor_b10', label: '닷 활성 색상', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-dotSize_c10', label: '닷 크기', type: 'range', min: 4, max: 20, unit: 'px', def: '8' },
       { key: 'dotShape', label: '닷 모양', type: 'segmented', options: [['dot','원형'],['bar','바'],['square','사각'],['diamond','다이아'],['icon','아이콘']], def: 'dot', apiFn: 'setDotShape' },
       { key: 'dotIcon', label: '닷 아이콘 선택 (모양=아이콘일 때 적용)', type: 'icon', presetKey: 'dot', apiFn: 'setDotIcon', def: 'fa-solid fa-circle' },
-      { key: '--efh-pauseIconColor_b6', label: '재생/정지 아이콘 색상 --efh-pauseIconColor_b6', type: 'color', defHex: '#ffffff', defAlpha: '100' },
-      { key: '--efh-pauseIconSize_b7', label: '재생/정지 아이콘 크기 --efh-pauseIconSize_b7', type: 'range', min: 10, max: 30, unit: 'px', def: '16' },
+      { key: '--efh-pauseIconColor_b6', label: '재생/정지 아이콘 색상', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-pauseIconSize_b7', label: '재생/정지 아이콘 크기', type: 'range', min: 10, max: 30, unit: 'px', def: '16' },
       { key: 'pauseIcon', label: '정지 아이콘 선택', type: 'icon', presetKey: 'pause', apiPairFn: 'setPauseIcons', pairSlot: 0, def: 'fa-solid fa-circle-pause' },
       { key: 'playIcon', label: '재생 아이콘 선택', type: 'icon', presetKey: 'play', apiPairFn: 'setPauseIcons', pairSlot: 1, def: 'fa-solid fa-circle-play' },
-      { key: '--efh-controlsGap_c19', label: '닷/컨트롤 ↔ 스크롤아이콘 간격 --efh-controlsGap_c19', type: 'range', min: 0, max: 100, unit: 'px', def: '36' },
+      { key: '--efh-controlsGap_c19', label: '닷/컨트롤 ↔ 스크롤아이콘 간격', type: 'range', min: 0, max: 100, unit: 'px', def: '36' },
       { key: 'autoplay', label: '자동재생 사용', type: 'api-toggle', def: true, apiOn: 'setAutoplay' },
       { key: 'defaultDuration', label: '슬라이드 기본 노출시간(초)', type: 'api-range', min: 2, max: 20, unit: '', def: '6', apiFn: 'setDefaultSlideDuration' }
     ]},
     { group: '6. 스크롤다운 아이콘', items: [
-      { key: '--efh-scrollIconColor_b4', label: '스크롤 아이콘 색상 --efh-scrollIconColor_b4', type: 'color', defHex: '#ffffff', defAlpha: '100' },
-      { key: '--efh-scrollIconSize_b5', label: '스크롤 아이콘 크기 --efh-scrollIconSize_b5', type: 'range', min: 10, max: 40, unit: 'px', def: '22' },
+      { key: '--efh-scrollIconColor_b4', label: '스크롤 아이콘 색상', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-scrollIconSize_b5', label: '스크롤 아이콘 크기', type: 'range', min: 10, max: 40, unit: 'px', def: '22' },
       { key: 'scrollIcon', label: '스크롤 아이콘 선택', type: 'icon', presetKey: 'scroll', apiFn: 'setScrollIcon', def: 'fa-solid fa-chevron-down' },
       { key: 'scrollVisible', label: '스크롤 아이콘 노출', type: 'dom-toggle', selector: '.efh_scrollHint_g1d', def: true }
+    ]},
+    { group: '7. 반응형 (태블릿 ≤1024px / 모바일 ≤768px)', items: [
+      { key: '--efh-mainTitleSize_a6', tabletKey: '--efh-mainTitleSizeTablet_c24', mobileKey: '--efh-mainTitleSizeMobile_c25', label: '메인타이틀 크기', type: 'range-responsive', min: 14, max: 80, unit: 'px', def: '40' },
+      { key: '--efh-subtitleSize_a7', tabletKey: '--efh-subtitleSizeTablet_c31', mobileKey: '--efh-subtitleSizeMobile_c32', label: '서브타이틀 크기', type: 'range-responsive', min: 10, max: 40, unit: 'px', def: '16' },
+      { key: '--efh-btnFontSize_c8', tabletKey: '--efh-btnFontSizeTablet_c33', mobileKey: '--efh-btnFontSizeMobile_c34', label: '버튼 글자 크기', type: 'range-responsive', min: 10, max: 28, unit: 'px', def: '16' },
+      { key: '--efh-btnPadY_c6', tabletKey: '--efh-btnPadYTablet_c35', mobileKey: '--efh-btnPadYMobile_c36', label: '버튼 상하 여백', type: 'range-responsive', min: 0, max: 30, unit: 'px', def: '12' },
+      { key: '--efh-btnPadX_c7', tabletKey: '--efh-btnPadXTablet_c37', mobileKey: '--efh-btnPadXMobile_c38', label: '버튼 좌우 여백', type: 'range-responsive', min: 0, max: 50, unit: 'px', def: '24' },
+      { key: '--efh-mainHeight_a2', tabletKey: '--efh-mainHeightTablet_c39', mobileKey: '--efh-mainHeightMobile_c40', label: '메인 히어로 높이', type: 'range-responsive', min: 30, max: 100, unit: 'vh', def: '100' },
+      { key: '--efh-subHeight_a3', tabletKey: '--efh-subHeightTablet_c41', mobileKey: '--efh-subHeightMobile_c42', label: '서브 히어로 높이', type: 'range-responsive', min: 10, max: 100, unit: 'vh', def: '30' },
+      { key: '--efh-dotSize_c10', tabletKey: '--efh-dotSizeTablet_c43', mobileKey: '--efh-dotSizeMobile_c44', label: '닷 크기', type: 'range-responsive', min: 4, max: 20, unit: 'px', def: '8' },
+      { key: '--efh-scrollIconSize_b5', tabletKey: '--efh-scrollIconSizeTablet_c45', mobileKey: '--efh-scrollIconSizeMobile_c46', label: '스크롤 아이콘 크기', type: 'range-responsive', min: 10, max: 40, unit: 'px', def: '22' },
+      { key: '--efh-contentSidePad_b13', tabletKey: '--efh-contentSidePadTablet_c47', mobileKey: '--efh-contentSidePadMobile_c48', label: '콘텐츠 좌우 여백', type: 'range-responsive', min: 0, max: 20, unit: 'vw', def: '6' },
+      { key: '--efh-buttonColumnsTablet_c30', label: '버튼 열 개수(태블릿)', type: 'range', min: 1, max: 5, step: 1, unit: '', def: '2' }
     ]}
   ];
 
@@ -205,6 +234,19 @@
     return e;
   }
 
+  function makeRangeControl(min, max, step, unit, defVal, onChange) {
+    const wrap = el('div', { style: 'display:flex; gap:10px; align-items:center;' });
+    const range = el('input', { type: 'range', class: 'efh_inputRange', min: String(min), max: String(max), step: String(step || 1) });
+    range.value = defVal;
+    const num = el('input', { type: 'number', class: 'efh_inputNum', step: String(step || 1) });
+    num.value = defVal;
+    function sync(v) { onChange(v); }
+    range.addEventListener('input', function () { num.value = range.value; sync(range.value); });
+    num.addEventListener('input', function () { range.value = num.value; sync(num.value); });
+    wrap.appendChild(range); wrap.appendChild(num);
+    return { node: wrap, setValue: function (v) { range.value = v; num.value = v; } };
+  }
+
   function buildColorRow(item) {
     currentStyles[item.key] = colorToStr(item.defHex, item.defAlpha);
     const wrap = el('div', { style: 'display:flex; gap:8px; align-items:center; width:100%;' });
@@ -233,14 +275,10 @@
 
   function buildRangeRow(item) {
     currentStyles[item.key] = item.def + (item.unit || '');
-    const wrap = el('div', { style: 'display:flex; gap:10px; align-items:center;' });
-    const range = el('input', { type: 'range', class: 'efh_inputRange', min: String(item.min), max: String(item.max), step: String(item.step || 1) }); range.value = item.def;
-    const num = el('input', { type: 'number', class: 'efh_inputNum', step: String(item.step || 1) }); num.value = item.def;
-    function sync(v) { currentStyles[item.key] = v + (item.unit || ''); applyCss(); }
-    range.addEventListener('input', function () { num.value = range.value; sync(range.value); });
-    num.addEventListener('input', function () { range.value = num.value; sync(num.value); });
-    wrap.appendChild(range); wrap.appendChild(num);
-    return { node: wrap, reset: function () { range.value = item.def; num.value = item.def; sync(item.def); } };
+    const ctrl = makeRangeControl(item.min, item.max, item.step, item.unit, item.def, function (v) {
+      currentStyles[item.key] = v + (item.unit || ''); applyCss();
+    });
+    return { node: ctrl.node, reset: function () { ctrl.setValue(item.def); currentStyles[item.key] = item.def + (item.unit || ''); applyCss(); } };
   }
 
   function buildWeightRow(item) {
@@ -261,14 +299,8 @@
   }
 
   function buildApiRangeRow(item) {
-    const wrap = el('div', { style: 'display:flex; gap:10px; align-items:center;' });
-    const range = el('input', { type: 'range', class: 'efh_inputRange', min: String(item.min), max: String(item.max) }); range.value = item.def;
-    const num = el('input', { type: 'number', class: 'efh_inputNum' }); num.value = item.def;
-    function sync(v) { callApi(item.apiFn, v); }
-    range.addEventListener('input', function () { num.value = range.value; sync(range.value); });
-    num.addEventListener('input', function () { range.value = num.value; sync(num.value); });
-    wrap.appendChild(range); wrap.appendChild(num);
-    return { node: wrap, reset: function () { range.value = item.def; num.value = item.def; sync(item.def); } };
+    const ctrl = makeRangeControl(item.min, item.max, item.step, item.unit, item.def, function (v) { callApi(item.apiFn, v); });
+    return { node: ctrl.node, reset: function () { ctrl.setValue(item.def); callApi(item.apiFn, item.def); } };
   }
 
   function buildToggleRow(item) {
@@ -342,13 +374,177 @@
     return { node: wrap, reset: function () { selectIcon(item.def); }, selectIcon: selectIcon };
   }
 
+  /* v7: 반응형(태블릿/모바일) — PC 슬라이더 중복 제거, 토글+서브슬라이더만 */
+  function buildRangeResponsiveRow(item) {
+    const wrap = el('div', {});
+    wrap.appendChild(el('div', { style: 'font-size:11px; color:#888; margin-bottom:4px;', text: 'PC 값은 위쪽 해당 항목에서 조정하세요. 여기서는 태블릿·모바일 전용값만 설정합니다.' }));
+
+    function buildBreakpointToggle(label, targetKey) {
+      const row = el('div', { class: 'efh_subToggleRow' });
+      const toggleWrap = el('label', { class: 'efh_toggleWrap', style: 'width:32px; height:18px;' });
+      const input = el('input', { type: 'checkbox', class: 'efh_toggleInput' });
+      const slider = el('span', { class: 'efh_toggleSlider' });
+      toggleWrap.appendChild(input); toggleWrap.appendChild(slider);
+      row.appendChild(toggleWrap);
+      row.appendChild(el('span', { class: 'efh_subToggleLabel', text: label }));
+      wrap.appendChild(row);
+
+      const subRow = el('div', { class: 'efh_subRow', style: 'display:none;' });
+      const subCtrl = makeRangeControl(item.min, item.max, item.step, item.unit, item.def, function (v) {
+        currentStyles[targetKey] = v + (item.unit || ''); applyCss();
+      });
+      subRow.appendChild(subCtrl.node);
+      wrap.appendChild(subRow);
+
+      input.addEventListener('change', function () {
+        if (input.checked) {
+          subRow.style.display = 'block';
+          currentStyles[targetKey] = item.def + (item.unit || '');
+          subCtrl.setValue(item.def);
+        } else {
+          subRow.style.display = 'none';
+          delete currentStyles[targetKey];
+        }
+        applyCss();
+      });
+      return { input: input, subRow: subRow, subCtrl: subCtrl };
+    }
+
+    const tablet = buildBreakpointToggle('태블릿 다른 값 사용', item.tabletKey);
+    const mobile = buildBreakpointToggle('모바일 다른 값 사용', item.mobileKey);
+
+    return { node: wrap, reset: function () {
+      tablet.input.checked = false; tablet.subRow.style.display = 'none'; delete currentStyles[item.tabletKey];
+      mobile.input.checked = false; mobile.subRow.style.display = 'none'; delete currentStyles[item.mobileKey];
+      applyCss();
+    } };
+  }
+
+  function buildSelectCustomRow(item) {
+    const wrap = el('div', {});
+    const sel = el('select', { class: 'efh_basicSel', style: 'width:120px;' });
+    sel.appendChild(el('option', { value: 'default', text: '기본값' }));
+    sel.appendChild(el('option', { value: 'custom', text: '커스텀' }));
+    wrap.appendChild(sel);
+
+    const sliderWrap = el('div', { style: 'display:none; margin-top:8px;' });
+    const ctrl = makeRangeControl(item.min, item.max, item.step, item.unit, item.def, function (v) {
+      currentStyles[item.key] = v + (item.unit || ''); applyCss();
+    });
+    sliderWrap.appendChild(ctrl.node);
+    wrap.appendChild(sliderWrap);
+
+    sel.addEventListener('change', function () {
+      if (sel.value === 'custom') {
+        sliderWrap.style.display = 'block';
+        currentStyles[item.key] = item.def + (item.unit || '');
+        ctrl.setValue(item.def);
+      } else {
+        sliderWrap.style.display = 'none';
+        delete currentStyles[item.key];
+      }
+      applyCss();
+    });
+
+    return { node: wrap, reset: function () {
+      sel.value = 'default'; sliderWrap.style.display = 'none';
+      delete currentStyles[item.key]; applyCss();
+    } };
+  }
+
+  /* v9: 전환효과 복합 컨트롤 (스타일 + 방향 + 콘텐츠모드) */
+  function buildTransitionRow(item) {
+    const wrap = el('div', {});
+    const styleOptions = [['fade','페이드'],['zoom','줌'],['crosszoom','크로스줌'],['slideh','가로 슬라이드'],['slidev','세로 슬라이드'],['cover','커버'],['blur','블러']];
+    const styleWrap = el('div', {});
+    const styleBtns = styleOptions.map(function (opt) {
+      const b = el('button', { class: 'efh_segBtn' + (opt[0] === 'fade' ? ' efh_segActive' : ''), text: opt[1] });
+      b.addEventListener('click', function () {
+        styleBtns.forEach(function (x) { x.classList.remove('efh_segActive'); });
+        b.classList.add('efh_segActive');
+        callApi('setTransitionStyle', opt[0]);
+        updateSubControls(opt[0]);
+      });
+      styleWrap.appendChild(b);
+      return b;
+    });
+    wrap.appendChild(styleWrap);
+
+    const dirWrap = el('div', { class: 'efh_subRow', style: 'display:none;' });
+    dirWrap.appendChild(el('div', { style: 'font-size:11px; color:#888; margin-bottom:4px;', text: '방향' }));
+    const dirRowInner = el('div', {});
+    dirWrap.appendChild(dirRowInner);
+    wrap.appendChild(dirWrap);
+
+    let dirBtns = [];
+    let lastDirOptions = [];
+    function renderDirButtons(options, activeDefault) {
+      dirRowInner.innerHTML = '';
+      lastDirOptions = options;
+      dirBtns = options.map(function (opt) {
+        const b = el('button', { class: 'efh_segBtn' + (opt[0] === activeDefault ? ' efh_segActive' : ''), text: opt[1] });
+        b.addEventListener('click', function () {
+          dirBtns.forEach(function (x) { x.classList.remove('efh_segActive'); });
+          b.classList.add('efh_segActive');
+          callApi('setTransitionDirection', opt[0]);
+        });
+        dirRowInner.appendChild(b);
+        return b;
+      });
+    }
+
+    const modeWrap = el('div', { class: 'efh_subRow', style: 'display:none; margin-top:8px;' });
+    modeWrap.appendChild(el('div', { style: 'font-size:11px; color:#888; margin-bottom:4px;', text: '콘텐츠 이동 방식' }));
+    const modeSel = el('select', { class: 'efh_basicSel' });
+    modeSel.appendChild(el('option', { value: 'together', text: '배경+텍스트 함께 이동' }));
+    modeSel.appendChild(el('option', { value: 'split', text: '배경만 이동, 텍스트 페이드' }));
+    modeSel.addEventListener('change', function () { callApi('setContentMode', modeSel.value); });
+    modeWrap.appendChild(modeSel);
+    wrap.appendChild(modeWrap);
+
+    function updateSubControls(style) {
+      if (style === 'slideh') {
+        dirWrap.style.display = 'block'; renderDirButtons([['right','오른쪽에서 들어옴'],['left','왼쪽에서 들어옴']], 'right');
+        modeWrap.style.display = 'block';
+      } else if (style === 'slidev') {
+        dirWrap.style.display = 'block'; renderDirButtons([['up','아래에서 위로'],['down','위에서 아래로']], 'up');
+        modeWrap.style.display = 'block';
+      } else {
+        dirWrap.style.display = 'none'; modeWrap.style.display = 'none';
+      }
+    }
+
+    function getState() {
+      const activeStyleIdx = styleBtns.findIndex(function (b) { return b.classList.contains('efh_segActive'); });
+      const style = activeStyleIdx > -1 ? styleOptions[activeStyleIdx][0] : 'fade';
+      let direction = null, mode = null;
+      if (style === 'slideh' || style === 'slidev') {
+        const activeDirIdx = dirBtns.findIndex(function (b) { return b.classList.contains('efh_segActive'); });
+        direction = (activeDirIdx > -1 && lastDirOptions[activeDirIdx]) ? lastDirOptions[activeDirIdx][0] : (style === 'slideh' ? 'right' : 'up');
+        mode = modeSel.value;
+      }
+      return { style: style, direction: direction, mode: mode };
+    }
+
+    return { node: wrap, getState: getState, reset: function () {
+      styleBtns.forEach(function (b, i) { b.classList.toggle('efh_segActive', styleOptions[i][0] === 'fade'); });
+      callApi('setTransitionStyle', 'fade');
+      updateSubControls('fade');
+      modeSel.value = 'together';
+      callApi('setContentMode', 'together');
+    } };
+  }
+
   const registry = {};
 
   function buildItem(item) {
     const container = el('div', { class: 'efh_itemContainer', 'data-label': item.label.toLowerCase() });
     const head = el('div', { style: 'display:flex; justify-content:space-between; align-items:flex-start;' });
     const labelWrap = el('div', { style: 'width:100%;' });
-    labelWrap.appendChild(el('label', { style: 'color:#eee; font-weight:600; font-size:13px;', text: item.label }));
+    const labelRow = el('div', { style: 'display:flex; gap:6px; align-items:baseline; flex-wrap:wrap;' });
+    labelRow.appendChild(el('label', { style: 'color:#eee; font-weight:600; font-size:13px;', text: item.label }));
+    if (item.key && item.key.indexOf('--') === 0) labelRow.appendChild(el('span', { class: 'efh_varTag', text: item.key }));
+    labelWrap.appendChild(labelRow);
     if (item.tip) labelWrap.appendChild(el('div', { style: 'font-size:11px; color:#888;', text: item.tip }));
     const resetBtn = el('button', { class: 'efh_resetSingleBtn', title: '초기화' });
     resetBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>';
@@ -363,11 +559,14 @@
     else if (item.type === 'api-toggle' || item.type === 'dom-toggle' || item.type === 'textshadow-toggle') control = buildToggleRow(item);
     else if (item.type === 'segmented') control = buildSegmentedRow(item);
     else if (item.type === 'icon') control = buildIconRow(item);
+    else if (item.type === 'range-responsive') control = buildRangeResponsiveRow(item);
+    else if (item.type === 'select-custom') control = buildSelectCustomRow(item);
+    else if (item.type === 'transition') control = buildTransitionRow(item);
     else control = { node: el('div', {}), reset: function () {} };
 
     container.appendChild(control.node);
     resetBtn.addEventListener('click', control.reset);
-    registry[item.key] = { item: item, control: control, container: container };
+    registry[item.key + (item.type === 'range-responsive' ? '__resp' : '')] = { item: item, control: control, container: container };
     return container;
   }
 
@@ -381,7 +580,7 @@
   topBar.appendChild(topBtns);
   header.appendChild(topBar);
 
-  const searchBox = el('input', { type: 'text', class: 'efh_searchBox', placeholder: '설정 검색 (예: 버튼, 색상, 닷)' });
+  const searchBox = el('input', { type: 'text', class: 'efh_searchBox', placeholder: '설정 검색 (예: 버튼, 색상, 닷, 전환)' });
   header.appendChild(searchBox);
 
   const storageBar = el('div', { class: 'efh_storageBar' });
@@ -426,7 +625,7 @@
 
   const notionSection = el('section', { class: 'panelSection', 'data-groupname': '노션 연동 설정' });
   const notionDetails = el('details', {}); notionDetails.open = true;
-  notionDetails.appendChild(el('summary', { class: 'efh_summary', style: 'color:#f43f5e;', text: '7. 노션 속성으로도 설정 가능한 항목' }));
+  notionDetails.appendChild(el('summary', { class: 'efh_summary', style: 'color:#f43f5e;', text: '8. 노션 속성으로도 설정 가능한 항목' }));
   const notionBody = el('div', { style: 'padding:12px; display:flex; flex-direction:column; gap:10px;' });
   notionBody.appendChild(el('div', { style: 'font-size:11px; color:#888;', text: '아래 항목은 노션 테이블의 슬라이드 행에 값을 입력하면 그 슬라이드에만 개별 적용됩니다. 비워두면 위 대시보드 기본값이 사용됩니다.' }));
   NOTION_FIELDS.forEach(function (f) {
@@ -496,6 +695,7 @@
     const slot = getSlots().find(function (s) { return s.id === id; });
     if (!slot) { setStatus('슬롯을 찾을 수 없습니다.'); return; }
     const p = slot.payload;
+    for (const k in currentStyles) delete currentStyles[k];
     for (const k in p.styles || {}) currentStyles[k] = p.styles[k];
     applyCss();
     (p.toggles || []).forEach(function (t) {
@@ -511,6 +711,11 @@
       const reg = registry[ic.key]; if (!reg || !reg.control.selectIcon) return;
       reg.control.selectIcon(ic.cls);
     });
+    if (p.transition && registry['transitionStyle']) {
+      const tReg = registry['transitionStyle'];
+      const btns = tReg.container.querySelectorAll('.efh_segBtn');
+      btns.forEach(function (b) { if (b.textContent === p.transition.styleLabel) b.click(); });
+    }
     setStatus('"' + slot.label + '" 슬롯을 불러왔습니다.');
   }
 
@@ -522,11 +727,17 @@
       const t = reg.container.querySelector('.efh_toggleInput');
       if (t) toggles.push({ key: k, checked: t.checked });
       const activeSeg = reg.container.querySelector('.efh_segBtn.efh_segActive');
-      if (activeSeg) segmented.push({ key: k, label: activeSeg.textContent });
+      if (activeSeg && k !== 'transitionStyle') segmented.push({ key: k, label: activeSeg.textContent });
       const activeIcon = reg.container.querySelector('.efh_iconBtnActive i');
       if (activeIcon) icons.push({ key: k, cls: activeIcon.className });
     }
-    const payload = { styles: JSON.parse(JSON.stringify(currentStyles)), toggles: toggles, segmented: segmented, icons: icons };
+    let transition = null;
+    if (registry['transitionStyle']) {
+      const st = registry['transitionStyle'].control.getState();
+      const styleLabel = registry['transitionStyle'].container.querySelector('.efh_segBtn.efh_segActive');
+      transition = { styleLabel: styleLabel ? styleLabel.textContent : '페이드' };
+    }
+    const payload = { styles: JSON.parse(JSON.stringify(currentStyles)), toggles: toggles, segmented: segmented, icons: icons, transition: transition };
     const slots = getSlots();
     slots.push({ id: Date.now(), label: nowLabel + ' 저장', payload: payload });
     setSlots(slots);
@@ -581,6 +792,13 @@
     if (getToggleChecked('subtitleVisible') !== null) lines.push('    window.efhDashboardAPI.setSubtitleVisible(' + getToggleChecked('subtitleVisible') + ');');
     if (getNumValue('mobileBreakpoint') !== null) lines.push('    window.efhDashboardAPI.setMobileBreakpoint(' + JSON.stringify(getNumValue('mobileBreakpoint')) + ');');
 
+    if (registry['transitionStyle']) {
+      const st = registry['transitionStyle'].control.getState();
+      lines.push('    window.efhDashboardAPI.setTransitionStyle(' + JSON.stringify(st.style) + ');');
+      if (st.direction) lines.push('    window.efhDashboardAPI.setTransitionDirection(' + JSON.stringify(st.direction) + ');');
+      if (st.mode) lines.push('    window.efhDashboardAPI.setContentMode(' + JSON.stringify(st.mode) + ');');
+    }
+
     const shapeVal = getActiveSegValue('dotShape') || 'dot';
     if (shapeVal === 'icon') {
       lines.push('    window.efhDashboardAPI.setDotIcon(' + JSON.stringify(getActiveIconClass('dotIcon')) + ');');
@@ -608,9 +826,12 @@
     return css + '\n\n' + lines.join('\n');
   }
 
+  /* v9: 코드 출력 버튼 재클릭 시 안 닫히던 버그 수정 — boolean 상태로 관리 */
+  let efhExportOpen = false;
   exportTriggerBtn.addEventListener('click', function () {
-    exportTextarea.value = buildExportCode();
-    exportSection.style.display = exportSection.style.display === 'none' ? 'block' : 'none';
+    efhExportOpen = !efhExportOpen;
+    exportSection.style.display = efhExportOpen ? 'block' : 'none';
+    if (efhExportOpen) exportTextarea.value = buildExportCode();
   });
 
   copyBtn.addEventListener('click', function () {
@@ -641,6 +862,5 @@
     alert('압축된 코드가 복사되었습니다.');
   });
 
-  /* ================= 초기 적용 ================= */
   applyCss();
 })();
