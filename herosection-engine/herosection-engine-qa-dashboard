@@ -1,0 +1,646 @@
+/*
+  ====================================================================
+  히어로 대시보드 런처 v3 (v2 + 코드 출력/복사/미니파이 기능 통합)
+  - 사용법: 히어로가 있는 노션 페이지에서 콘솔에 이 전체를 붙여넣고 Enter.
+  ====================================================================
+*/
+(function () {
+  const hostWin = window;
+  const dash = window.open('', 'EfhHeroDashboard', 'width=720,height=1020,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!dash) { alert('팝업 창 차단을 해제해 주십시오.'); return; }
+
+  const D = dash.document;
+  D.open();
+  D.write('<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>히어로 디자인 대시보드</title></head><body><div id="app"></div></body></html>');
+  D.close();
+
+  const styleEl = D.createElement('style');
+  styleEl.textContent = [
+    ':root { --efh-bg:#121212; --efh-text:#e5e5e5; --efh-panel-bg:#1a1a1a; --efh-panel-border:#2a2a2a; --efh-summary-bg:#222; }',
+    'body.efh_lightMode { --efh-bg:#f4f4f5; --efh-text:#1f2937; --efh-panel-bg:#ffffff; --efh-panel-border:#e5e7eb; --efh-summary-bg:#f1f5f9; }',
+    'body { margin:0; background:var(--efh-bg); color:var(--efh-text); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size:13px; }',
+    '.headerWrap { position:sticky; top:0; z-index:10; background:var(--efh-panel-bg); padding:16px 20px; border-bottom:1px solid var(--efh-panel-border); display:flex; flex-direction:column; gap:10px; }',
+    '.topBar { display:flex; justify-content:space-between; align-items:center; }',
+    '.efh_themeBtn { background:transparent; border:1px solid #444; color:inherit; border-radius:6px; cursor:pointer; padding:6px 10px; }',
+    '.efh_searchBox { width:100%; box-sizing:border-box; padding:8px 12px; background:var(--efh-summary-bg); color:inherit; border:1px solid var(--efh-panel-border); border-radius:6px; outline:none; }',
+    '.efh_storageBar { display:flex; gap:6px; flex-wrap:wrap; }',
+    '.efh_storageBtn { background:var(--efh-summary-bg); border:1px solid var(--efh-panel-border); color:inherit; border-radius:6px; cursor:pointer; padding:5px 9px; font-size:11px; }',
+    '.efh_storageBtnDanger { color:#ef4444; }',
+    '.efh_saveStatus { font-size:11px; color:#10b981; min-height:14px; }',
+    '.efh_slotsPanel { background:var(--efh-summary-bg); border:1px solid var(--efh-panel-border); border-radius:8px; padding:10px; }',
+    '.mainLayout { padding:12px 20px; }',
+    '.panelSection { margin-bottom:12px; background:var(--efh-panel-bg); border-radius:8px; border:1px solid var(--efh-panel-border); }',
+    '.efh_summary { font-weight:700; cursor:pointer; color:#38bdf8; outline:none; padding:12px; background:var(--efh-summary-bg); font-size:14px; display:block; }',
+    '.efh_itemContainer { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-bottom:1px dashed #333; }',
+    '.efh_resetSingleBtn { display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:#888; cursor:pointer; padding:4px; }',
+    '.efh_resetSingleBtn:hover { color:#10b981 !important; }',
+    '.efh_basicSel { padding:6px; background:#111; color:#eee; border:1px solid #444; border-radius:6px; outline:none; }',
+    'input[type="text"], .efh_colorTxt, .efh_iconCustomInput { background:#111; color:#eee; border:1px solid #444; border-radius:6px; padding:6px 10px; box-sizing:border-box; outline:none; }',
+    'body.efh_lightMode .efh_basicSel, body.efh_lightMode .efh_inputNum, body.efh_lightMode .efh_colorTxt, body.efh_lightMode input[type="text"] { background:#fff; color:#1f2937; border-color:#d1d5db; }',
+    '.efh_colorTxt.efh_inputError { border-color:#ef4444 !important; box-shadow:0 0 0 1px #ef4444; }',
+    '.efh_colorPicker { width:34px; height:26px; padding:0; border:none; border-radius:4px; background:transparent; cursor:pointer; }',
+    '.efh_inputRange { flex:1; accent-color:#10b981; cursor:pointer; }',
+    '.efh_inputNum { width:75px; padding:6px; background:#111; color:#10b981; border:1px solid #444; border-radius:6px; font-weight:700; text-align:center; outline:none; }',
+    '.efh_toggleWrap { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }',
+    '.efh_toggleInput { opacity:0; width:0; height:0; position:absolute; }',
+    '.efh_toggleSlider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#444; transition:.2s; border-radius:22px; }',
+    '.efh_toggleSlider:before { position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:white; transition:.2s; border-radius:50%; }',
+    '.efh_toggleInput:checked + .efh_toggleSlider { background:#10b981; }',
+    '.efh_toggleInput:checked + .efh_toggleSlider:before { transform:translateX(18px); }',
+    '.efh_segBtn { padding:6px 12px; background:#111; color:#ccc; border:1px solid #444; border-radius:6px; cursor:pointer; font-size:12px; margin-right:6px; margin-bottom:6px; }',
+    '.efh_segBtn.efh_segActive { background:#10b981; color:#000; border-color:#10b981; font-weight:700; }',
+    '.efh_iconGrid { display:flex; gap:6px; flex-wrap:wrap; }',
+    '.efh_iconBtn { width:38px; height:38px; display:flex; align-items:center; justify-content:center; background:#111; border:1px solid #444; border-radius:6px; color:#ccc; cursor:pointer; font-size:16px; }',
+    '.efh_iconBtn:hover { border-color:#10b981; color:#10b981; }',
+    '.efh_iconBtnActive { background:#10b981; color:#000; border-color:#10b981; }',
+    '.efh_iconCustomApply { padding:6px 12px; background:#333; color:#10b981; border:1px dashed #555; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px; }',
+    '.efh_notionBadge { font-size:10px; padding:2px 6px; background:rgba(16,185,129,0.15); color:#10b981; border-radius:4px; }'
+  ].join('\n');
+  D.head.appendChild(styleEl);
+
+  const faLink = D.createElement('link');
+  faLink.rel = 'stylesheet';
+  faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
+  D.head.appendChild(faLink);
+
+  const EFH_STORAGE_KEY = 'efh_dashboard_saves_list_v1';
+  const EFH_COLOR_REGEX = /^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*(0|1|0?\.\d+)\s*)?\)|transparent)$/;
+  const EFH_ICON_PRESETS = {
+    scroll: ['fa-solid fa-chevron-down', 'fa-solid fa-angle-down', 'fa-solid fa-angles-down', 'fa-solid fa-caret-down', 'fa-solid fa-arrow-down', 'fa-solid fa-circle-down', 'fa-solid fa-square-down', 'fa-solid fa-arrow-down-long'],
+    pause: ['fa-solid fa-circle-pause', 'fa-solid fa-pause', 'fa-solid fa-square-pause'],
+    play: ['fa-solid fa-circle-play', 'fa-solid fa-play', 'fa-solid fa-square-play'],
+    dot: ['fa-solid fa-circle', 'fa-solid fa-square', 'fa-solid fa-star', 'fa-solid fa-diamond', 'fa-solid fa-minus', 'fa-solid fa-heart']
+  };
+  function extractIconClass(raw) {
+    if (!raw) return '';
+    const m = raw.match(/class\s*=\s*"([^"]+)"/i) || raw.match(/class\s*=\s*'([^']+)'/i);
+    if (m) return m[1].trim();
+    return raw.replace(/<\/?i[^>]*>/gi, '').trim();
+  }
+
+  const qaConfig = [
+    { group: '0. 노션 페이지 설정', items: [
+      { key: 'pageTitleVisible', label: '노션 페이지 타이틀 노출', type: 'api-toggle', def: true, apiOn: 'setPageTitleVisible', tip: '페이지 최상단 노션 제목(H1)을 숨깁니다.' },
+      { key: 'pageTitleAreaVisible', label: '타이틀 위 여백 영역 노출', type: 'api-toggle', def: true, apiOn: 'setPageTitleAreaVisible', tip: '타이틀 위쪽 빈 컨트롤 여백을 숨깁니다.' }
+    ]},
+    { group: '1. 텍스트 서식 (메인/서브타이틀)', items: [
+      { key: '--efh-mainTitleSize_a6', label: '메인타이틀 크기 --efh-mainTitleSize_a6', type: 'range', min: 16, max: 80, unit: 'px', def: '40' },
+      { key: '--efh-mainTitleWeight_c1', label: '메인타이틀 굵기 --efh-mainTitleWeight_c1', type: 'weight', min: 100, max: 900, step: 100, def: '800' },
+      { key: '--efh-titleColor_c4', label: '메인타이틀 색상 --efh-titleColor_c4', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-subtitleSize_a7', label: '서브타이틀 크기 --efh-subtitleSize_a7', type: 'range', min: 10, max: 40, unit: 'px', def: '16' },
+      { key: '--efh-subtitleWeight_c2', label: '서브타이틀 굵기 --efh-subtitleWeight_c2', type: 'weight', min: 100, max: 900, step: 100, def: '400' },
+      { key: '--efh-subtitleColor_c5', label: '서브타이틀 색상 --efh-subtitleColor_c5', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: 'textShadow', label: '텍스트 쉐도우 사용', type: 'textshadow-toggle', def: true },
+      { key: 'titleVisible', label: '메인타이틀 노출', type: 'api-toggle', def: true, apiOn: 'setTitleVisible' },
+      { key: 'subtitleVisible', label: '서브타이틀 노출', type: 'api-toggle', def: true, apiOn: 'setSubtitleVisible' }
+    ]},
+    { group: '2. 버튼 서식', items: [
+      { key: '--efh-buttonColumns_a8', label: '버튼 열 개수(PC) --efh-buttonColumns_a8', type: 'range', min: 1, max: 5, step: 1, unit: '', def: '3' },
+      { key: '--efh-buttonColumnsMobile_b16', label: '버튼 열 개수(모바일) --efh-buttonColumnsMobile_b16', type: 'range', min: 1, max: 3, step: 1, unit: '', def: '1' },
+      { key: '--efh-btnFontSize_c8', label: '버튼 글자 크기 --efh-btnFontSize_c8', type: 'range', min: 10, max: 28, unit: 'px', def: '16' },
+      { key: '--efh-btnPadY_c6', label: '버튼 상하 여백 --efh-btnPadY_c6', type: 'range', min: 0, max: 30, unit: 'px', def: '12' },
+      { key: '--efh-btnPadX_c7', label: '버튼 좌우 여백 --efh-btnPadX_c7', type: 'range', min: 0, max: 50, unit: 'px', def: '24' },
+      { key: '--efh-btnRadius_c9', label: '버튼 모서리 둥글기 --efh-btnRadius_c9', type: 'range', min: 0, max: 999, unit: 'px', def: '999' },
+      { key: '--efh-btnSolidBg_a11', label: '솔리드 버튼 배경색 --efh-btnSolidBg_a11', type: 'color', defHex: '#c0392b', defAlpha: '100' },
+      { key: '--efh-btnSolidColor_a12', label: '솔리드 버튼 글자색 --efh-btnSolidColor_a12', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-btnSolidBorderColor_c15', label: '솔리드 버튼 테두리색 --efh-btnSolidBorderColor_c15', type: 'color', defHex: '#000000', defAlpha: '0' },
+      { key: '--efh-btnSolidBorderWidth_c16', label: '솔리드 버튼 테두리 굵기 --efh-btnSolidBorderWidth_c16', type: 'range', min: 0, max: 10, unit: 'px', def: '1' },
+      { key: '--efh-btnOutlineColor_a13', label: '아웃라인 버튼 글자색 --efh-btnOutlineColor_a13', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-btnOutlineBorderColor_c17', label: '아웃라인 버튼 테두리색 --efh-btnOutlineBorderColor_c17', type: 'color', defHex: '#ffffff', defAlpha: '60' },
+      { key: '--efh-btnOutlineBorderWidth_c18', label: '아웃라인 버튼 테두리 굵기 --efh-btnOutlineBorderWidth_c18', type: 'range', min: 0, max: 10, unit: 'px', def: '1' },
+      { key: '--efh-btnHoverSolidBg_a14', label: '솔리드 버튼 호버 배경 --efh-btnHoverSolidBg_a14', type: 'color', defHex: '#a93226', defAlpha: '100' },
+      { key: '--efh-btnHoverOutlineBg_a15', label: '아웃라인 버튼 호버 배경 --efh-btnHoverOutlineBg_a15', type: 'color', defHex: '#ffffff', defAlpha: '15' }
+    ]},
+    { group: '3. 레이아웃 / 여백', items: [
+      { key: '--efh-mainHeight_a2', label: '메인 히어로 높이 --efh-mainHeight_a2', type: 'range', min: 30, max: 100, unit: 'vh', def: '100' },
+      { key: '--efh-subHeight_a3', label: '서브 히어로 높이 --efh-subHeight_a3', type: 'range', min: 10, max: 100, unit: 'vh', def: '30' },
+      { key: '--efh-contentSidePad_b13', label: '콘텐츠 좌우 여백 --efh-contentSidePad_b13', type: 'range', min: 0, max: 20, unit: 'vw', def: '6' },
+      { key: '--efh-contentTextMaxWidth_b14', label: '콘텐츠 텍스트 최대폭 --efh-contentTextMaxWidth_b14', type: 'range', min: 300, max: 1000, unit: 'px', def: '640' },
+      { key: '--efh-contentMaxWidth_b11', label: 'Fit모드 전체 최대폭 --efh-contentMaxWidth_b11', type: 'range', min: 800, max: 1920, unit: 'px', def: '1200' },
+      { key: '--efh-fitBorderRadius_b15', label: 'Fit모드 모서리 둥글기 --efh-fitBorderRadius_b15', type: 'range', min: 0, max: 60, unit: 'px', def: '0' },
+      { key: 'mobileBreakpoint', label: '모바일 판정 기준폭', type: 'api-range', min: 480, max: 1024, unit: '', def: '768', apiFn: 'setMobileBreakpoint' }
+    ]},
+    { group: '4. 배경 / 그림자', items: [
+      { key: '--efh-shadowColor_a1', label: '그림자 기본 색상 --efh-shadowColor_a1', type: 'color', defHex: '#000000', defAlpha: '35' },
+      { key: '--efh-bgFallbackColor_b12', label: '배경 대체(로딩중) 색상 --efh-bgFallbackColor_b12', type: 'color', defHex: '#111111', defAlpha: '100' },
+      { key: '--efh-slideSpeed_a9', label: '슬라이드 전환 속도 --efh-slideSpeed_a9', type: 'range', min: 0.1, max: 2, step: 0.1, unit: 's', def: '0.8' },
+      { key: '--efh-bgFadeSpeed_a10', label: '배경이미지 페이드 속도 --efh-bgFadeSpeed_a10', type: 'range', min: 0.1, max: 2, step: 0.1, unit: 's', def: '1' }
+    ]},
+    { group: '5. 캐러셀 컨트롤 (닷 · 재생/정지)', items: [
+      { key: '--efh-dotColor_b9', label: '닷 기본 색상 --efh-dotColor_b9', type: 'color', defHex: '#ffffff', defAlpha: '40' },
+      { key: '--efh-dotActiveColor_b10', label: '닷 활성 색상 --efh-dotActiveColor_b10', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-dotSize_c10', label: '닷 크기 --efh-dotSize_c10', type: 'range', min: 4, max: 20, unit: 'px', def: '8' },
+      { key: 'dotShape', label: '닷 모양', type: 'segmented', options: [['dot','원형'],['bar','바'],['square','사각'],['diamond','다이아'],['icon','아이콘']], def: 'dot', apiFn: 'setDotShape' },
+      { key: 'dotIcon', label: '닷 아이콘 선택 (모양=아이콘일 때 적용)', type: 'icon', presetKey: 'dot', apiFn: 'setDotIcon', def: 'fa-solid fa-circle' },
+      { key: '--efh-pauseIconColor_b6', label: '재생/정지 아이콘 색상 --efh-pauseIconColor_b6', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-pauseIconSize_b7', label: '재생/정지 아이콘 크기 --efh-pauseIconSize_b7', type: 'range', min: 10, max: 30, unit: 'px', def: '16' },
+      { key: 'pauseIcon', label: '정지 아이콘 선택', type: 'icon', presetKey: 'pause', apiPairFn: 'setPauseIcons', pairSlot: 0, def: 'fa-solid fa-circle-pause' },
+      { key: 'playIcon', label: '재생 아이콘 선택', type: 'icon', presetKey: 'play', apiPairFn: 'setPauseIcons', pairSlot: 1, def: 'fa-solid fa-circle-play' },
+      { key: '--efh-controlsGap_c19', label: '닷/컨트롤 ↔ 스크롤아이콘 간격 --efh-controlsGap_c19', type: 'range', min: 0, max: 100, unit: 'px', def: '36' },
+      { key: 'autoplay', label: '자동재생 사용', type: 'api-toggle', def: true, apiOn: 'setAutoplay' },
+      { key: 'defaultDuration', label: '슬라이드 기본 노출시간(초)', type: 'api-range', min: 2, max: 20, unit: '', def: '6', apiFn: 'setDefaultSlideDuration' }
+    ]},
+    { group: '6. 스크롤다운 아이콘', items: [
+      { key: '--efh-scrollIconColor_b4', label: '스크롤 아이콘 색상 --efh-scrollIconColor_b4', type: 'color', defHex: '#ffffff', defAlpha: '100' },
+      { key: '--efh-scrollIconSize_b5', label: '스크롤 아이콘 크기 --efh-scrollIconSize_b5', type: 'range', min: 10, max: 40, unit: 'px', def: '22' },
+      { key: 'scrollIcon', label: '스크롤 아이콘 선택', type: 'icon', presetKey: 'scroll', apiFn: 'setScrollIcon', def: 'fa-solid fa-chevron-down' },
+      { key: 'scrollVisible', label: '스크롤 아이콘 노출', type: 'dom-toggle', selector: '.efh_scrollHint_g1d', def: true }
+    ]}
+  ];
+
+  const NOTION_FIELDS = [
+    { label: '높이', example: '예: 80vh 또는 800px', note: '슬라이드별 높이. 비워두면 대시보드 기본값(3번 그룹) 사용' },
+    { label: '넓이', example: '예: Fit / 본문', note: "'Fit' 또는 '본문' 입력 시 Fit모드 적용, 그 외엔 전체폭" },
+    { label: '가로 정렬', example: '예: 좌 / 우 / 중앙', note: '비워두면 대시보드 기본 정렬 적용' },
+    { label: '세로 정렬', example: '예: 상 / 하 / 중앙', note: '비워두면 대시보드 기본 정렬 적용' },
+    { label: '배경 색', example: '예: #111111', note: '슬라이드 배경색(이미지 로딩 전/실패 시 표시)' },
+    { label: '배경 위치', example: '예: 상단 / 하단', note: '배경이미지 세로 위치' },
+    { label: '배경 배율', example: '예: 110', note: '배경이미지 확대 비율(%)' },
+    { label: '쉐도우 색 / 투명도', example: '예: #000000 / 40', note: '이 슬라이드만 그림자 오버라이드, 대시보드 기본값보다 우선' },
+    { label: '노출 시간', example: '예: 8', note: '이 슬라이드만 초 단위 오버라이드, 없으면 대시보드 기본 노출시간 사용' },
+    { label: '용도', example: '예: 서브 / sub', note: "'전체관리' 그룹 전용, main/sub 구분" }
+  ];
+
+  const currentStyles = {};
+  const app = D.getElementById('app');
+
+  function hexToRgb(hex) {
+    let c = hex.replace('#', '');
+    if (c.length === 3) c = c.split('').map(function (ch) { return ch + ch; }).join('');
+    return { r: parseInt(c.substring(0,2),16), g: parseInt(c.substring(2,4),16), b: parseInt(c.substring(4,6),16) };
+  }
+  function colorToStr(hex, alpha) {
+    const a = parseInt(alpha,10);
+    if (a === 0) return 'transparent';
+    const rgb = hexToRgb(hex);
+    return 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + (a/100).toFixed(2) + ')';
+  }
+  function applyCss() {
+    let rules = ':root {\n';
+    for (const k in currentStyles) rules += '  ' + k + ': ' + currentStyles[k] + ' !important;\n';
+    rules += '}';
+    let hostOld = hostWin.document.getElementById('efh_dynamic_dashboard_style');
+    if (hostOld) hostOld.remove();
+    const hostTag = hostWin.document.createElement('style');
+    hostTag.id = 'efh_dynamic_dashboard_style';
+    hostTag.textContent = rules;
+    hostWin.document.head.appendChild(hostTag);
+  }
+  function callApi(fnName, arg1, arg2) {
+    if (hostWin.efhDashboardAPI && typeof hostWin.efhDashboardAPI[fnName] === 'function') {
+      hostWin.efhDashboardAPI[fnName](arg1, arg2);
+    } else {
+      console.warn('[히어로대시보드] hostWin.efhDashboardAPI.' + fnName + ' 을 찾을 수 없습니다. 엔진 코드가 이 페이지에 로드되어 있는지 확인하세요.');
+    }
+  }
+
+  function el(tag, attrs, children) {
+    const e = D.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      if (k === 'class') e.className = attrs[k];
+      else if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (children) children.forEach(function (c) { if (c) e.appendChild(c); });
+    return e;
+  }
+
+  function buildColorRow(item) {
+    currentStyles[item.key] = colorToStr(item.defHex, item.defAlpha);
+    const wrap = el('div', { style: 'display:flex; gap:8px; align-items:center; width:100%;' });
+    const colorInput = el('input', { type: 'color', class: 'efh_colorPicker' }); colorInput.value = item.defHex;
+    const alphaInput = el('input', { type: 'range', class: 'efh_alphaRange efh_inputRange', min: '0', max: '100', style: 'flex:1;' }); alphaInput.value = item.defAlpha;
+    const alphaVal = el('span', { class: 'efh_alphaVal', style: 'font-size:11px; color:#10b981; width:34px; text-align:right;', text: item.defAlpha + '%' });
+    const textInput = el('input', { type: 'text', class: 'efh_colorTxt', style: 'width:130px; font-family:monospace; font-size:11px;' }); textInput.value = currentStyles[item.key];
+
+    function sync() {
+      alphaVal.textContent = alphaInput.value + '%';
+      const str = colorToStr(colorInput.value, alphaInput.value);
+      textInput.value = str; textInput.classList.remove('efh_inputError');
+      currentStyles[item.key] = str; applyCss();
+    }
+    colorInput.addEventListener('input', sync);
+    alphaInput.addEventListener('input', sync);
+    textInput.addEventListener('input', function () {
+      const v = textInput.value.trim();
+      if (!EFH_COLOR_REGEX.test(v)) { textInput.classList.add('efh_inputError'); return; }
+      textInput.classList.remove('efh_inputError');
+      currentStyles[item.key] = v; applyCss();
+    });
+    wrap.appendChild(colorInput); wrap.appendChild(alphaInput); wrap.appendChild(alphaVal); wrap.appendChild(textInput);
+    return { node: wrap, reset: function () { colorInput.value = item.defHex; alphaInput.value = item.defAlpha; sync(); } };
+  }
+
+  function buildRangeRow(item) {
+    currentStyles[item.key] = item.def + (item.unit || '');
+    const wrap = el('div', { style: 'display:flex; gap:10px; align-items:center;' });
+    const range = el('input', { type: 'range', class: 'efh_inputRange', min: String(item.min), max: String(item.max), step: String(item.step || 1) }); range.value = item.def;
+    const num = el('input', { type: 'number', class: 'efh_inputNum', step: String(item.step || 1) }); num.value = item.def;
+    function sync(v) { currentStyles[item.key] = v + (item.unit || ''); applyCss(); }
+    range.addEventListener('input', function () { num.value = range.value; sync(range.value); });
+    num.addEventListener('input', function () { range.value = num.value; sync(num.value); });
+    wrap.appendChild(range); wrap.appendChild(num);
+    return { node: wrap, reset: function () { range.value = item.def; num.value = item.def; sync(item.def); } };
+  }
+
+  function buildWeightRow(item) {
+    currentStyles[item.key] = item.def;
+    const wrap = el('div', { style: 'display:flex; gap:8px; align-items:center;' });
+    const range = el('input', { type: 'range', class: 'efh_inputRange', min: String(item.min), max: String(item.max), step: String(item.step), style: 'flex:1;' }); range.value = item.def;
+    const sel = el('select', { class: 'efh_basicSel', style: 'width:80px;' });
+    [100,200,300,400,500,600,700,800,900].forEach(function (w) {
+      const opt = el('option', { value: String(w), text: String(w) });
+      if (String(w) === String(item.def)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    function sync(v) { currentStyles[item.key] = v; applyCss(); }
+    range.addEventListener('input', function () { sel.value = range.value; sync(range.value); });
+    sel.addEventListener('change', function () { range.value = sel.value; sync(sel.value); });
+    wrap.appendChild(range); wrap.appendChild(sel);
+    return { node: wrap, reset: function () { range.value = item.def; sel.value = item.def; sync(item.def); } };
+  }
+
+  function buildApiRangeRow(item) {
+    const wrap = el('div', { style: 'display:flex; gap:10px; align-items:center;' });
+    const range = el('input', { type: 'range', class: 'efh_inputRange', min: String(item.min), max: String(item.max) }); range.value = item.def;
+    const num = el('input', { type: 'number', class: 'efh_inputNum' }); num.value = item.def;
+    function sync(v) { callApi(item.apiFn, v); }
+    range.addEventListener('input', function () { num.value = range.value; sync(range.value); });
+    num.addEventListener('input', function () { range.value = num.value; sync(num.value); });
+    wrap.appendChild(range); wrap.appendChild(num);
+    return { node: wrap, reset: function () { range.value = item.def; num.value = item.def; sync(item.def); } };
+  }
+
+  function buildToggleRow(item) {
+    const wrap = el('label', { class: 'efh_toggleWrap' });
+    const input = el('input', { type: 'checkbox', class: 'efh_toggleInput' });
+    input.checked = !!item.def;
+    const slider = el('span', { class: 'efh_toggleSlider' });
+    wrap.appendChild(input); wrap.appendChild(slider);
+    function fire() {
+      if (item.type === 'textshadow-toggle') {
+        hostWin.document.querySelectorAll('.efh_hero_r1f').forEach(function (h) { h.setAttribute('data-textshadow', input.checked ? '1' : '0'); });
+      } else if (item.type === 'api-toggle') {
+        callApi(item.apiOn, input.checked);
+      } else if (item.type === 'dom-toggle') {
+        hostWin.document.querySelectorAll(item.selector).forEach(function (n) { n.style.display = input.checked ? '' : 'none'; });
+      }
+    }
+    input.addEventListener('change', fire);
+    return { node: wrap, reset: function () { input.checked = !!item.def; fire(); } };
+  }
+
+  function buildSegmentedRow(item) {
+    const wrap = el('div', {});
+    const btns = item.options.map(function (opt) {
+      const b = el('button', { class: 'efh_segBtn' + (opt[0] === item.def ? ' efh_segActive' : ''), text: opt[1] });
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) { x.classList.remove('efh_segActive'); });
+        b.classList.add('efh_segActive');
+        callApi(item.apiFn, opt[0]);
+      });
+      wrap.appendChild(b);
+      return b;
+    });
+    return { node: wrap, reset: function () {
+      btns.forEach(function (b, i) { b.classList.toggle('efh_segActive', item.options[i][0] === item.def); });
+      callApi(item.apiFn, item.def);
+    } };
+  }
+
+  function buildIconRow(item) {
+    const wrap = el('div', {});
+    const grid = el('div', { class: 'efh_iconGrid' });
+    const presets = EFH_ICON_PRESETS[item.presetKey] || [];
+    const btns = presets.map(function (cls) {
+      const b = el('i', {}); b.className = cls;
+      const btn = el('button', { class: 'efh_iconBtn' + (cls === item.def ? ' efh_iconBtnActive' : ''), title: cls });
+      btn.appendChild(b);
+      btn.addEventListener('click', function () { selectIcon(cls); });
+      grid.appendChild(btn);
+      return btn;
+    });
+    const customRow = el('div', { style: 'display:flex; gap:6px; margin-top:8px;' });
+    const customInput = el('input', { type: 'text', class: 'efh_iconCustomInput', placeholder: '직접 입력: 아이콘 태그 통째로 붙여넣어도 됩니다', style: 'flex:1; font-size:11px;' });
+    const customBtn = el('button', { class: 'efh_iconCustomApply', text: '적용' });
+    customBtn.addEventListener('click', function () {
+      const cls = extractIconClass(customInput.value);
+      if (cls) selectIcon(cls);
+    });
+    customRow.appendChild(customInput); customRow.appendChild(customBtn);
+    wrap.appendChild(grid); wrap.appendChild(customRow);
+
+    function selectIcon(cls) {
+      btns.forEach(function (b) { b.classList.toggle('efh_iconBtnActive', b.getAttribute('title') === cls); });
+      if (item.apiFn) callApi(item.apiFn, cls);
+      else if (item.apiPairFn) {
+        window['__efhPairCache_' + item.apiPairFn] = window['__efhPairCache_' + item.apiPairFn] || ['fa-solid fa-circle-pause', 'fa-solid fa-circle-play'];
+        window['__efhPairCache_' + item.apiPairFn][item.pairSlot] = cls;
+        callApi(item.apiPairFn, window['__efhPairCache_' + item.apiPairFn][0], window['__efhPairCache_' + item.apiPairFn][1]);
+      }
+    }
+    return { node: wrap, reset: function () { selectIcon(item.def); }, selectIcon: selectIcon };
+  }
+
+  const registry = {};
+
+  function buildItem(item) {
+    const container = el('div', { class: 'efh_itemContainer', 'data-label': item.label.toLowerCase() });
+    const head = el('div', { style: 'display:flex; justify-content:space-between; align-items:flex-start;' });
+    const labelWrap = el('div', { style: 'width:100%;' });
+    labelWrap.appendChild(el('label', { style: 'color:#eee; font-weight:600; font-size:13px;', text: item.label }));
+    if (item.tip) labelWrap.appendChild(el('div', { style: 'font-size:11px; color:#888;', text: item.tip }));
+    const resetBtn = el('button', { class: 'efh_resetSingleBtn', title: '초기화' });
+    resetBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>';
+    head.appendChild(labelWrap); head.appendChild(resetBtn);
+    container.appendChild(head);
+
+    let control;
+    if (item.type === 'color') control = buildColorRow(item);
+    else if (item.type === 'range') control = buildRangeRow(item);
+    else if (item.type === 'weight') control = buildWeightRow(item);
+    else if (item.type === 'api-range') control = buildApiRangeRow(item);
+    else if (item.type === 'api-toggle' || item.type === 'dom-toggle' || item.type === 'textshadow-toggle') control = buildToggleRow(item);
+    else if (item.type === 'segmented') control = buildSegmentedRow(item);
+    else if (item.type === 'icon') control = buildIconRow(item);
+    else control = { node: el('div', {}), reset: function () {} };
+
+    container.appendChild(control.node);
+    resetBtn.addEventListener('click', control.reset);
+    registry[item.key] = { item: item, control: control, container: container };
+    return container;
+  }
+
+  const header = el('header', { class: 'headerWrap' });
+  const topBar = el('div', { class: 'topBar' });
+  topBar.appendChild(el('h3', { style: 'margin:0; color:#10b981; font-size:18px; font-weight:800;', text: '히어로 대시보드' }));
+  const topBtns = el('div', { style: 'display:flex; gap:8px; align-items:center;' });
+  const themeBtn = el('button', { class: 'efh_themeBtn', text: '🌙 다크' });
+  const resetAllBtn = el('button', { style: 'background:transparent; border:1px solid #444; color:#aaa; border-radius:6px; cursor:pointer; padding:6px 10px;', text: '전체 복구' });
+  topBtns.appendChild(themeBtn); topBtns.appendChild(resetAllBtn);
+  topBar.appendChild(topBtns);
+  header.appendChild(topBar);
+
+  const searchBox = el('input', { type: 'text', class: 'efh_searchBox', placeholder: '설정 검색 (예: 버튼, 색상, 닷)' });
+  header.appendChild(searchBox);
+
+  const storageBar = el('div', { class: 'efh_storageBar' });
+  const saveBtn = el('button', { class: 'efh_storageBtn', text: '💾 임시저장(새 슬롯)' });
+  const slotsToggleBtn = el('button', { class: 'efh_storageBtn', text: '📂 저장 슬롯 목록' });
+  const invalidateBtn = el('button', { class: 'efh_storageBtn efh_storageBtnDanger', text: '↺ 기본값 보기(무효화)' });
+  const exportTriggerBtn = el('button', { class: 'efh_storageBtn', text: '📤 코드 출력' });
+  storageBar.appendChild(saveBtn); storageBar.appendChild(slotsToggleBtn); storageBar.appendChild(invalidateBtn); storageBar.appendChild(exportTriggerBtn);
+  header.appendChild(storageBar);
+
+  const statusEl = el('div', { class: 'efh_saveStatus' });
+  header.appendChild(statusEl);
+
+  const slotsPanel = el('div', { class: 'efh_slotsPanel', style: 'display:none;' });
+  const slotsList = el('div', { style: 'display:flex; flex-direction:column; gap:6px;' });
+  slotsPanel.appendChild(slotsList);
+  header.appendChild(slotsPanel);
+
+  const exportSection = el('div', { id: 'efh_exportSection', style: 'display:none; margin-top:4px; padding:14px; border:1px solid var(--efh-panel-border); background:var(--efh-summary-bg); border-radius:8px;' });
+  const exportTextarea = el('textarea', { style: 'width:100%; height:280px; background:#000; color:#10b981; border:1px solid #444; border-radius:8px; padding:10px; font-family:monospace; font-size:12px; box-sizing:border-box; resize:vertical;' });
+  const exportBtnRow = el('div', { style: 'display:flex; gap:10px; margin-top:10px;' });
+  const copyBtn = el('button', { style: 'flex:1; padding:10px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-weight:800; cursor:pointer;', text: '기본 복사' });
+  const copyMinBtn = el('button', { style: 'flex:1; padding:10px; background:#8b5cf6; color:#fff; border:none; border-radius:6px; font-weight:800; cursor:pointer;', text: '압축(Minify) 복사' });
+  exportBtnRow.appendChild(copyBtn); exportBtnRow.appendChild(copyMinBtn);
+  exportSection.appendChild(exportTextarea); exportSection.appendChild(exportBtnRow);
+  header.appendChild(exportSection);
+
+  app.appendChild(header);
+
+  const main = el('main', { class: 'mainLayout' });
+  qaConfig.forEach(function (groupObj) {
+    const section = el('section', { class: 'panelSection', 'data-groupname': groupObj.group.toLowerCase() });
+    const details = el('details', {}); details.open = true;
+    const summary = el('summary', { class: 'efh_summary', text: groupObj.group });
+    details.appendChild(summary);
+    const body = el('div', { style: 'padding:0;' });
+    groupObj.items.forEach(function (item) { body.appendChild(buildItem(item)); });
+    details.appendChild(body);
+    section.appendChild(details);
+    main.appendChild(section);
+  });
+
+  const notionSection = el('section', { class: 'panelSection', 'data-groupname': '노션 연동 설정' });
+  const notionDetails = el('details', {}); notionDetails.open = true;
+  notionDetails.appendChild(el('summary', { class: 'efh_summary', style: 'color:#f43f5e;', text: '7. 노션 속성으로도 설정 가능한 항목' }));
+  const notionBody = el('div', { style: 'padding:12px; display:flex; flex-direction:column; gap:10px;' });
+  notionBody.appendChild(el('div', { style: 'font-size:11px; color:#888;', text: '아래 항목은 노션 테이블의 슬라이드 행에 값을 입력하면 그 슬라이드에만 개별 적용됩니다. 비워두면 위 대시보드 기본값이 사용됩니다.' }));
+  NOTION_FIELDS.forEach(function (f) {
+    const row = el('div', { style: 'background:var(--efh-summary-bg); padding:8px 10px; border-radius:6px;' });
+    const rowTop = el('div', { style: 'display:flex; justify-content:space-between;' });
+    rowTop.appendChild(el('span', { style: 'color:#eee; font-weight:700; font-size:12px;', text: f.label }));
+    rowTop.appendChild(el('span', { class: 'efh_notionBadge', text: '노션 필드' }));
+    row.appendChild(rowTop);
+    row.appendChild(el('div', { style: 'font-size:11px; color:#888; margin-top:2px;', text: f.example + ' — ' + f.note }));
+    notionBody.appendChild(row);
+  });
+  notionDetails.appendChild(notionBody);
+  notionSection.appendChild(notionDetails);
+  main.appendChild(notionSection);
+
+  app.appendChild(main);
+
+  const footer = el('footer', { style: 'padding:16px 20px; border-top:1px solid var(--efh-panel-border); background:var(--efh-panel-bg);' });
+  footer.appendChild(el('div', { style: 'font-size:11px; color:#888; text-align:center;', text: '모든 변경사항은 즉시 페이지에 반영됩니다. 저장 슬롯을 눌러야 다음 방문 때도 남습니다.' }));
+  app.appendChild(footer);
+
+  searchBox.addEventListener('input', function () {
+    const term = searchBox.value.trim().toLowerCase();
+    D.querySelectorAll('.panelSection').forEach(function (sec) {
+      const groupMatch = (sec.getAttribute('data-groupname') || '').includes(term);
+      let any = false;
+      sec.querySelectorAll('.efh_itemContainer').forEach(function (it) {
+        const m = groupMatch || (it.getAttribute('data-label') || '').includes(term);
+        it.style.display = (term === '' || m) ? '' : 'none';
+        if (term === '' || m) any = true;
+      });
+      sec.style.display = (term === '' || any || groupMatch) ? '' : 'none';
+    });
+  });
+
+  themeBtn.addEventListener('click', function () {
+    const light = D.body.classList.toggle('efh_lightMode');
+    themeBtn.textContent = light ? '☀️ 라이트' : '🌙 다크';
+  });
+
+  resetAllBtn.addEventListener('click', function () {
+    if (!confirm('모든 설정을 기본값으로 되돌리시겠습니까?')) return;
+    for (const k in registry) registry[k].control.reset();
+  });
+
+  function getSlots() { try { return JSON.parse(hostWin.localStorage.getItem(EFH_STORAGE_KEY)) || []; } catch (e) { return []; } }
+  function setSlots(a) { hostWin.localStorage.setItem(EFH_STORAGE_KEY, JSON.stringify(a)); }
+  function setStatus(msg) { statusEl.textContent = msg; setTimeout(function () { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 4000); }
+
+  function renderSlots() {
+    slotsList.innerHTML = '';
+    const slots = getSlots();
+    if (slots.length === 0) { slotsList.appendChild(el('div', { style: 'font-size:11px; color:#888;', text: '저장된 슬롯이 없습니다.' })); return; }
+    slots.slice().reverse().forEach(function (slot) {
+      const row = el('div', { style: 'display:flex; gap:6px; align-items:center; background:var(--efh-summary-bg); padding:8px; border-radius:6px;' });
+      row.appendChild(el('span', { style: 'flex:1; font-size:12px;', text: slot.label }));
+      const loadBtn = el('button', { style: 'padding:5px 8px; background:#3b82f6; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:11px;', text: '불러오기' });
+      const delBtn = el('button', { style: 'padding:5px 8px; background:#ef4444; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:11px;', text: '삭제' });
+      loadBtn.addEventListener('click', function () { loadSlot(slot.id); });
+      delBtn.addEventListener('click', function () { setSlots(getSlots().filter(function (s) { return s.id !== slot.id; })); renderSlots(); });
+      row.appendChild(loadBtn); row.appendChild(delBtn);
+      slotsList.appendChild(row);
+    });
+  }
+
+  function loadSlot(id) {
+    const slot = getSlots().find(function (s) { return s.id === id; });
+    if (!slot) { setStatus('슬롯을 찾을 수 없습니다.'); return; }
+    const p = slot.payload;
+    for (const k in p.styles || {}) currentStyles[k] = p.styles[k];
+    applyCss();
+    (p.toggles || []).forEach(function (t) {
+      const reg = registry[t.key]; if (!reg) return;
+      const input = reg.container.querySelector('.efh_toggleInput');
+      if (input) { input.checked = t.checked; input.dispatchEvent(new Event('change')); }
+    });
+    (p.segmented || []).forEach(function (s) {
+      const reg = registry[s.key]; if (!reg) return;
+      reg.container.querySelectorAll('.efh_segBtn').forEach(function (b) { if (b.textContent === s.label) b.click(); });
+    });
+    (p.icons || []).forEach(function (ic) {
+      const reg = registry[ic.key]; if (!reg || !reg.control.selectIcon) return;
+      reg.control.selectIcon(ic.cls);
+    });
+    setStatus('"' + slot.label + '" 슬롯을 불러왔습니다.');
+  }
+
+  saveBtn.addEventListener('click', function () {
+    const nowLabel = new Date().toLocaleString('ko-KR');
+    const toggles = [], segmented = [], icons = [];
+    for (const k in registry) {
+      const reg = registry[k];
+      const t = reg.container.querySelector('.efh_toggleInput');
+      if (t) toggles.push({ key: k, checked: t.checked });
+      const activeSeg = reg.container.querySelector('.efh_segBtn.efh_segActive');
+      if (activeSeg) segmented.push({ key: k, label: activeSeg.textContent });
+      const activeIcon = reg.container.querySelector('.efh_iconBtnActive i');
+      if (activeIcon) icons.push({ key: k, cls: activeIcon.className });
+    }
+    const payload = { styles: JSON.parse(JSON.stringify(currentStyles)), toggles: toggles, segmented: segmented, icons: icons };
+    const slots = getSlots();
+    slots.push({ id: Date.now(), label: nowLabel + ' 저장', payload: payload });
+    setSlots(slots);
+    renderSlots();
+    setStatus('새 슬롯으로 저장했습니다.');
+  });
+
+  slotsToggleBtn.addEventListener('click', function () {
+    const open = slotsPanel.style.display !== 'none';
+    slotsPanel.style.display = open ? 'none' : 'block';
+    if (!open) renderSlots();
+  });
+
+  invalidateBtn.addEventListener('click', function () {
+    if (!confirm('현재 미리보기 값을 지우고 엔진 기본값으로 되돌리시겠습니까? (저장된 슬롯은 유지됩니다)')) return;
+    let dyn = hostWin.document.getElementById('efh_dynamic_dashboard_style');
+    if (dyn) dyn.remove();
+    for (const k in currentStyles) delete currentStyles[k];
+    setStatus('엔진 기본값으로 복원했습니다.');
+  });
+
+  /* ================= 코드 출력 (Export) ================= */
+  function getToggleChecked(key) { const r = registry[key]; return r ? !!r.container.querySelector('.efh_toggleInput').checked : null; }
+  function getNumValue(key) { const r = registry[key]; if (!r) return null; const n = r.container.querySelector('.efh_inputNum'); return n ? n.value : null; }
+  function getActiveSegValue(key) {
+    const r = registry[key]; if (!r) return null;
+    const btns = r.container.querySelectorAll('.efh_segBtn');
+    const activeIdx = Array.prototype.findIndex.call(btns, function (b) { return b.classList.contains('efh_segActive'); });
+    return activeIdx > -1 ? r.item.options[activeIdx][0] : r.item.def;
+  }
+  function getActiveIconClass(key) {
+    const r = registry[key]; if (!r) return null;
+    const activeI = r.container.querySelector('.efh_iconBtnActive i');
+    return activeI ? activeI.className : r.item.def;
+  }
+
+  function buildExportCode() {
+    let css = '<style>\n:root {\n';
+    for (const k in currentStyles) css += '  ' + k + ': ' + currentStyles[k] + ' !important;\n';
+    css += '}\n</style>';
+
+    const lines = [];
+    lines.push('<script>');
+    lines.push('(function () {');
+    lines.push('  function efhApplySavedSettings() {');
+    lines.push('    if (!window.efhDashboardAPI) { setTimeout(efhApplySavedSettings, 200); return; }');
+
+    if (getToggleChecked('pageTitleVisible') !== null) lines.push('    window.efhDashboardAPI.setPageTitleVisible(' + getToggleChecked('pageTitleVisible') + ');');
+    if (getToggleChecked('pageTitleAreaVisible') !== null) lines.push('    window.efhDashboardAPI.setPageTitleAreaVisible(' + getToggleChecked('pageTitleAreaVisible') + ');');
+    if (getToggleChecked('textShadow') !== null) lines.push('    document.querySelectorAll(".efh_hero_r1f").forEach(function (h) { h.setAttribute("data-textshadow", "' + (getToggleChecked('textShadow') ? '1' : '0') + '"); });');
+    if (getToggleChecked('titleVisible') !== null) lines.push('    window.efhDashboardAPI.setTitleVisible(' + getToggleChecked('titleVisible') + ');');
+    if (getToggleChecked('subtitleVisible') !== null) lines.push('    window.efhDashboardAPI.setSubtitleVisible(' + getToggleChecked('subtitleVisible') + ');');
+    if (getNumValue('mobileBreakpoint') !== null) lines.push('    window.efhDashboardAPI.setMobileBreakpoint(' + JSON.stringify(getNumValue('mobileBreakpoint')) + ');');
+
+    const shapeVal = getActiveSegValue('dotShape') || 'dot';
+    if (shapeVal === 'icon') {
+      lines.push('    window.efhDashboardAPI.setDotIcon(' + JSON.stringify(getActiveIconClass('dotIcon')) + ');');
+    } else {
+      lines.push('    window.efhDashboardAPI.setDotShape(' + JSON.stringify(shapeVal) + ');');
+    }
+
+    if (getToggleChecked('autoplay') !== null) lines.push('    window.efhDashboardAPI.setAutoplay(' + getToggleChecked('autoplay') + ');');
+    if (getNumValue('defaultDuration') !== null) lines.push('    window.efhDashboardAPI.setDefaultSlideDuration(' + JSON.stringify(getNumValue('defaultDuration')) + ');');
+
+    if (registry['scrollIcon']) lines.push('    window.efhDashboardAPI.setScrollIcon(' + JSON.stringify(getActiveIconClass('scrollIcon')) + ');');
+    if (getToggleChecked('scrollVisible') !== null) lines.push('    document.querySelectorAll(".efh_scrollHint_g1d").forEach(function (el) { el.style.display = "' + (getToggleChecked('scrollVisible') ? '' : 'none') + '"; });');
+
+    if (registry['pauseIcon'] || registry['playIcon']) {
+      const pCls = registry['pauseIcon'] ? getActiveIconClass('pauseIcon') : 'fa-solid fa-circle-pause';
+      const plCls = registry['playIcon'] ? getActiveIconClass('playIcon') : 'fa-solid fa-circle-play';
+      lines.push('    window.efhDashboardAPI.setPauseIcons(' + JSON.stringify(pCls) + ', ' + JSON.stringify(plCls) + ');');
+    }
+
+    lines.push('  }');
+    lines.push('  efhApplySavedSettings();');
+    lines.push('})();');
+    lines.push('<\/script>');
+
+    return css + '\n\n' + lines.join('\n');
+  }
+
+  exportTriggerBtn.addEventListener('click', function () {
+    exportTextarea.value = buildExportCode();
+    exportSection.style.display = exportSection.style.display === 'none' ? 'block' : 'none';
+  });
+
+  copyBtn.addEventListener('click', function () {
+    exportTextarea.select();
+    D.execCommand('copy');
+    alert('코드가 복사되었습니다.');
+  });
+
+  copyMinBtn.addEventListener('click', function () {
+    const raw = exportTextarea.value;
+    const styleMatch = raw.match(/<style>[\s\S]*?<\/style>/);
+    const scriptMatch = raw.match(/<script>[\s\S]*?<\/script>/);
+    let minified = raw;
+    if (styleMatch) {
+      const minStyle = styleMatch[0].replace(/\n/g, '').replace(/\s{2,}/g, ' ');
+      minified = minified.replace(styleMatch[0], minStyle);
+    }
+    if (scriptMatch) {
+      const minScript = scriptMatch[0].replace(/\n\s*/g, ' ');
+      minified = minified.replace(scriptMatch[0], minScript);
+    }
+    const temp = D.createElement('textarea');
+    temp.value = minified;
+    D.body.appendChild(temp);
+    temp.select();
+    D.execCommand('copy');
+    D.body.removeChild(temp);
+    alert('압축된 코드가 복사되었습니다.');
+  });
+
+  /* ================= 초기 적용 ================= */
+  applyCss();
+})();

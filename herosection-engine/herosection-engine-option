@@ -1,0 +1,70 @@
+/*
+<!--히어로 섹션 디자인 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/herosection-engine/herosection-engine.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/herosection-engine/herosection-engine.js" defer></script>
+*/
+
+<style>
+:root {
+  --efh-mainTitleSize_a6: 40px !important;
+  --efh-mainTitleWeight_c1: 800 !important;
+  --efh-titleColor_c4: rgba(255,255,255,1.00) !important;
+  --efh-subtitleSize_a7: 16px !important;
+  --efh-subtitleWeight_c2: 400 !important;
+  --efh-subtitleColor_c5: rgba(255,255,255,1.00) !important;
+  --efh-buttonColumns_a8: 3 !important;
+  --efh-buttonColumnsMobile_b16: 1 !important;
+  --efh-btnFontSize_c8: 16px !important;
+  --efh-btnPadY_c6: 12px !important;
+  --efh-btnPadX_c7: 24px !important;
+  --efh-btnRadius_c9: 999px !important;
+  --efh-btnSolidBg_a11: rgba(192,57,43,1.00) !important;
+  --efh-btnSolidColor_a12: rgba(255,255,255,1.00) !important;
+  --efh-btnSolidBorderColor_c15: transparent !important;
+  --efh-btnSolidBorderWidth_c16: 1px !important;
+  --efh-btnOutlineColor_a13: rgba(255,255,255,1.00) !important;
+  --efh-btnOutlineBorderColor_c17: rgba(255,255,255,0.60) !important;
+  --efh-btnOutlineBorderWidth_c18: 1px !important;
+  --efh-btnHoverSolidBg_a14: rgba(169,50,38,1.00) !important;
+  --efh-btnHoverOutlineBg_a15: rgba(255,255,255,0.15) !important;
+  --efh-mainHeight_a2: 100vh !important;
+  --efh-subHeight_a3: 30vh !important;
+  --efh-contentSidePad_b13: 6vw !important;
+  --efh-contentTextMaxWidth_b14: 640px !important;
+  --efh-contentMaxWidth_b11: 1200px !important;
+  --efh-fitBorderRadius_b15: 0px !important;
+  --efh-shadowColor_a1: rgba(0,0,0,0.35) !important;
+  --efh-bgFallbackColor_b12: rgba(17,17,17,1.00) !important;
+  --efh-slideSpeed_a9: 0.8s !important;
+  --efh-bgFadeSpeed_a10: 1s !important;
+  --efh-dotColor_b9: rgba(255,255,255,0.40) !important;
+  --efh-dotActiveColor_b10: rgba(255,255,255,1.00) !important;
+  --efh-dotSize_c10: 8px !important;
+  --efh-pauseIconColor_b6: rgba(255,255,255,1.00) !important;
+  --efh-pauseIconSize_b7: 16px !important;
+  --efh-controlsGap_c19: 36px !important;
+  --efh-scrollIconColor_b4: rgba(255,255,255,1.00) !important;
+  --efh-scrollIconSize_b5: 22px !important;
+}
+</style>
+
+<script>
+(function () {
+  function efhApplySavedSettings() {
+    if (!window.efhDashboardAPI) { setTimeout(efhApplySavedSettings, 200); return; }
+    window.efhDashboardAPI.setPageTitleVisible(true);
+    window.efhDashboardAPI.setPageTitleAreaVisible(true);
+    document.querySelectorAll(".efh_hero_r1f").forEach(function (h) { h.setAttribute("data-textshadow", "1"); });
+    window.efhDashboardAPI.setTitleVisible(true);
+    window.efhDashboardAPI.setSubtitleVisible(true);
+    window.efhDashboardAPI.setMobileBreakpoint("768");
+    window.efhDashboardAPI.setDotShape("dot");
+    window.efhDashboardAPI.setAutoplay(true);
+    window.efhDashboardAPI.setDefaultSlideDuration("6");
+    window.efhDashboardAPI.setScrollIcon("fa-solid fa-chevron-down");
+    document.querySelectorAll(".efh_scrollHint_g1d").forEach(function (el) { el.style.display = ""; });
+    window.efhDashboardAPI.setPauseIcons("fa-solid fa-circle-pause", "fa-solid fa-circle-play");
+  }
+  efhApplySavedSettings();
+})();
+</script>
