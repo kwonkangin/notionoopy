@@ -143,9 +143,10 @@
   const TAG_RE = /\[%\s*.+?\s*::\s*hero\s*%\]/i;
   const found = [];
   const seen = [];
-  const candidates = document.body.querySelectorAll('div, h1, h2, h3, h4, summary, p');
-  candidates.forEach(function (el) {
-    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT') return;
+  const candidates = document.body.querySelectorAll('*');
+candidates.forEach(function (el) {
+  const tag = el.tagName;
+  if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'SVG' || tag === 'PATH' || tag === 'IFRAME') return;
     const txt = el.textContent || '';
     if (!TAG_RE.test(txt)) return;
     let hasMatchingChild = false;
