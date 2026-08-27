@@ -316,10 +316,12 @@
   }
 
   function efh_hideGroup_h5e(headerEl) {
-    const wrapper = headerEl.parentElement || headerEl;
-    if (wrapper && !wrapper.classList.contains('efh_panelHidden_q9m')) wrapper.classList.add('efh_panelHidden_q9m');
-    if (!headerEl.classList.contains('efh_panelHidden_q9m')) headerEl.classList.add('efh_panelHidden_q9m');
-  }
+  if (!headerEl || headerEl === document.body || headerEl === document.documentElement) return;
+  const wrapper = headerEl.parentElement || headerEl;
+  if (!wrapper || wrapper === document.body || wrapper === document.documentElement) return;
+  if (!wrapper.classList.contains('efh_panelHidden_q9m')) wrapper.classList.add('efh_panelHidden_q9m');
+  if (!headerEl.classList.contains('efh_panelHidden_q9m')) headerEl.classList.add('efh_panelHidden_q9m');
+}
 
   window.__efhYTQueue_j1 = window.__efhYTQueue_j1 || [];
   function efh_flushYTQueue_j2() {
