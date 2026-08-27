@@ -135,32 +135,38 @@
   }
 
   function efh_findAllHeaders_h1x() {
-    let headers = Array.prototype.slice.call(document.querySelectorAll('.css-17s9444'));
-    headers = headers.filter(function (h) { return h.querySelector('.css-bh43vz'); });
-    if (headers.length > 0) return { headers: headers, mode: 'class' };
+  let headers = Array.prototype.slice.call(document.querySelectorAll('.css-17s9444'));
+  headers = headers.filter(function (h) { return h.querySelector('.css-bh43vz'); });
+  if (headers.length > 0) return { headers: headers, mode: 'class' };
 
-    console.warn(EFH_LOG_PREFIX, 'css-17s9444 클래스를 찾지 못했습니다. 텍스트 기반 백업 탐색을 시도합니다.');
-    const found = [];
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-  acceptNode: function (n) {
-    const p = n.parentElement;
-    if (!p || p.tagName === 'SCRIPT' || p.tagName === 'STYLE' || p.tagName === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
-    return NodeFilter.FILTER_ACCEPT;
-  }
-});
-let node;
-while ((node = walker.nextNode())) {
-      if (/\[%\s*.+?\s*::\s*hero\s*%\]/i.test(node.textContent)) {
-        let candidate = node.parentElement;
-        for (let i = 0; i < 6 && candidate; i++) {
-          if (candidate.getAttribute && candidate.getAttribute('role') === 'button') break;
-          candidate = candidate.parentElement;
-        }
-        found.push(candidate || node.parentElement);
-      }
+  console.warn(EFH_LOG_PREFIX, 'css-17s9444 클래스를 찾지 못했습니다. 텍스트 기반 백업 탐색을 시도합니다.');
+  const TAG_RE = /\[%\s*.+?\s*::\s*hero\s*%\]/i;
+  const found = [];
+  const seen = [];
+  const candidates = document.body.querySelectorAll('div, h1, h2, h3, h4, summary, p');
+  candidates.forEach(function (el) {
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT') return;
+    const txt = el.textContent || '';
+    if (!TAG_RE.test(txt)) return;
+    let hasMatchingChild = false;
+    for (let i = 0; i < el.children.length; i++) {
+      if (TAG_RE.test(el.children[i].textContent || '')) { hasMatchingChild = true; break; }
     }
-    return { headers: found, mode: 'text' };
-  }
+    if (hasMatchingChild) return;
+    let candidate = el;
+    for (let i = 0; i < 6 && candidate; i++) {
+      if (candidate === document.body || candidate === document.documentElement) { candidate = null; break; }
+      if (candidate.getAttribute && candidate.getAttribute('role') === 'button') break;
+      candidate = candidate.parentElement;
+    }
+    const finalEl = candidate;
+    if (finalEl && finalEl !== document.body && finalEl !== document.documentElement && seen.indexOf(finalEl) === -1) {
+      seen.push(finalEl);
+      found.push(finalEl);
+    }
+  });
+  return { headers: found, mode: 'text' };
+}
 
   function efh_getHeaderTitleText_h2y(headerEl, mode) {
     if (mode === 'class') {
