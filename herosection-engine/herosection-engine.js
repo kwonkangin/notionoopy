@@ -141,9 +141,15 @@
 
     console.warn(EFH_LOG_PREFIX, 'css-17s9444 클래스를 찾지 못했습니다. 텍스트 기반 백업 탐색을 시도합니다.');
     const found = [];
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    let node;
-    while ((node = walker.nextNode())) {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+  acceptNode: function (n) {
+    const p = n.parentElement;
+    if (!p || p.tagName === 'SCRIPT' || p.tagName === 'STYLE' || p.tagName === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;
+  }
+});
+let node;
+while ((node = walker.nextNode())) {
       if (/\[%\s*.+?\s*::\s*hero\s*%\]/i.test(node.textContent)) {
         let candidate = node.parentElement;
         for (let i = 0; i < 6 && candidate; i++) {
