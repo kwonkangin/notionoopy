@@ -1,0 +1,957 @@
+/*
+  callout-table-dashboard.js (v4)
+  ------------------------------------------------------------------
+  v4 변경점:
+  1) 칸 정렬 방식(--colJustify_qT4b) 노출 조건 반전 — 균등 채움을
+     "껐을 때"만 나타나도록 수정 (reveal에 revealWhen:false 옵션 추가).
+  2) 텍스트 설정 모드 전환을 체크박스 토글 → 드롭다운(select)으로 변경.
+  3) 폰트 지정을 텍스트 입력 → 드롭다운(Pretendard Variable 등 사전 정의
+     + "직접 입력" 선택 시 텍스트란 노출)으로 변경, 폰트명 확인 방법 안내 추가.
+  ------------------------------------------------------------------
+*/
+!function ctd_launchDashboard_q7m() {
+  const popupWindow = window.open('', 'CalloutTableDashboard', 'width=740,height=1020,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!popupWindow) { alert('팝업 창 차단을 해제해 주십시오.'); return; }
+
+  const scriptContent = `
+    const CTD_SLOTS_KEY_t9q = 'ctd_dashboard_slots_t9q';
+    const CTD_HEX_REGEX_h9d = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+    window.ctd_resetInfo_h5v = {};
+    window.ctd_defaultsMap_h2z = {};
+    window.ctd_currentStyles_v9b = {};
+
+    const FONT_FAMILY_OPTIONS_f9k = [
+      ["inherit", "사용 안함 (원본 그대로)"],
+      ["Pretendard Variable", "Pretendard Variable (가변, 추천)"],
+      ["Pretendard", "Pretendard"],
+      ["'Noto Sans KR', sans-serif", "Noto Sans KR"],
+      ["'Apple SD Gothic Neo', sans-serif", "Apple SD Gothic Neo"],
+      ["'Malgun Gothic', sans-serif", "맑은 고딕"],
+      ["system-ui", "시스템 기본 폰트"],
+      ["custom", "직접 입력..."]
+    ];
+    const FONT_FAMILY_KNOWN_f9l = FONT_FAMILY_OPTIONS_f9k.map(o => o[0]).filter(v => v !== 'custom');
+    const FONT_FAMILY_TIP_f9m = '폰트 이름 확인 방법: 브라우저 개발자도구(F12) → Elements 탭에서 원하는 텍스트를 클릭 → 오른쪽 Computed(계산됨) 탭에서 font-family 값을 확인하거나, 구글 폰트(fonts.google.com) 페이지에 적힌 폰트명을 그대로 입력하면 됩니다.';
+
+    const qaConfig = [
+      {
+        group: "1. 레이아웃 · 간격",
+        items: [
+          { var: "--gap_qT4b", label: "열 사이 가로 간격", type: "range", min: 0, max: 200, unit: "px", def: "46", tip: "CSS 제약상 음수는 적용되지 않습니다" },
+          { var: "--gapY_qT4b", label: "줄바꿈 시 세로 간격", type: "range", min: 0, max: 200, unit: "px", def: "46" },
+          { var: "--blockGapY_qT4b", label: "표 그룹 간 간격", type: "range", min: 0, max: 200, unit: "px", def: "46" },
+          { var: "--inColGapY_qT4b", label: "칸 내부 표 간격", type: "range", min: -100, max: 200, unit: "px", def: "24", tip: "margin 기반이라 음수 입력 시 실제로 겹칩니다" },
+          { var: "--colMinWidth_qT4b", label: "칸 최소 폭", type: "range", min: 50, max: 600, unit: "px", def: "200" },
+          { var: "--colGrow_qT4b", label: "칸 폭 균등 채움", type: "toggle-map", mapTrue: "1", mapFalse: "0", def: true, tip: "끄면 칸이 콘텐츠 크기만큼 늘어나며 아래 정렬 옵션이 나타남 (비율 슬라이더는 켜져있을 때만 동작)", reveal: ["--colJustify_qT4b"], revealWhen: false, special: "colGrow" },
+          { var: "--colJustify_qT4b", label: "칸 정렬 방식", type: "select", def: "flex-start", options: [["flex-start","좌측 정렬"],["center","중앙 정렬"],["flex-end","우측 정렬"],["space-between","양측 정렬"]] },
+          { var: "--ratio1_qT4b", label: "2열 표 라벨 폭 비율", type: "range", min: 5, max: 95, unit: "%", def: "30", tip: "균등 채움이 켜져있을 때만 적용됩니다", special: "ratio1" }
+        ]
+      },
+      {
+        group: "2. 콜아웃 배경 · 테두리 · 모서리",
+        items: [
+          { var: "--calloutBgColor_qT4b", opacityVar: "--calloutBgOpacity_qT4b", label: "배경 색상 / 투명도", type: "color-split", defHex: "#37352f", defAlphaPct: "0" },
+          { var: "--calloutBorderColor_qT4b", opacityVar: "--calloutBorderOpacity_qT4b", label: "테두리 색상 / 투명도", type: "color-split", defHex: "#37352f", defAlphaPct: "0" },
+          { var: "--calloutBorderWidth_qT4b", label: "테두리 굵기", type: "range", min: 0, max: 20, unit: "px", def: "0" },
+          { var: "--radius_qT4b", label: "모서리 둥글기", type: "range", min: 0, max: 60, unit: "px", def: "4" }
+        ]
+      },
+      { group: "3. 콜아웃 그림자", isShadowSection: true },
+      { group: "4. 테이블 선 노출", isLineSection: true },
+      {
+        group: "5. 셀 여백",
+        items: [
+          { var: "--padY_qT4b", label: "상하 여백", type: "range", min: 0, max: 60, unit: "px", def: "6", rowGroup: "padGroup" },
+          { var: "--padX_qT4b", label: "좌우 여백", type: "range", min: 0, max: 60, unit: "px", def: "8", rowGroup: "padGroup" }
+        ]
+      },
+      { group: "6. 텍스트 설정 (라벨/값)", isTextSection: true },
+      {
+        group: "7. 텍스트 정렬",
+        items: [
+          { var: "--textAlign_qT4b", label: "셀 텍스트 정렬 (라벨/값 공통)", type: "select", def: "left", options: [["left","좌측"],["center","중앙"],["right","우측"]] }
+        ]
+      }
+    ];
+
+    const SHADOW_PRESETS_h9k = {
+      none:   { x: "0px", y: "0px", blur: "0px",  spread: "0px", hex: "#000000", alpha: "0"  },
+      weak:   { x: "0px", y: "1px", blur: "3px",  spread: "0px", hex: "#000000", alpha: "8"  },
+      normal: { x: "0px", y: "2px", blur: "8px",  spread: "0px", hex: "#000000", alpha: "15" },
+      strong: { x: "0px", y: "4px", blur: "16px", spread: "0px", hex: "#000000", alpha: "28" }
+    };
+
+    const LINE_ITEMS_CFG = [
+      { var: "--tblLineH_qT4b", label: "내부 가로선 (행 사이)" },
+      { var: "--tblLineV_qT4b", label: "내부 세로선 (라벨-값 사이)" },
+      { var: "--tblEdgeTop_qT4b", label: "상단 외곽선" },
+      { var: "--tblEdgeBottom_qT4b", label: "하단 외곽선" },
+      { var: "--tblEdgeLeft_qT4b", label: "좌측 외곽선" },
+      { var: "--tblEdgeRight_qT4b", label: "우측 외곽선" }
+    ];
+    const LINE_PRESETS_h1k = {
+      "none":      [false,false,false,false,false,false],
+      "all":       [true, true, true, true, true, true],
+      "outer":     [false,false,true, true, true, true],
+      "inner":     [true, true, false,false,false,false],
+      "innerH":    [true, false,false,false,false,false],
+      "innerV":    [false,true, false,false,false,false],
+      "allH":      [true, false,true, true, false,false],
+      "underline": [true, false,false,true, false,false],
+      "top":       [false,false,true, false,false,false],
+      "bottom":    [false,false,false,true, false,false],
+      "topbot":    [false,false,true, true, false,false]
+    };
+
+    function ctd_hexToRgb_g3j(hexCode) {
+      let cleanHex = hexCode.replace('#', '');
+      if (cleanHex.length === 3) cleanHex = cleanHex.split('').map(c => c + c).join('');
+      return { r: parseInt(cleanHex.substring(0,2),16), g: parseInt(cleanHex.substring(2,4),16), b: parseInt(cleanHex.substring(4,6),16) };
+    }
+    function ctd_composeRgba_placeholder(hex, alphaPct) {
+      const rgb = ctd_hexToRgb_g3j(hex);
+      return 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', ' + (parseFloat(alphaPct)/100).toFixed(2) + ')';
+    }
+    function ctd_varTag_v3n(varName, extra) {
+      return '<div style="font-size:10px; color:#666; font-family:monospace; margin-top:2px;">' + varName + (extra ? ' , ' + extra : '') + '</div>';
+    }
+
+    function ctd_buildItemInner_t2q(itemObj, rawVal) {
+      let out = "";
+      if (itemObj.type === 'font-family') {
+        const isCustom = FONT_FAMILY_KNOWN_f9l.indexOf(rawVal) === -1;
+        out += '<select class="ctd_basicSel_h7k ctd_fontFamSel_f1a" data-var="' + itemObj.var + '">';
+        FONT_FAMILY_OPTIONS_f9k.forEach(([val,label]) => {
+          const isSel = (val === 'custom') ? isCustom : (!isCustom && val === rawVal);
+          out += '<option value="' + val + '" ' + (isSel ? 'selected' : '') + '>' + label + '</option>';
+        });
+        out += '</select>';
+        out += '<input type="text" class="ctd_fontFamText_f2b" data-var="' + itemObj.var + '" value="' + (isCustom ? rawVal : '') + '" placeholder="예: MyCustomFont" style="display:' + (isCustom ? 'block' : 'none') + '; margin-top:6px;">';
+        out += '<div style="font-size:10px; color:#888; margin-top:4px;">' + FONT_FAMILY_TIP_f9m + '</div>';
+      } else if (itemObj.type === 'color-split') {
+        const alphaPct = itemObj._alphaPct !== undefined ? itemObj._alphaPct : itemObj.defAlphaPct;
+        out += '<div style="display:flex; gap:8px; align-items:center; width:100%;">';
+        out += '<input type="color" class="ctd_colorPicker_n5s" data-var="' + itemObj.var + '" value="' + rawVal + '">';
+        out += '<input type="range" class="ctd_alphaRange_a1b ctd_inputRange_x8p" data-var="' + itemObj.var + '" data-opvar="' + (itemObj.opacityVar||'') + '" min="0" max="100" value="' + alphaPct + '" style="flex:1;">';
+        out += '<span class="ctd_alphaVal_v2c" style="font-size:11px; color:#10b981; width:36px; text-align:right;">' + alphaPct + '%</span>';
+        out += '<input type="text" class="ctd_colorTxt_m8r" data-var="' + itemObj.var + '" value="' + rawVal + '" style="width:100px; font-family:monospace; font-size:11px;">';
+        out += '</div>';
+      } else if (itemObj.type === 'weight-slider') {
+        out += '<div style="display:flex; gap:8px; align-items:center;">';
+        out += '<input type="range" class="ctd_inputRange_x8p ctd_weightRange_g3n" data-var="' + itemObj.var + '" min="' + itemObj.min + '" max="' + itemObj.max + '" step="' + itemObj.step + '" value="' + rawVal + '" style="flex:1;">';
+        out += '<select class="ctd_basicSel_h7k ctd_weightSel_h4p" data-var="' + itemObj.var + '" style="width:90px;">';
+        [100,200,300,400,500,600,700,800,900].forEach(w => { const wv = String(w); out += '<option value="' + wv + '" ' + (wv === String(rawVal) ? 'selected' : '') + '>' + wv + '</option>'; });
+        out += '</select></div>';
+      } else if (itemObj.type === 'select') {
+        out += '<select class="ctd_basicSel_h7k ctd_plainSel_p2q" data-var="' + itemObj.var + '">';
+        itemObj.options.forEach(([val, label]) => { out += '<option value="' + val + '" ' + (val === String(rawVal) ? 'selected' : '') + '>' + label + '</option>'; });
+        out += '</select>';
+      } else if (itemObj.type === 'range') {
+        let numVal = parseFloat(rawVal); if (isNaN(numVal)) numVal = 0;
+        out += '<div style="display:flex; gap:10px; align-items:center;">';
+        out += '<input type="range" class="ctd_inputRange_x8p ctd_valRange_r9p" data-var="' + itemObj.var + '" data-unit="' + (itemObj.unit||'') + '" data-special="' + (itemObj.special||'') + '" min="' + itemObj.min + '" max="' + itemObj.max + '" step="' + (itemObj.step||1) + '" value="' + numVal + '">';
+        out += '<input type="number" class="ctd_inputNum_c4m" data-var="' + itemObj.var + '" data-unit="' + (itemObj.unit||'') + '" data-special="' + (itemObj.special||'') + '" step="' + (itemObj.step||1) + '" value="' + numVal + '">';
+        out += '</div>';
+      }
+      return out;
+    }
+
+    function ctd_renderFullItem_q4z(itemObj, rootStyles) {
+      let rawVal = itemObj.def;
+      const computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+
+      if (itemObj.type === 'color-split') {
+        let hex = itemObj.defHex, alphaPct = itemObj.defAlphaPct;
+        if (computedVal && CTD_HEX_REGEX_h9d.test(computedVal)) hex = computedVal;
+        if (itemObj.opacityVar) {
+          const opVal = rootStyles.getPropertyValue(itemObj.opacityVar).trim();
+          if (opVal !== '') alphaPct = String(Math.round(parseFloat(opVal) * 100));
+        }
+        itemObj._alphaPct = alphaPct;
+        rawVal = hex;
+        window.ctd_currentStyles_v9b[itemObj.var] = hex;
+        window.ctd_defaultsMap_h2z[itemObj.var] = itemObj.defHex;
+        window.ctd_resetInfo_h5v[itemObj.var] = { type: 'color-split', defHex: itemObj.defHex, defAlphaPct: itemObj.defAlphaPct, opacityVar: itemObj.opacityVar || null };
+        if (itemObj.opacityVar) {
+          window.ctd_currentStyles_v9b[itemObj.opacityVar] = (parseFloat(alphaPct)/100).toFixed(2);
+          window.ctd_defaultsMap_h2z[itemObj.opacityVar] = (parseFloat(itemObj.defAlphaPct)/100).toFixed(2);
+        }
+      } else if (itemObj.type === 'weight-slider') {
+        const numeric = parseInt(computedVal || itemObj.def, 10);
+        rawVal = isNaN(numeric) ? itemObj.def : String(numeric);
+        window.ctd_currentStyles_v9b[itemObj.var] = rawVal;
+        window.ctd_defaultsMap_h2z[itemObj.var] = itemObj.def;
+        window.ctd_resetInfo_h5v[itemObj.var] = { type: 'weight-slider', def: itemObj.def };
+      } else if (itemObj.type === 'select' || itemObj.type === 'font-family') {
+        if (computedVal) rawVal = computedVal;
+        window.ctd_currentStyles_v9b[itemObj.var] = rawVal;
+        window.ctd_defaultsMap_h2z[itemObj.var] = itemObj.def;
+        window.ctd_resetInfo_h5v[itemObj.var] = { type: itemObj.type, def: itemObj.def };
+      } else {
+        if (computedVal) rawVal = (itemObj.type === 'range') ? parseFloat(computedVal).toString() : computedVal;
+        window.ctd_currentStyles_v9b[itemObj.var] = rawVal + (itemObj.unit || "");
+        window.ctd_defaultsMap_h2z[itemObj.var] = itemObj.def + (itemObj.unit || "");
+        window.ctd_resetInfo_h5v[itemObj.var] = { type: 'range', def: itemObj.def, unit: itemObj.unit || '' };
+      }
+
+      let html = '<div class="ctd_itemContainer_j3v" data-label="' + itemObj.label.toLowerCase() + '">';
+      html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">';
+      html += '<div style="width:100%;"><label style="color:#eee; font-weight:600; font-size:13px;">' + itemObj.label + '</label>';
+      html += ctd_varTag_v3n(itemObj.var, itemObj.opacityVar);
+      html += '<div style="font-size:11px; color:#888;">' + (itemObj.tip || '') + '</div></div>';
+      html += '<button class="ctd_resetSingleBtn_k2n" data-var="' + itemObj.var + '">';
+      html += '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>';
+      html += '</button></div>';
+      html += ctd_buildItemInner_t2q(itemObj, rawVal);
+      html += '</div>';
+      return html;
+    }
+
+    function ctd_renderToggleItem_g6h(itemObj, rootStyles) {
+      let boolVal = itemObj.def;
+      const computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+      if (computedVal !== "") boolVal = (itemObj.type === 'toggle-map') ? (computedVal === itemObj.mapTrue) : (computedVal === 'true');
+      window.ctd_currentStyles_v9b[itemObj.var] = (itemObj.type === 'toggle-map') ? (boolVal ? itemObj.mapTrue : itemObj.mapFalse) : boolVal;
+      window.ctd_defaultsMap_h2z[itemObj.var] = (itemObj.type === 'toggle-map') ? (itemObj.def ? itemObj.mapTrue : itemObj.mapFalse) : itemObj.def;
+      window.ctd_resetInfo_h5v[itemObj.var] = { type: itemObj.type, def: itemObj.def, mapTrue: itemObj.mapTrue, mapFalse: itemObj.mapFalse };
+
+      const revealAttr = itemObj.reveal ? ' data-reveal="' + itemObj.reveal.join(',') + '"' : '';
+      const revealWhenAttr = itemObj.revealWhen === false ? ' data-revealwhen="false"' : '';
+      const mapAttr = itemObj.type === 'toggle-map' ? ' data-maptrue="' + itemObj.mapTrue + '" data-mapfalse="' + itemObj.mapFalse + '"' : '';
+      const specialAttr = itemObj.special ? ' data-special="' + itemObj.special + '"' : '';
+      let html = '<div class="ctd_itemContainer_j3v" data-label="' + itemObj.label.toLowerCase() + '" style="border-bottom:none; padding-bottom:0;">';
+      html += '<div style="display:flex; gap:10px; align-items:center; background:var(--ctd-summary-bg); padding:10px; border-radius:6px;">';
+      html += '<label class="ctd_toggleWrap_q1p"><input type="checkbox" class="ctd_toggleInput_b9w" data-var="' + itemObj.var + '"' + revealAttr + revealWhenAttr + mapAttr + specialAttr + ' ' + (boolVal ? 'checked' : '') + '><span class="ctd_toggleSlider_s2q"></span></label>';
+      html += '<div style="display:flex; flex-direction:column; gap:2px; flex:1;"><span style="color:#10b981; font-weight:700;">' + itemObj.label + '</span>' + ctd_varTag_v3n(itemObj.var) + '<span style="font-size:11px; color:#888;">' + (itemObj.tip || '') + '</span></div>';
+      html += '</div></div>';
+      return html;
+    }
+
+    function ctd_renderSection_p1s(groupName, innerHtml) {
+      return '<section class="panelSection_p9s ctd_observerSec_o6f" data-groupname="' + groupName.toLowerCase() + '" style="margin-bottom:12px; background:var(--ctd-panel-bg); border-radius:8px; border:1px solid var(--ctd-panel-border);">' +
+        '<details open><summary style="font-weight:700; cursor:pointer; color:#38bdf8; outline:none; padding:12px; background:var(--ctd-summary-bg); font-size:14px;">' + groupName + '</summary>' +
+        '<div style="padding:12px; display:flex; flex-direction:column; gap:14px;">' + innerHtml + '</div></details></section>';
+    }
+
+    let htmlBuilder = \`
+      <header class="headerWrap_h1w">
+        <div class="topBar_t2b">
+          <h3 style="margin:0; color:#10b981; font-size:16px; font-weight:800; flex:1;">콜아웃 표 엔진 통합 제어판</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button id="ctd_themeToggleBtn_l4p" class="ctd_themeBtn_q8r">🌙 다크</button>
+            <button id="ctd_globalResetBtn_x2k" style="background:transparent; border:1px solid #444; color:#aaa; border-radius:6px; cursor:pointer; padding:6px 10px;">전체 초기화</button>
+          </div>
+        </div>
+        <input type="text" id="ctd_searchInput_s7q" placeholder="설정 검색 (예: 글자, 그림자, 여백, 선)" class="ctd_searchBox_a2c">
+        <div class="ctd_storageBar_h1t">
+          <button id="ctd_saveLocalBtn_h1x" class="ctd_storageBtn_h2u">💾 임시저장(새 슬롯)</button>
+          <button id="ctd_toggleSlotsBtn_h6d" class="ctd_storageBtn_h2u">📂 저장 슬롯 목록</button>
+          <button id="ctd_toggleImportBtn_h7e" class="ctd_storageBtn_h2u">📥 가져오기</button>
+          <button id="ctd_invalidateLocalBtn_h3z" class="ctd_storageBtn_h2u ctd_storageBtnDanger_h4a">↺ 기본값 보기(무효화)</button>
+          <button id="ctd_previewDefaultBtn_e5y" class="ctd_storageBtn_h2u" title="누르고 있는 동안만 기본값 미리보기">👁 기본값 잠깐보기</button>
+        </div>
+        <div id="ctd_saveStatus_h5b" class="ctd_saveStatus_h5b"></div>
+        <div id="ctd_slotsPanel_h8f" class="ctd_slotsPanel_h8f" style="display:none;"><div id="ctd_slotsList_h9g" style="display:flex; flex-direction:column; gap:6px;"></div></div>
+        <div id="ctd_importPanel_h1h" class="ctd_importPanel_h1h" style="display:none;">
+          <div style="font-size:11px; color:#888; margin-bottom:6px;">이전에 출력한 코드를 그대로 붙여넣고 적용을 누르세요.</div>
+          <textarea id="ctd_importTextarea_h2i" placeholder="여기에 이전 출력 코드를 붙여넣으세요"></textarea>
+          <button id="ctd_importApplyBtn_h3j" class="ctd_actionBtn_q3w" style="margin-top:8px;">이 코드로 값 채우기</button>
+        </div>
+      </header>
+      <main class="mainLayout_m8l" id="ctd_dashScrollArea_h7b">\`;
+
+    let rootStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
+
+    qaConfig.forEach((groupObj) => {
+      if (groupObj.isShadowSection) {
+        const curConfig = rootStyles.getPropertyValue('--calloutShadowConfig_qT4b').trim();
+        window.ctd_shadowPresetMode_r6t = (curConfig && curConfig !== 'none') ? 'custom' : 'none';
+        let inner = '<div class="ctd_itemContainer_j3v" data-label="그림자 스타일" style="border-bottom:none;">';
+        inner += '<label style="color:#eee; font-weight:600; font-size:13px;">그림자 스타일</label>' + ctd_varTag_v3n('--calloutShadowConfig_qT4b');
+        inner += '<select id="ctd_shadowPresetSel_p7x" class="ctd_basicSel_h7k" style="margin-top:6px;"><option value="none">없음</option><option value="weak">약하게</option><option value="normal">보통</option><option value="strong">강하게</option><option value="custom">커스텀</option></select></div>';
+        inner += '<div id="ctd_shadowCustomArea_c3v" style="display:none; flex-direction:column; gap:14px;">';
+        inner += '<div style="display:flex; gap:10px;"><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--calloutShadowX_qT4b", label:"가로 오프셋", type:"range", min:-40, max:40, unit:"px", def:"0"}, rootStyles) + '</div><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--calloutShadowY_qT4b", label:"세로 오프셋", type:"range", min:-40, max:40, unit:"px", def:"2"}, rootStyles) + '</div></div>';
+        inner += '<div style="display:flex; gap:10px;"><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--calloutShadowBlur_qT4b", label:"흐림 정도", type:"range", min:0, max:60, unit:"px", def:"8"}, rootStyles) + '</div><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--calloutShadowSpread_qT4b", label:"퍼짐 정도", type:"range", min:-20, max:40, unit:"px", def:"0"}, rootStyles) + '</div></div>';
+        inner += ctd_renderFullItem_q4z({var:"--calloutShadowColor_qT4b", opacityVar:"--calloutShadowOpacity_qT4b", label:"그림자 색상/투명도", type:"color-split", defHex:"#000000", defAlphaPct:"15"}, rootStyles);
+        inner += '</div>';
+        htmlBuilder += ctd_renderSection_p1s(groupObj.group, inner);
+        return;
+      }
+
+      if (groupObj.isLineSection) {
+        let inner = '<div style="font-size:11px; color:#888;">프리셋을 고르면 6개 선이 한번에 설정됩니다. "전체 일괄 조정"은 현재 켜진 선들의 굵기/색상만 맞춰줍니다.</div>';
+        inner += '<div class="ctd_itemContainer_j3v" data-label="선 프리셋" style="border-bottom:none;">';
+        inner += '<label style="color:#eee; font-weight:600; font-size:13px;">선 프리셋</label>';
+        inner += '<select id="ctd_linePresetSel_l3x" class="ctd_basicSel_h7k" style="margin-top:6px;">';
+        inner += '<option value="none">없음</option><option value="all">전체(격자)</option><option value="outer">바깥 테두리만</option><option value="inner">안쪽 전체</option>';
+        inner += '<option value="innerH">안쪽 가로선만</option><option value="innerV">안쪽 세로선만</option>';
+        inner += '<option value="allH">전체 가로선만 (안쪽가로+상하 외곽)</option><option value="underline">밑줄만 (안쪽가로+하단 외곽)</option>';
+        inner += '<option value="top">상단만</option><option value="bottom">하단만</option><option value="topbot">상단+하단만</option>';
+        inner += '<option value="custom" selected>커스텀(개별 설정)</option></select></div>';
+
+        inner += '<div class="ctd_itemContainer_j3v" data-label="전체 일괄 조정" style="background:var(--ctd-summary-bg); border-radius:6px; padding:10px; border-bottom:none;">';
+        inner += '<label style="color:#10b981; font-weight:700; font-size:12px;">전체 선 일괄 조정 (켜진 선들에만 적용)</label>';
+        inner += '<div style="display:flex; gap:10px; align-items:center; margin-top:8px;"><span style="font-size:11px; color:#888; width:40px;">굵기</span><input type="range" id="ctd_lineBulkWidth_l0a" class="ctd_inputRange_x8p" min="1" max="10" value="1" style="flex:1;"><input type="number" id="ctd_lineBulkWidthNum_l0b" class="ctd_inputNum_c4m" value="1" style="width:60px;"></div>';
+        inner += '<div style="display:flex; gap:8px; align-items:center; margin-top:8px;"><span style="font-size:11px; color:#888; width:40px;">색상</span><input type="color" id="ctd_lineBulkColor_l0c" value="#373530"><input type="range" id="ctd_lineBulkAlpha_l0d" class="ctd_inputRange_x8p" min="0" max="100" value="30" style="flex:1;"><span id="ctd_lineBulkAlphaVal_l0e" style="font-size:11px; color:#10b981; width:36px; text-align:right;">30%</span><input type="text" id="ctd_lineBulkColorTxt_l0f" value="#373530" style="width:100px; font-family:monospace; font-size:11px;"></div>';
+        inner += '</div>';
+
+        LINE_ITEMS_CFG.forEach((lineItem, idx) => {
+          const curVal = rootStyles.getPropertyValue(lineItem.var).trim();
+          const isOn = !!(curVal && curVal !== 'none');
+          let width = "1", hex = "#373530", alphaPct = "30";
+          if (isOn) {
+            const m = curVal.match(/^([\\d.]+)px\\s+solid\\s+(.+)$/);
+            if (m) {
+              width = m[1];
+              const colorPart = m[2].trim();
+              const rgbaMatch = colorPart.match(/rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*(?:,\\s*([\\d.]+)\\s*)?\\)/);
+              if (rgbaMatch) {
+                const r = parseInt(rgbaMatch[1],10), g = parseInt(rgbaMatch[2],10), b = parseInt(rgbaMatch[3],10);
+                hex = '#' + [r,g,b].map(n => n.toString(16).padStart(2,'0')).join('');
+                alphaPct = rgbaMatch[4] !== undefined ? String(Math.round(parseFloat(rgbaMatch[4])*100)) : "100";
+              } else if (CTD_HEX_REGEX_h9d.test(colorPart)) { hex = colorPart; alphaPct = "100"; }
+            }
+          }
+          window.ctd_currentStyles_v9b[lineItem.var] = isOn ? (width + 'px solid ' + ctd_composeRgba_placeholder(hex, alphaPct)) : 'none';
+          window.ctd_defaultsMap_h2z[lineItem.var] = 'none';
+
+          inner += '<div class="ctd_itemContainer_j3v ctd_lineItem_l9k" data-label="' + lineItem.label.toLowerCase() + '" data-var="' + lineItem.var + '">';
+          inner += '<div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">';
+          inner += '<label class="ctd_toggleWrap_q1p"><input type="checkbox" class="ctd_lineOnToggle_l1m" data-var="' + lineItem.var + '" ' + (isOn?'checked':'') + '><span class="ctd_toggleSlider_s2q"></span></label>';
+          inner += '<span style="color:#10b981; font-weight:700; font-size:13px;">' + lineItem.label + '</span>' + ctd_varTag_v3n(lineItem.var);
+          inner += '</div>';
+          inner += '<div class="ctd_lineDetail_l2n" style="display:' + (isOn?'flex':'none') + '; flex-direction:column; gap:8px; padding-left:8px;">';
+          inner += '<div style="display:flex; gap:10px; align-items:center;"><span style="font-size:11px; color:#888; width:40px;">굵기</span><input type="range" class="ctd_inputRange_x8p ctd_lineWidthRange_l3o" data-var="' + lineItem.var + '" min="1" max="10" value="' + width + '" style="flex:1;"><input type="number" class="ctd_inputNum_c4m ctd_lineWidthNum_l4p" data-var="' + lineItem.var + '" value="' + width + '" style="width:60px;"></div>';
+          inner += '<div style="display:flex; gap:8px; align-items:center;"><span style="font-size:11px; color:#888; width:40px;">색상</span><input type="color" class="ctd_lineColorPicker_l5q" data-var="' + lineItem.var + '" value="' + hex + '"><input type="range" class="ctd_inputRange_x8p ctd_lineAlphaRange_l6r" data-var="' + lineItem.var + '" min="0" max="100" value="' + alphaPct + '" style="flex:1;"><span class="ctd_lineAlphaVal_l7s" style="font-size:11px; color:#10b981; width:36px; text-align:right;">' + alphaPct + '%</span><input type="text" class="ctd_lineColorTxt_l8t" data-var="' + lineItem.var + '" value="' + hex + '" style="width:100px; font-family:monospace; font-size:11px;"></div>';
+          inner += '</div></div>';
+        });
+        htmlBuilder += ctd_renderSection_p1s(groupObj.group, inner);
+        return;
+      }
+
+      if (groupObj.isTextSection) {
+        let inner = '<div class="ctd_itemContainer_j3v" data-label="설정 모드" style="border-bottom:none; background:var(--ctd-summary-bg); padding:10px; border-radius:6px;">';
+        inner += '<label style="color:#10b981; font-weight:700; font-size:12px;">설정 모드</label>';
+        inner += '<select id="ctd_textModeSel_t9r" class="ctd_basicSel_h7k" style="margin-top:6px; max-width:280px;"><option value="batch" selected>일괄 설정 (라벨+값 동시)</option><option value="individual">개별 설정 (라벨/값 각각)</option></select></div>';
+
+        inner += '<div id="ctd_textBatchArea_t1a" style="display:flex; flex-direction:column; gap:14px;">';
+        inner += '<div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--batchFontSize_x1z", label:"글자 크기(일괄)", type:"range", min:8, max:40, unit:"px", def:"16"}, rootStyles) + '</div><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--batchFontWeight_x2y", label:"글자 굵기(일괄)", type:"weight-slider", min:100, max:900, step:100, def:"400"}, rootStyles) + '</div></div>';
+        inner += ctd_renderFullItem_q4z({var:"--batchColor_x3w", label:"글자 색상(일괄)", type:"color-split", defHex:"#37352f", defAlphaPct:"100"}, rootStyles);
+        inner += ctd_renderFullItem_q4z({var:"--batchFontFamily_x4v", label:"폰트 지정(일괄, 굵기 미세반영 안될 때 사용)", type:"font-family", def:"inherit"}, rootStyles);
+        inner += '</div>';
+
+        inner += '<div id="ctd_textIndividualArea_t2b" style="display:none; flex-direction:column; gap:18px;">';
+        inner += '<div><div style="color:#38bdf8; font-weight:700; font-size:13px; margin-bottom:8px;">라벨 텍스트 (Tel, Fax 등)</div>';
+        inner += '<div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--labelFontSize_qT4b", label:"글자 크기", type:"range", min:8, max:40, unit:"px", def:"16"}, rootStyles) + '</div><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--labelFontWeight_qT4b", label:"글자 굵기", type:"weight-slider", min:100, max:900, step:100, def:"400"}, rootStyles) + '</div></div>';
+        inner += ctd_renderFullItem_q4z({var:"--labelColor_qT4b", label:"글자 색상", type:"color-split", defHex:"#787774", defAlphaPct:"100"}, rootStyles);
+        inner += ctd_renderFullItem_q4z({var:"--labelFontFamily_qT4b", label:"폰트 지정", type:"font-family", def:"inherit"}, rootStyles);
+        inner += '</div>';
+        inner += '<div><div style="color:#38bdf8; font-weight:700; font-size:13px; margin-bottom:8px;">값 텍스트 (전화번호, 이메일 등)</div>';
+        inner += '<div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--valueFontSize_qT4b", label:"글자 크기", type:"range", min:8, max:40, unit:"px", def:"16"}, rootStyles) + '</div><div style="flex:1;">' + ctd_renderFullItem_q4z({var:"--valueFontWeight_qT4b", label:"글자 굵기", type:"weight-slider", min:100, max:900, step:100, def:"400"}, rootStyles) + '</div></div>';
+        inner += ctd_renderFullItem_q4z({var:"--valueColor_qT4b", label:"글자 색상", type:"color-split", defHex:"#37352f", defAlphaPct:"100"}, rootStyles);
+        inner += ctd_renderFullItem_q4z({var:"--valueFontFamily_qT4b", label:"폰트 지정", type:"font-family", def:"inherit"}, rootStyles);
+        inner += '</div></div>';
+
+        htmlBuilder += ctd_renderSection_p1s(groupObj.group, inner);
+        return;
+      }
+
+      let inner = "";
+      const doneIdx = {};
+      groupObj.items.forEach((itemObj, i) => {
+        if (doneIdx[i]) return;
+        if (itemObj.type === 'toggle-map' || itemObj.type === 'toggle') { inner += ctd_renderToggleItem_g6h(itemObj, rootStyles); return; }
+        if (itemObj.rowGroup) {
+          const partnerIdx = groupObj.items.findIndex((o, j) => j > i && o.rowGroup === itemObj.rowGroup);
+          if (partnerIdx > -1) {
+            doneIdx[partnerIdx] = true;
+            inner += '<div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:1;">' + ctd_renderFullItem_q4z(itemObj, rootStyles) + '</div><div style="flex:1;">' + ctd_renderFullItem_q4z(groupObj.items[partnerIdx], rootStyles) + '</div></div>';
+            return;
+          }
+        }
+        inner += ctd_renderFullItem_q4z(itemObj, rootStyles);
+      });
+      htmlBuilder += ctd_renderSection_p1s(groupObj.group, inner);
+    });
+
+    (function ctd_initColGrowDerived_q9x() {
+      const on = window.ctd_currentStyles_v9b['--colGrow_qT4b'] === '1';
+      const ratio = parseFloat(window.ctd_currentStyles_v9b['--ratio1_qT4b']) || 30;
+      window.ctd_currentStyles_v9b['--colBasis_qT4b'] = on ? (window.ctd_currentStyles_v9b['--colMinWidth_qT4b'] || '200px') : 'auto';
+      window.ctd_currentStyles_v9b['--tblLayoutMode_qT4b'] = on ? 'fixed' : 'auto';
+      window.ctd_currentStyles_v9b['--tblWidthMode_qT4b'] = on ? '100%' : 'auto';
+      window.ctd_currentStyles_v9b['--tblCol1Width_qT4b'] = on ? (ratio + '%') : 'auto';
+      window.ctd_currentStyles_v9b['--tblCol2Width_qT4b'] = on ? ((100-ratio) + '%') : 'auto';
+    })();
+
+    htmlBuilder += \`</main>
+      <section id="ctd_exportArea_w9c" style="display:none; padding:16px 20px; border-top:1px solid var(--ctd-panel-border); background:var(--ctd-panel-bg);">
+        <div style="font-size:12px; color:#aaa; font-weight:bold; margin-bottom:8px;">최종 통합 코드 (:root 변수)</div>
+        <textarea id="ctd_exportTextarea_f4v" placeholder="코드를 복사하십시오"></textarea>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button id="ctd_copyBtn_l8x" style="flex:1; padding:10px; background:#3b82f6; color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">복사하기</button>
+          <button id="ctd_copyMinBtn_m8c" style="flex:1; padding:10px; background:#8b5cf6; color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">미니파이 복사</button>
+        </div>
+      </section>
+      <footer style="padding:16px 20px; border-top:1px solid var(--ctd-panel-border); background:var(--ctd-panel-bg); position:sticky; bottom:0;">
+        <button id="ctd_exportTriggerBtn_j2m" style="width:100%; padding:12px; background:#eab308; color:#000; border:none; border-radius:8px; font-weight:800; cursor:pointer;">최종 적용 코드 출력하기</button>
+      </footer>\`;
+
+    document.getElementById('app').innerHTML = htmlBuilder;
+
+    document.getElementById('ctd_themeToggleBtn_l4p').addEventListener('click', (e) => {
+      const isLight = document.body.classList.toggle('ctd_lightMode_t8n');
+      e.target.innerText = isLight ? '☀️ 라이트' : '🌙 다크';
+    });
+
+    document.getElementById('ctd_textModeSel_t9r').addEventListener('change', (e) => {
+      const isBatch = e.target.value === 'batch';
+      document.getElementById('ctd_textBatchArea_t1a').style.display = isBatch ? 'flex' : 'none';
+      document.getElementById('ctd_textIndividualArea_t2b').style.display = isBatch ? 'none' : 'flex';
+    });
+
+    document.getElementById('ctd_searchInput_s7q').addEventListener('input', (e) => {
+      const term = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('.ctd_observerSec_o6f').forEach(sec => {
+        const groupMatch = (sec.getAttribute('data-groupname') || '').includes(term);
+        let anyVisible = false;
+        sec.querySelectorAll('.ctd_itemContainer_j3v').forEach(item => {
+          const itemMatch = groupMatch || (item.getAttribute('data-label') || '').includes(term);
+          item.style.display = (term === '' || itemMatch) ? '' : 'none';
+          if (term === '' || itemMatch) anyVisible = true;
+        });
+        sec.style.display = (term === '' || anyVisible || groupMatch) ? '' : 'none';
+      });
+    });
+
+    function ctd_bindToggleReveal_h9q() {
+      document.querySelectorAll('.ctd_toggleInput_b9w[data-reveal]').forEach(toggle => {
+        const targets = toggle.getAttribute('data-reveal').split(',').filter(Boolean);
+        const invert = toggle.getAttribute('data-revealwhen') === 'false';
+        const sync = () => targets.forEach(t => {
+          const targetInput = document.querySelector('[data-var="' + t + '"]');
+          const container = targetInput ? targetInput.closest('.ctd_itemContainer_j3v') : null;
+          const shouldShow = invert ? !toggle.checked : toggle.checked;
+          if (container) container.style.display = shouldShow ? '' : 'none';
+        });
+        toggle.addEventListener('change', sync);
+        sync();
+      });
+    }
+    ctd_bindToggleReveal_h9q();
+
+    const ctd_generateCssRules_d7s = (styleMap) => {
+      let cssRules = '<style id="ctd_dynamic_dashboard_style_z8c">\\n:root {\\n';
+      for (let cssKey in styleMap) {
+        if (cssKey.indexOf('--batch') === 0) continue;
+        cssRules += \`  \${cssKey}: \${styleMap[cssKey]} !important;\\n\`;
+      }
+      cssRules += '}\\n</style>';
+      return cssRules;
+    };
+
+    function ctd_recomputeShadow_p2z() {
+      const hasAny = ['--calloutShadowX_qT4b','--calloutShadowY_qT4b','--calloutShadowBlur_qT4b','--calloutShadowSpread_qT4b'].some(k => parseFloat(window.ctd_currentStyles_v9b[k]) !== 0)
+        || (window.ctd_currentStyles_v9b['--calloutShadowOpacity_qT4b'] && parseFloat(window.ctd_currentStyles_v9b['--calloutShadowOpacity_qT4b']) > 0);
+      window.ctd_currentStyles_v9b['--calloutShadowConfig_qT4b'] = hasAny
+        ? \`\${window.ctd_currentStyles_v9b['--calloutShadowX_qT4b']||'0px'} \${window.ctd_currentStyles_v9b['--calloutShadowY_qT4b']||'0px'} \${window.ctd_currentStyles_v9b['--calloutShadowBlur_qT4b']||'0px'} \${window.ctd_currentStyles_v9b['--calloutShadowSpread_qT4b']||'0px'} \${ctd_composeRgba_placeholder(window.ctd_currentStyles_v9b['--calloutShadowColor_qT4b']||'#000000', (parseFloat(window.ctd_currentStyles_v9b['--calloutShadowOpacity_qT4b']||0)*100))}\`
+        : 'none';
+    }
+
+    function ctd_injectDynamicStyle_h7q() {
+      let dyn = window.opener.document.getElementById('ctd_dynamic_dashboard_style_z8c');
+      if (dyn) dyn.remove();
+      window.opener.document.head.insertAdjacentHTML('beforeend', ctd_generateCssRules_d7s(window.ctd_currentStyles_v9b));
+    }
+
+    const ctd_applyChange_p9m = (targetVar, targetValue) => {
+      window.ctd_currentStyles_v9b[targetVar] = targetValue;
+      if (targetVar.indexOf('--calloutShadow') === 0) ctd_recomputeShadow_p2z();
+
+      if (targetVar === '--batchFontSize_x1z') { window.ctd_currentStyles_v9b['--labelFontSize_qT4b'] = targetValue; window.ctd_currentStyles_v9b['--valueFontSize_qT4b'] = targetValue; }
+      if (targetVar === '--batchFontWeight_x2y') { window.ctd_currentStyles_v9b['--labelFontWeight_qT4b'] = targetValue; window.ctd_currentStyles_v9b['--valueFontWeight_qT4b'] = targetValue; }
+      if (targetVar === '--batchColor_x3w') { window.ctd_currentStyles_v9b['--labelColor_qT4b'] = targetValue; window.ctd_currentStyles_v9b['--valueColor_qT4b'] = targetValue; }
+      if (targetVar === '--batchFontFamily_x4v') { window.ctd_currentStyles_v9b['--labelFontFamily_qT4b'] = targetValue; window.ctd_currentStyles_v9b['--valueFontFamily_qT4b'] = targetValue; }
+
+      ctd_injectDynamicStyle_h7q();
+    };
+
+    function ctd_handleColGrowSpecial_q8w(isOn) {
+      const ratio = parseFloat(window.ctd_currentStyles_v9b['--ratio1_qT4b']) || 30;
+      window.ctd_currentStyles_v9b['--colBasis_qT4b'] = isOn ? (window.ctd_currentStyles_v9b['--colMinWidth_qT4b'] || '200px') : 'auto';
+      window.ctd_currentStyles_v9b['--tblLayoutMode_qT4b'] = isOn ? 'fixed' : 'auto';
+      window.ctd_currentStyles_v9b['--tblWidthMode_qT4b'] = isOn ? '100%' : 'auto';
+      window.ctd_currentStyles_v9b['--tblCol1Width_qT4b'] = isOn ? (ratio + '%') : 'auto';
+      window.ctd_currentStyles_v9b['--tblCol2Width_qT4b'] = isOn ? ((100-ratio) + '%') : 'auto';
+    }
+
+    document.querySelectorAll('.ctd_toggleInput_b9w').forEach(toggle => {
+      toggle.addEventListener('change', (e) => {
+        const varName = e.target.getAttribute('data-var');
+        const val = e.target.hasAttribute('data-maptrue') ? (e.target.checked ? e.target.getAttribute('data-maptrue') : e.target.getAttribute('data-mapfalse')) : e.target.checked;
+        window.ctd_currentStyles_v9b[varName] = val;
+        if (e.target.getAttribute('data-special') === 'colGrow') ctd_handleColGrowSpecial_q8w(e.target.checked);
+        ctd_injectDynamicStyle_h7q();
+      });
+    });
+
+    /* 폰트 패밀리 드롭다운/직접입력 */
+    document.querySelectorAll('.ctd_fontFamSel_f1a').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const varName = e.target.getAttribute('data-var');
+        const textInput = document.querySelector('.ctd_fontFamText_f2b[data-var="' + varName + '"]');
+        if (e.target.value === 'custom') {
+          textInput.style.display = 'block';
+          ctd_applyChange_p9m(varName, textInput.value.trim() || 'inherit');
+        } else {
+          textInput.style.display = 'none';
+          ctd_applyChange_p9m(varName, e.target.value);
+        }
+      });
+    });
+    document.querySelectorAll('.ctd_fontFamText_f2b').forEach(inp => {
+      inp.addEventListener('input', (e) => ctd_applyChange_p9m(e.target.getAttribute('data-var'), e.target.value.trim() || 'inherit'));
+    });
+
+    document.querySelectorAll('.ctd_colorPicker_n5s, .ctd_alphaRange_a1b, .ctd_colorTxt_m8r').forEach(inputElem => {
+      inputElem.addEventListener('input', (eventObj) => {
+        const container = eventObj.target.closest('.ctd_itemContainer_j3v');
+        const varName = container.querySelector('.ctd_colorPicker_n5s').getAttribute('data-var');
+        const opVar = container.querySelector('.ctd_alphaRange_a1b').getAttribute('data-opvar');
+        if (eventObj.target.classList.contains('ctd_colorTxt_m8r')) {
+          const typedVal = eventObj.target.value.trim();
+          if (!CTD_HEX_REGEX_h9d.test(typedVal)) { eventObj.target.classList.add('ctd_inputError_h7d'); return; }
+          eventObj.target.classList.remove('ctd_inputError_h7d');
+          container.querySelector('.ctd_colorPicker_n5s').value = typedVal;
+          ctd_applyChange_p9m(varName, typedVal);
+        } else {
+          const hexPicker = container.querySelector('.ctd_colorPicker_n5s');
+          const alphaSlider = container.querySelector('.ctd_alphaRange_a1b');
+          container.querySelector('.ctd_alphaVal_v2c').innerText = alphaSlider.value + '%';
+          const colorTxtEl = container.querySelector('.ctd_colorTxt_m8r');
+          colorTxtEl.value = hexPicker.value;
+          colorTxtEl.classList.remove('ctd_inputError_h7d');
+          ctd_applyChange_p9m(varName, hexPicker.value);
+          if (opVar) ctd_applyChange_p9m(opVar, (parseInt(alphaSlider.value,10)/100).toFixed(2));
+        }
+      });
+    });
+
+    document.querySelectorAll('.ctd_valRange_r9p, .ctd_inputNum_c4m').forEach(inputElem => {
+      inputElem.addEventListener('input', (eventObj) => {
+        const targetVar = eventObj.target.getAttribute('data-var');
+        const unit = eventObj.target.getAttribute('data-unit') || '';
+        const special = eventObj.target.getAttribute('data-special') || '';
+        const rawValue = eventObj.target.value;
+        if (eventObj.target.classList.contains('ctd_valRange_r9p')) eventObj.target.nextElementSibling.value = rawValue;
+        else eventObj.target.previousElementSibling.value = rawValue;
+        ctd_applyChange_p9m(targetVar, rawValue + unit);
+        if (targetVar === '--colMinWidth_qT4b' && window.ctd_currentStyles_v9b['--colGrow_qT4b'] === '1') {
+          ctd_applyChange_p9m('--colBasis_qT4b', rawValue + unit);
+        }
+        if (special === 'ratio1' && window.ctd_currentStyles_v9b['--colGrow_qT4b'] === '1') {
+          ctd_applyChange_p9m('--tblCol1Width_qT4b', rawValue + '%');
+          ctd_applyChange_p9m('--tblCol2Width_qT4b', (100-parseFloat(rawValue)) + '%');
+        }
+      });
+    });
+
+    document.querySelectorAll('.ctd_plainSel_p2q').forEach(sel => sel.addEventListener('change', (e) => ctd_applyChange_p9m(e.target.getAttribute('data-var'), e.target.value)));
+    document.querySelectorAll('.ctd_weightRange_g3n').forEach(rangeElem => {
+      rangeElem.addEventListener('input', (e) => {
+        const varName = e.target.getAttribute('data-var');
+        const container = e.target.closest('.ctd_itemContainer_j3v');
+        container.querySelector('.ctd_weightSel_h4p').value = e.target.value;
+        ctd_applyChange_p9m(varName, e.target.value);
+      });
+    });
+    document.querySelectorAll('.ctd_weightSel_h4p').forEach(selElem => {
+      selElem.addEventListener('change', (e) => {
+        const varName = e.target.getAttribute('data-var');
+        const container = e.target.closest('.ctd_itemContainer_j3v');
+        container.querySelector('.ctd_weightRange_g3n').value = e.target.value;
+        ctd_applyChange_p9m(varName, e.target.value);
+      });
+    });
+
+    const ctd_applyShadowPreset_n8v = (presetKey) => {
+      window.ctd_shadowPresetMode_r6t = presetKey;
+      const customArea = document.getElementById('ctd_shadowCustomArea_c3v');
+      customArea.style.display = (presetKey === 'custom') ? 'flex' : 'none';
+      if (presetKey === 'custom') return;
+      const p = SHADOW_PRESETS_h9k[presetKey];
+      ctd_applyChange_p9m('--calloutShadowX_qT4b', p.x);
+      ctd_applyChange_p9m('--calloutShadowY_qT4b', p.y);
+      ctd_applyChange_p9m('--calloutShadowBlur_qT4b', p.blur);
+      ctd_applyChange_p9m('--calloutShadowSpread_qT4b', p.spread);
+      ctd_applyChange_p9m('--calloutShadowColor_qT4b', p.hex);
+      ctd_applyChange_p9m('--calloutShadowOpacity_qT4b', (parseFloat(p.alpha)/100).toFixed(2));
+    };
+    document.getElementById('ctd_shadowPresetSel_p7x').addEventListener('change', (e) => ctd_applyShadowPreset_n8v(e.target.value));
+    document.getElementById('ctd_shadowPresetSel_p7x').value = window.ctd_shadowPresetMode_r6t;
+    if (window.ctd_shadowPresetMode_r6t === 'custom') document.getElementById('ctd_shadowCustomArea_c3v').style.display = 'flex';
+
+    const ctd_setLineVar_l9m = (varName, on, width, hex, alphaPct) => {
+      ctd_applyChange_p9m(varName, on ? (width + 'px solid ' + ctd_composeRgba_placeholder(hex, alphaPct)) : 'none');
+    };
+
+    document.getElementById('ctd_linePresetSel_l3x').addEventListener('change', (e) => {
+      const key = e.target.value;
+      if (key === 'custom') return;
+      const flags = LINE_PRESETS_h1k[key];
+      LINE_ITEMS_CFG.forEach((cfg, idx) => {
+        const container = document.querySelector('.ctd_lineItem_l9k[data-var="' + cfg.var + '"]');
+        const onToggle = container.querySelector('.ctd_lineOnToggle_l1m');
+        const widthRange = container.querySelector('.ctd_lineWidthRange_l3o');
+        const widthNum = container.querySelector('.ctd_lineWidthNum_l4p');
+        const colorPicker = container.querySelector('.ctd_lineColorPicker_l5q');
+        const alphaRange = container.querySelector('.ctd_lineAlphaRange_l6r');
+        const alphaVal = container.querySelector('.ctd_lineAlphaVal_l7s');
+        const detail = container.querySelector('.ctd_lineDetail_l2n');
+        onToggle.checked = flags[idx];
+        detail.style.display = flags[idx] ? 'flex' : 'none';
+        if (flags[idx] && parseFloat(widthRange.value) === 0) { widthRange.value = 1; widthNum.value = 1; }
+        alphaVal.innerText = alphaRange.value + '%';
+        ctd_setLineVar_l9m(cfg.var, flags[idx], widthRange.value, colorPicker.value, alphaRange.value);
+      });
+    });
+
+    document.querySelectorAll('.ctd_lineOnToggle_l1m').forEach(toggle => {
+      toggle.addEventListener('change', (e) => {
+        const container = e.target.closest('.ctd_lineItem_l9k');
+        const varName = container.getAttribute('data-var');
+        container.querySelector('.ctd_lineDetail_l2n').style.display = e.target.checked ? 'flex' : 'none';
+        ctd_setLineVar_l9m(varName, e.target.checked, container.querySelector('.ctd_lineWidthRange_l3o').value, container.querySelector('.ctd_lineColorPicker_l5q').value, container.querySelector('.ctd_lineAlphaRange_l6r').value);
+        document.getElementById('ctd_linePresetSel_l3x').value = 'custom';
+      });
+    });
+    document.querySelectorAll('.ctd_lineWidthRange_l3o, .ctd_lineWidthNum_l4p').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const container = e.target.closest('.ctd_lineItem_l9k');
+        const varName = container.getAttribute('data-var');
+        const partner = e.target.classList.contains('ctd_lineWidthRange_l3o') ? container.querySelector('.ctd_lineWidthNum_l4p') : container.querySelector('.ctd_lineWidthRange_l3o');
+        partner.value = e.target.value;
+        ctd_setLineVar_l9m(varName, container.querySelector('.ctd_lineOnToggle_l1m').checked, e.target.value, container.querySelector('.ctd_lineColorPicker_l5q').value, container.querySelector('.ctd_lineAlphaRange_l6r').value);
+        document.getElementById('ctd_linePresetSel_l3x').value = 'custom';
+      });
+    });
+    document.querySelectorAll('.ctd_lineColorPicker_l5q, .ctd_lineAlphaRange_l6r, .ctd_lineColorTxt_l8t').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const container = e.target.closest('.ctd_lineItem_l9k');
+        const varName = container.getAttribute('data-var');
+        const widthRange = container.querySelector('.ctd_lineWidthRange_l3o');
+        const colorPicker = container.querySelector('.ctd_lineColorPicker_l5q');
+        const alphaRange = container.querySelector('.ctd_lineAlphaRange_l6r');
+        const alphaVal = container.querySelector('.ctd_lineAlphaVal_l7s');
+        const colorTxt = container.querySelector('.ctd_lineColorTxt_l8t');
+        if (e.target.classList.contains('ctd_lineColorTxt_l8t')) {
+          const typedVal = e.target.value.trim();
+          if (!CTD_HEX_REGEX_h9d.test(typedVal)) { e.target.classList.add('ctd_inputError_h7d'); return; }
+          e.target.classList.remove('ctd_inputError_h7d');
+          colorPicker.value = typedVal;
+        } else { alphaVal.innerText = alphaRange.value + '%'; colorTxt.value = colorPicker.value; }
+        ctd_setLineVar_l9m(varName, container.querySelector('.ctd_lineOnToggle_l1m').checked, widthRange.value, colorPicker.value, alphaRange.value);
+        document.getElementById('ctd_linePresetSel_l3x').value = 'custom';
+      });
+    });
+
+    function ctd_applyLineBulk_l1z() {
+      const width = document.getElementById('ctd_lineBulkWidth_l0a').value;
+      const hex = document.getElementById('ctd_lineBulkColor_l0c').value;
+      const alphaPct = document.getElementById('ctd_lineBulkAlpha_l0d').value;
+      document.querySelectorAll('.ctd_lineItem_l9k').forEach(container => {
+        const onToggle = container.querySelector('.ctd_lineOnToggle_l1m');
+        if (!onToggle.checked) return;
+        container.querySelector('.ctd_lineWidthRange_l3o').value = width;
+        container.querySelector('.ctd_lineWidthNum_l4p').value = width;
+        container.querySelector('.ctd_lineColorPicker_l5q').value = hex;
+        container.querySelector('.ctd_lineColorTxt_l8t').value = hex;
+        container.querySelector('.ctd_lineAlphaRange_l6r').value = alphaPct;
+        container.querySelector('.ctd_lineAlphaVal_l7s').innerText = alphaPct + '%';
+        ctd_setLineVar_l9m(container.getAttribute('data-var'), true, width, hex, alphaPct);
+      });
+    }
+    document.getElementById('ctd_lineBulkWidth_l0a').addEventListener('input', (e) => { document.getElementById('ctd_lineBulkWidthNum_l0b').value = e.target.value; ctd_applyLineBulk_l1z(); });
+    document.getElementById('ctd_lineBulkWidthNum_l0b').addEventListener('input', (e) => { document.getElementById('ctd_lineBulkWidth_l0a').value = e.target.value; ctd_applyLineBulk_l1z(); });
+    document.getElementById('ctd_lineBulkColor_l0c').addEventListener('input', (e) => { document.getElementById('ctd_lineBulkColorTxt_l0f').value = e.target.value; ctd_applyLineBulk_l1z(); });
+    document.getElementById('ctd_lineBulkAlpha_l0d').addEventListener('input', (e) => { document.getElementById('ctd_lineBulkAlphaVal_l0e').innerText = e.target.value + '%'; ctd_applyLineBulk_l1z(); });
+    document.getElementById('ctd_lineBulkColorTxt_l0f').addEventListener('input', (e) => {
+      if (!CTD_HEX_REGEX_h9d.test(e.target.value.trim())) { e.target.classList.add('ctd_inputError_h7d'); return; }
+      e.target.classList.remove('ctd_inputError_h7d');
+      document.getElementById('ctd_lineBulkColor_l0c').value = e.target.value.trim();
+      ctd_applyLineBulk_l1z();
+    });
+
+    document.querySelectorAll('.ctd_resetSingleBtn_k2n').forEach(resetBtn => {
+      resetBtn.addEventListener('click', (eventObj) => {
+        const targetVar = eventObj.currentTarget.getAttribute('data-var');
+        const info = window.ctd_resetInfo_h5v[targetVar];
+        if (!info) return;
+        const container = eventObj.currentTarget.closest('.ctd_itemContainer_j3v');
+
+        if (info.type === 'color-split') {
+          const colorPicker = container.querySelector('.ctd_colorPicker_n5s');
+          const alphaRange = container.querySelector('.ctd_alphaRange_a1b');
+          const alphaVal = container.querySelector('.ctd_alphaVal_v2c');
+          const colorTxt = container.querySelector('.ctd_colorTxt_m8r');
+          colorPicker.value = info.defHex;
+          colorTxt.value = info.defHex;
+          colorTxt.classList.remove('ctd_inputError_h7d');
+          alphaRange.value = info.defAlphaPct;
+          alphaVal.innerText = info.defAlphaPct + '%';
+          ctd_applyChange_p9m(targetVar, info.defHex);
+          if (info.opacityVar) ctd_applyChange_p9m(info.opacityVar, (parseFloat(info.defAlphaPct)/100).toFixed(2));
+        } else if (info.type === 'weight-slider') {
+          const range = container.querySelector('.ctd_weightRange_g3n');
+          const sel = container.querySelector('.ctd_weightSel_h4p');
+          range.value = info.def; sel.value = info.def;
+          ctd_applyChange_p9m(targetVar, info.def);
+        } else if (info.type === 'font-family') {
+          const sel = container.querySelector('.ctd_fontFamSel_f1a');
+          const txt = container.querySelector('.ctd_fontFamText_f2b');
+          sel.value = 'inherit';
+          txt.value = '';
+          txt.style.display = 'none';
+          ctd_applyChange_p9m(targetVar, 'inherit');
+        } else if (info.type === 'select') {
+          const sel = container.querySelector('.ctd_plainSel_p2q');
+          sel.value = info.def;
+          ctd_applyChange_p9m(targetVar, info.def);
+        } else if (info.type === 'range') {
+          const range = container.querySelector('.ctd_valRange_r9p');
+          const num = container.querySelector('.ctd_inputNum_c4m');
+          range.value = parseFloat(info.def); num.value = parseFloat(info.def);
+          ctd_applyChange_p9m(targetVar, info.def + (info.unit||''));
+          if (targetVar === '--ratio1_qT4b' && window.ctd_currentStyles_v9b['--colGrow_qT4b'] === '1') {
+            ctd_applyChange_p9m('--tblCol1Width_qT4b', info.def + '%');
+            ctd_applyChange_p9m('--tblCol2Width_qT4b', (100-parseFloat(info.def)) + '%');
+          }
+        } else if (info.type === 'toggle-map' || info.type === 'toggle') {
+          const checkbox = container.querySelector('.ctd_toggleInput_b9w');
+          checkbox.checked = !!info.def;
+          checkbox.dispatchEvent(new Event('change'));
+        }
+      });
+    });
+
+    document.getElementById('ctd_globalResetBtn_x2k').addEventListener('click', () => {
+      if (!confirm('모든 디자인 설정을 최초 상태로 초기화하시겠습니까?')) return;
+      document.querySelectorAll('.ctd_resetSingleBtn_k2n').forEach(btn => btn.click());
+      document.getElementById('ctd_shadowPresetSel_p7x').value = 'none';
+      ctd_applyShadowPreset_n8v('none');
+      document.getElementById('ctd_linePresetSel_l3x').value = 'none';
+      document.getElementById('ctd_linePresetSel_l3x').dispatchEvent(new Event('change'));
+      document.getElementById('ctd_textModeSel_t9r').value = 'batch';
+      document.getElementById('ctd_textModeSel_t9r').dispatchEvent(new Event('change'));
+      ctd_setSaveStatus_h6c('전체 설정을 초기화했습니다.');
+    });
+
+    const ctd_setSaveStatus_h6c = (msg) => {
+      const el = document.getElementById('ctd_saveStatus_h5b');
+      el.innerText = msg;
+      setTimeout(() => { if (el.innerText === msg) el.innerText = ''; }, 4000);
+    };
+
+    function ctd_getSlots_h4q() { try { return JSON.parse(localStorage.getItem(CTD_SLOTS_KEY_t9q)) || []; } catch(e) { return []; } }
+    function ctd_setSlots_h5r(arr) { localStorage.setItem(CTD_SLOTS_KEY_t9q, JSON.stringify(arr)); }
+
+    function ctd_refreshFormFromMap_h8p(map) {
+      Object.keys(map).forEach(v => {
+        const el = document.querySelector('[data-var="' + v + '"]');
+        if (!el) { window.ctd_currentStyles_v9b[v] = map[v]; return; }
+        const sv = map[v];
+        if (el.classList.contains('ctd_toggleInput_b9w')) { el.checked = el.hasAttribute('data-maptrue') ? (sv === el.getAttribute('data-maptrue')) : (sv === true || sv === 'true'); el.dispatchEvent(new Event('change')); }
+        else if (el.classList.contains('ctd_weightRange_g3n')) { el.value = parseInt(sv,10); el.dispatchEvent(new Event('input')); }
+        else if (el.classList.contains('ctd_valRange_r9p') || el.classList.contains('ctd_inputNum_c4m')) { el.value = parseFloat(sv); el.dispatchEvent(new Event('input')); }
+        else if (el.classList.contains('ctd_colorPicker_n5s')) { el.value = sv; el.dispatchEvent(new Event('input')); }
+        else if (el.classList.contains('ctd_colorTxt_m8r') || el.classList.contains('ctd_lineColorTxt_l8t')) { el.value = sv; el.dispatchEvent(new Event('input')); }
+        else if (el.classList.contains('ctd_plainSel_p2q')) { el.value = sv; el.dispatchEvent(new Event('change')); }
+        else if (el.classList.contains('ctd_fontFamSel_f1a')) {
+          const known = FONT_FAMILY_KNOWN_f9l.indexOf(sv) !== -1;
+          el.value = known ? sv : 'custom';
+          el.dispatchEvent(new Event('change'));
+          if (!known) { const txt = document.querySelector('.ctd_fontFamText_f2b[data-var="' + v + '"]'); if (txt) { txt.value = sv; txt.dispatchEvent(new Event('input')); } }
+        }
+        else { window.ctd_currentStyles_v9b[v] = sv; }
+      });
+    }
+
+    function ctd_renderSlotsList_h6s() {
+      const listEl = document.getElementById('ctd_slotsList_h9g');
+      const slots = ctd_getSlots_h4q();
+      if (slots.length === 0) { listEl.innerHTML = '<div style="font-size:11px; color:#888;">저장된 슬롯이 없습니다.</div>'; return; }
+      listEl.innerHTML = '';
+      slots.slice().reverse().forEach((slot) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:6px; align-items:center; background:var(--ctd-summary-bg); padding:8px; border-radius:6px;';
+        row.innerHTML = '<span style="flex:1; font-size:12px;">' + slot.label + '</span><button class="ctd_slotLoadBtn_h7t" data-id="' + slot.id + '" style="padding:5px 8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">불러오기</button><button class="ctd_slotDelBtn_h8u" data-id="' + slot.id + '" style="padding:5px 8px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">삭제</button>';
+        listEl.appendChild(row);
+      });
+      listEl.querySelectorAll('.ctd_slotLoadBtn_h7t').forEach(btn => btn.addEventListener('click', (e) => ctd_loadSlot_h9v(e.target.dataset.id)));
+      listEl.querySelectorAll('.ctd_slotDelBtn_h8u').forEach(btn => btn.addEventListener('click', (e) => { ctd_setSlots_h5r(ctd_getSlots_h4q().filter(s => String(s.id) !== e.target.dataset.id)); ctd_renderSlotsList_h6s(); }));
+    }
+    function ctd_loadSlot_h9v(id) {
+      const slot = ctd_getSlots_h4q().find(s => String(s.id) === String(id));
+      if (!slot) { ctd_setSaveStatus_h6c('해당 슬롯을 찾을 수 없습니다.'); return; }
+      if (slot.payload.currentStyles) ctd_refreshFormFromMap_h8p(slot.payload.currentStyles);
+      if (slot.payload.shadowPreset) { document.getElementById('ctd_shadowPresetSel_p7x').value = slot.payload.shadowPreset; ctd_applyShadowPreset_n8v(slot.payload.shadowPreset); }
+      ctd_setSaveStatus_h6c('"' + slot.label + '" 슬롯을 불러왔습니다.');
+    }
+    document.getElementById('ctd_saveLocalBtn_h1x').addEventListener('click', () => {
+      const nowLabel = new Date().toLocaleString('ko-KR');
+      const payload = { currentStyles: window.ctd_currentStyles_v9b, shadowPreset: window.ctd_shadowPresetMode_r6t };
+      const slots = ctd_getSlots_h4q();
+      slots.push({ id: Date.now(), label: nowLabel + ' 저장', payload });
+      ctd_setSlots_h5r(slots);
+      ctd_renderSlotsList_h6s();
+      ctd_setSaveStatus_h6c('새 슬롯으로 저장했습니다 (' + nowLabel + ')');
+    });
+    document.getElementById('ctd_toggleSlotsBtn_h6d').addEventListener('click', () => {
+      const panel = document.getElementById('ctd_slotsPanel_h8f');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      document.getElementById('ctd_importPanel_h1h').style.display = 'none';
+      if (!isOpen) ctd_renderSlotsList_h6s();
+    });
+    document.getElementById('ctd_invalidateLocalBtn_h3z').addEventListener('click', () => {
+      if (!confirm('현재 미리보기 값을 지우고 웹사이트의 원래 기본 설정으로 되돌리시겠습니까? (저장된 슬롯은 유지됩니다)')) return;
+      let dyn = window.opener.document.getElementById('ctd_dynamic_dashboard_style_z8c');
+      if (dyn) dyn.remove();
+      ctd_setSaveStatus_h6c('현재 웹사이트 기본 설정으로 복원했습니다. 팝업을 닫고 다시 열면 폼도 새로 반영됩니다.');
+    });
+
+    const ctd_previewBtn_e5y = document.getElementById('ctd_previewDefaultBtn_e5y');
+    const ctd_startPreview_q1a = () => { const dyn = window.opener.document.getElementById('ctd_dynamic_dashboard_style_z8c'); if (dyn) dyn.media = 'not all'; };
+    const ctd_endPreview_q1b = () => { const dyn = window.opener.document.getElementById('ctd_dynamic_dashboard_style_z8c'); if (dyn) dyn.media = 'all'; };
+    ctd_previewBtn_e5y.addEventListener('mousedown', ctd_startPreview_q1a);
+    ctd_previewBtn_e5y.addEventListener('mouseup', ctd_endPreview_q1b);
+    ctd_previewBtn_e5y.addEventListener('mouseleave', ctd_endPreview_q1b);
+    ctd_previewBtn_e5y.addEventListener('touchstart', (e) => { e.preventDefault(); ctd_startPreview_q1a(); });
+    ctd_previewBtn_e5y.addEventListener('touchend', ctd_endPreview_q1b);
+    ctd_previewBtn_e5y.addEventListener('touchcancel', ctd_endPreview_q1b);
+    window.addEventListener('mouseup', ctd_endPreview_q1b);
+
+    document.getElementById('ctd_toggleImportBtn_h7e').addEventListener('click', () => {
+      const panel = document.getElementById('ctd_importPanel_h1h');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      document.getElementById('ctd_slotsPanel_h8f').style.display = 'none';
+    });
+    function ctd_extractCssVars_h2f(text) {
+      const rootIdx = text.indexOf(':root');
+      if (rootIdx === -1) return {};
+      const braceStart = text.indexOf('{', rootIdx);
+      if (braceStart === -1) return {};
+      let depth = 0, i = braceStart;
+      for (; i < text.length; i++) { if (text[i]==='{') depth++; else if (text[i]==='}') { depth--; if (depth===0) { i++; break; } } }
+      const block = text.substring(braceStart, i);
+      const map = {};
+      const re = /(--[a-zA-Z0-9_-]+)\\s*:\\s*([^;]+);/g;
+      let m;
+      while ((m = re.exec(block)) !== null) map[m[1].trim()] = m[2].trim().replace(/\\s*!important\\s*$/,'');
+      return map;
+    }
+    document.getElementById('ctd_importApplyBtn_h3j').addEventListener('click', () => {
+      const raw = document.getElementById('ctd_importTextarea_h2i').value;
+      if (!raw.trim()) { ctd_setSaveStatus_h6c('붙여넣은 코드가 없습니다.'); return; }
+      const cssMap = ctd_extractCssVars_h2f(raw);
+      if (!Object.keys(cssMap).length) { ctd_setSaveStatus_h6c('코드에서 인식 가능한 변수를 찾지 못했습니다.'); return; }
+      ctd_refreshFormFromMap_h8p(cssMap);
+      if (cssMap['--calloutShadowConfig_qT4b'] !== undefined) {
+        const on = cssMap['--calloutShadowConfig_qT4b'] !== 'none';
+        document.getElementById('ctd_shadowPresetSel_p7x').value = on ? 'custom' : 'none';
+        ctd_applyShadowPreset_n8v(on ? 'custom' : 'none');
+      }
+      document.getElementById('ctd_importPanel_h1h').style.display = 'none';
+      ctd_setSaveStatus_h6c('가져온 코드로 설정값을 채웠습니다. 세부 조정 후 다시 출력하세요.');
+    });
+
+    const ctd_createFinalExportText_j3w = () => {
+      let exportText = "<style>\\n  :root {\\n";
+      for (let cssKey in window.ctd_currentStyles_v9b) {
+        if (cssKey.indexOf('--batch') === 0) continue;
+        exportText += \`    \${cssKey}: \${window.ctd_currentStyles_v9b[cssKey]};\\n\`;
+      }
+      exportText += "  }\\n</style>";
+      return exportText;
+    };
+    document.getElementById('ctd_exportTriggerBtn_j2m').addEventListener('click', () => {
+      document.getElementById('ctd_exportTextarea_f4v').value = ctd_createFinalExportText_j3w();
+      const area = document.getElementById('ctd_exportArea_w9c');
+      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+      if (area.style.display === 'block') area.scrollIntoView({behavior:'smooth'});
+    });
+    document.getElementById('ctd_copyBtn_l8x').addEventListener('click', () => {
+      document.getElementById('ctd_exportTextarea_f4v').select();
+      document.execCommand('copy');
+      alert('출력된 설정 코드가 복사되었습니다.');
+    });
+    document.getElementById('ctd_copyMinBtn_m8c').addEventListener('click', () => {
+      let rawText = document.getElementById('ctd_exportTextarea_f4v').value || ctd_createFinalExportText_j3w();
+      let minified = rawText.replace(/\\/\\*[\\s\\S]*?\\*\\//g, '').replace(/\\n/g, '').replace(/\\s{2,}/g, ' ').trim();
+      const temp = document.createElement('textarea');
+      temp.value = minified;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+      alert('압축된(Minify) 코드가 복사되었습니다.');
+    });
+
+    ctd_injectDynamicStyle_h7q();
+  `;
+
+  popupWindow.document.open();
+  popupWindow.document.write(`
+  <!DOCTYPE html>
+  <html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <title>콜아웃 표 엔진 통합 제어판</title>
+    <style>
+      :root { --ctd-bg:#121212; --ctd-text:#e5e5e5; --ctd-panel-bg:#1a1a1a; --ctd-panel-border:#2a2a2a; --ctd-summary-bg:#222; }
+      body.ctd_lightMode_t8n { --ctd-bg:#f4f4f5; --ctd-text:#1f2937; --ctd-panel-bg:#ffffff; --ctd-panel-border:#e5e7eb; --ctd-summary-bg:#f1f5f9; }
+      body { margin:0; background:var(--ctd-bg); color:var(--ctd-text); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size:13px; }
+      .headerWrap_h1w { position:sticky; top:0; z-index:10; background:var(--ctd-panel-bg); padding:16px 20px; border-bottom:1px solid var(--ctd-panel-border); display:flex; flex-direction:column; gap:10px; }
+      .topBar_t2b { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      .ctd_themeBtn_q8r { background:transparent; border:1px solid #444; color:inherit; border-radius:6px; cursor:pointer; padding:6px 10px; }
+      .ctd_searchBox_a2c { width:100%; box-sizing:border-box; padding:8px 12px; background:var(--ctd-summary-bg); color:inherit; border:1px solid var(--ctd-panel-border); border-radius:6px; outline:none; }
+      .ctd_storageBar_h1t { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+      .ctd_storageBtn_h2u { background:var(--ctd-summary-bg); border:1px solid var(--ctd-panel-border); color:inherit; border-radius:6px; cursor:pointer; padding:5px 9px; font-size:11px; }
+      .ctd_storageBtnDanger_h4a { color:#ef4444; }
+      .ctd_saveStatus_h5b { font-size:11px; color:#10b981; min-height:14px; }
+      .ctd_slotsPanel_h8f, .ctd_importPanel_h1h { background:var(--ctd-summary-bg); border:1px solid var(--ctd-panel-border); border-radius:8px; padding:10px; }
+      #ctd_importTextarea_h2i { width:100%; height:120px; background:#000; color:#10b981; border:1px solid #444; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; box-sizing:border-box; resize:vertical; }
+      .mainLayout_m8l { padding:12px 20px; }
+      .ctd_itemContainer_j3v { display:flex; flex-direction:column; gap:6px; padding-bottom:8px; border-bottom:1px dashed #333; }
+      .ctd_resetSingleBtn_k2n { display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:#888; cursor:pointer; padding:4px; }
+      .ctd_resetSingleBtn_k2n:hover { color:#10b981 !important; }
+      .ctd_basicSel_h7k { padding:6px; background:#111; color:#eee; border:1px solid #444; border-radius:6px; width:100%; outline:none; }
+      body.ctd_lightMode_t8n .ctd_basicSel_h7k, body.ctd_lightMode_t8n .ctd_inputNum_c4m, body.ctd_lightMode_t8n .ctd_colorTxt_m8r, body.ctd_lightMode_t8n .ctd_lineColorTxt_l8t, body.ctd_lightMode_t8n input[type="text"] { background:#fff; color:#1f2937; border-color:#d1d5db; }
+      input[type="text"], .ctd_colorTxt_m8r, .ctd_lineColorTxt_l8t { background:#111; color:#eee; border:1px solid #444; border-radius:6px; padding:6px 10px; box-sizing:border-box; outline:none; flex:1; }
+      .ctd_inputError_h7d { border-color:#ef4444 !important; box-shadow:0 0 0 1px #ef4444; }
+      .ctd_colorPicker_n5s, .ctd_lineColorPicker_l5q { width:34px; height:26px; padding:0; border:none; border-radius:4px; background:transparent; cursor:pointer; }
+      .ctd_inputRange_x8p { flex:1; accent-color:#10b981; cursor:pointer; }
+      .ctd_inputNum_c4m { width:70px; padding:6px; background:#111; color:#10b981; border:1px solid #444; border-radius:6px; font-weight:700; text-align:center; outline:none; }
+      .ctd_actionBtn_q3w { width:100%; padding:10px; background:#333; color:#10b981; border:1px dashed #555; border-radius:6px; cursor:pointer; font-weight:bold; }
+      #ctd_exportTextarea_f4v { width:100%; height:250px; background:#000; color:#10b981; border:1px solid #444; border-radius:8px; padding:10px; font-family:monospace; resize:vertical; outline:none; box-sizing:border-box; font-size:12px; white-space:pre; }
+      .ctd_toggleWrap_q1p { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+      .ctd_toggleInput_b9w, .ctd_lineOnToggle_l1m { opacity:0; width:0; height:0; position:absolute; }
+      .ctd_toggleSlider_s2q { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#444; transition:.2s; border-radius:22px; }
+      .ctd_toggleSlider_s2q:before { position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:white; transition:.2s; border-radius:50%; }
+      .ctd_toggleInput_b9w:checked + .ctd_toggleSlider_s2q, .ctd_lineOnToggle_l1m:checked + .ctd_toggleSlider_s2q { background:#10b981; }
+      .ctd_toggleInput_b9w:checked + .ctd_toggleSlider_s2q:before, .ctd_lineOnToggle_l1m:checked + .ctd_toggleSlider_s2q:before { transform:translateX(18px); }
+      ::-webkit-scrollbar { width:8px; }
+      ::-webkit-scrollbar-track { background:var(--ctd-panel-bg); }
+      ::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
+      ::-webkit-scrollbar-thumb:hover { background:#555; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>${scriptContent}<\/script>
+  </body>
+  </html>
+  `);
+  popupWindow.document.close();
+}();

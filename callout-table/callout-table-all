@@ -1,0 +1,360 @@
+<style>
+
+/*
+
+<!-- 콜아웃 테이블 디자인 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main//callout-table/callout-table.css">
+
+*/
+
+/*
+  callout-table-engine.vars.css (최종 백업판)
+  ------------------------------------------------------------------
+  이 :root 블록만 노션/우피에 <style>...</style>로 붙여넣습니다.
+  실제 동작 로직은 깃허브의 callout-table-engine.css를
+  <link rel="stylesheet">로 불러와서 처리합니다.
+
+  변수명 끝의 "_qT4b"는 다른 코드와의 이름 충돌을 막기 위한
+  임의 접미사입니다. 값만 바꿔서 다시 붙여넣으면 즉시 반영됩니다.
+
+  "대시보드 자동 계산" 표시가 있는 변수는 사람이 직접 수정하는 게
+  아니라, callout-table-dashboard.js가 다른 설정값(균등 채움 on/off,
+  라벨 비율 등)을 바탕으로 자동으로 값을 채워주는 보조 변수입니다.
+  손으로 직접 바꾸실 수도 있지만, 그러면 대시보드를 다시 열었을 때
+  관련 항목들과 값이 어긋날 수 있습니다.
+  ------------------------------------------------------------------
+*/
+:root {
+  /* ===================== 레이아웃 / 간격 ===================== */
+
+  --gap_qT4b: 46px;
+  /* [열 사이 가로 간격] 목적: 같은 컬럼-리스트 안에서 좌우로 나열된 컬럼(칸) 사이의 가로 간격 | 기본값: 46px | 옵션: 0px 이상의 px 값 (CSS 명세상 음수는 적용되지 않음) | 예시: 0px, 24px, 100px */
+
+  --gapY_qT4b: 46px;
+  /* [줄바꿈 시 세로 간격] 목적: 화면 폭이 좁아져 같은 컬럼-리스트의 칸들이 세로로 재배치될 때, 그 줄들 사이의 간격 | 기본값: 46px | 옵션: 0px 이상의 px 값 (0px = 완전히 붙어서 하나의 표처럼 보임) | 예시: 0px, 46px */
+
+  --blockGapY_qT4b: 46px;
+  /* [표 그룹 간 간격] 목적: 콜아웃 안에 서로 다른 컬럼-리스트 블록(표 그룹)이 여러 개 있을 때, 그 블록들 사이의 세로 간격 | 기본값: 46px | 옵션: 0px 이상의 px 값 | 예시: 0px, 46px, 80px */
+
+  --inColGapY_qT4b: 24px;
+  /* [칸 내부 표 간격] 목적: 같은 칸(컬럼) 안에 표가 여러 개 위아래로 쌓여 있을 때, 그 표들 사이의 간격 | 기본값: 24px | 옵션: margin 기반이라 음수도 가능(음수 입력 시 표끼리 겹침) | 예시: -20px, 0px, 24px, 50px */
+
+  --colMinWidth_qT4b: 200px;
+  /* [칸 최소 폭] 목적: 컬럼(칸)이 이 폭보다 좁아지면 다음 줄로 자동 줄바꿈(세로 스택)됨. 균등 채움이 켜져있을 때 기준폭으로도 쓰임 | 기본값: 200px | 옵션: 50px 이상의 px 값 | 예시: 100px, 200px, 350px */
+
+  --colGrow_qT4b: 1;
+  /* [칸 폭 균등 채움] 목적: 1이면 여러 칸이 컨테이너 폭을 균등하게 나눠 채움, 0이면 각 칸이 표 내용 크기만큼만 차지(정�1렬 옵션 사용 가능) | 기본값: 1 | 옵션: 1 또는 0 | 예시: 0, 1 */
+
+  --colBasis_qT4b: 200px;
+  /* [칸 기준 폭 - 대시보드 자동 계산] 목적: 실제 flex 계산에 쓰이는 칸의 기준폭. colGrow가 1이면 colMinWidth와 같은 값, 0이면 auto로 자동 전환됨 | 기본값: 200px | 옵션: px 값 또는 auto */
+
+  --tblLayoutMode_qT4b: fixed;
+  /* [표 레이아웃 모드 - 대시보드 자동 계산] 목적: colGrow가 1이면 고정폭(fixed, 예측 가능), 0이면 콘텐츠 크기 기반(auto)으로 표 자체의 레이아웃 알고리즘을 전환 | 기본값: fixed | 옵션: fixed 또는 auto */
+
+  --tblWidthMode_qT4b: 100%;
+  /* [표 폭 모드 - 대시보드 자동 계산] 목적: colGrow가 1이면 칸을 100% 채움, 0이면 auto로 콘텐츠 크기만큼만 차지 | 기본값: 100% | 옵션: 100% 또는 auto */
+
+  --colJustify_qT4b: flex-start;
+  /* [칸 정렬 방식] 목적: colGrow가 0일 때, 남는 공간에서 칸들을 어느 쪽으로 모을지 결정 | 기본값: flex-start | 옵션: flex-start(좌측), center(중앙), flex-end(우측), space-between(양측 정렬) | 예시: center, space-between */
+
+  --ratio1_qT4b: 30%;
+  /* [2열 표 라벨 폭 비율] 목적: 라벨-값 2열 구조 표에서 첫 번째(라벨) 열이 차지하는 폭 비율(균등 채움이 켜져있을 때만 실제로 적용됨) | 기본값: 30% | 옵션: 5%~95% | 예시: 20%, 30%, 50% */
+
+  --tblCol1Width_qT4b: 30%;
+  /* [라벨 열 실제 폭 - 대시보드 자동 계산] 목적: ratio1과 colGrow 값을 조합해 실제로 셀에 적용되는 첫 번째(라벨) 열의 폭. colGrow가 0이면 auto로 전환되어 비율이 무시됨 | 기본값: 30% | 옵션: % 값 또는 auto */
+
+  --tblCol2Width_qT4b: 70%;
+  /* [값 열 실제 폭 - 대시보드 자동 계산] 목적: tblCol1Width의 나머지(100%-tblCol1Width)를 담당하는 두 번째(값) 열의 폭. colGrow가 0이면 auto로 전환됨 | 기본값: 70% | 옵션: % 값 또는 auto */
+
+
+  /* ===================== 콜아웃 배경 / 테두리 / 모서리 ===================== */
+
+  --calloutBgColor_qT4b: #37352f;
+  /* [콜아웃 배경색] 목적: 콜아웃 전체 배경의 색상(투명도는 calloutBgOpacity가 별도 결정) | 기본값: #37352f | 옵션: HEX 색상 코드 | 예시: #37352f, #ff0000, #ffffff */
+
+  --calloutBgOpacity_qT4b: 0;
+  /* [콜아웃 배경 투명도] 목적: 배경색이 얼마나 보일지(0=완전히 안 보임, 1=완전히 진하게) | 기본값: 0 | 옵션: 0~1 사이의 소수 | 예시: 0, 0.1, 0.5, 1 */
+
+  --calloutBorderColor_qT4b: #37352f;
+  /* [콜아웃 테두리색] 목적: 콜아웃 바깥 테두리 선의 색상 | 기본값: #37352f | 옵션: HEX 색상 코드 | 예시: #37352f, #0000ff */
+
+  --calloutBorderOpacity_qT4b: 0;
+  /* [콜아웃 테두리 투명도] 목적: 테두리 선이 얼마나 보일지(0=안 보임, 1=완전히 선명) | 기본값: 0 | 옵션: 0~1 사이의 소수 | 예시: 0, 1 */
+
+  --calloutBorderWidth_qT4b: 0px;
+  /* [콜아웃 테두리 굵기] 목적: 테두리 선의 두께. 0px이면 Opacity를 올려도 안 보임 | 기본값: 0px | 옵션: 0px 이상의 px 값 | 예시: 0px, 1px, 2px */
+
+  --radius_qT4b: 4px;
+  /* [콜아웃 모서리 둥글기] 목적: 콜아웃 배경/테두리의 모서리를 얼마나 둥글게 만들지 | 기본값: 4px | 옵션: 0px 이상의 px 값 | 예시: 0px, 4px, 20px, 50px */
+
+
+  /* ===================== 콜아웃 그림자 ===================== */
+
+  --calloutShadowX_qT4b: 0px;
+  /* [그림자 가로 오프셋] 목적: 그림자가 좌우로 얼마나 치우칠지 | 기본값: 0px | 옵션: -40px~40px | 예시: -10px, 0px, 10px */
+
+  --calloutShadowY_qT4b: 0px;
+  /* [그림자 세로 오프셋] 목적: 그림자가 위아래로 얼마나 치우칠지(보통 양수를 주면 아래로 그림자가 생김) | 기본값: 0px | 옵션: -40px~40px | 예시: 0px, 2px, 4px */
+
+  --calloutShadowBlur_qT4b: 0px;
+  /* [그림자 흐림 정도] 목적: 그림자 경계가 얼마나 부드럽게 퍼지는지 | 기본값: 0px | 옵션: 0px~60px | 예시: 0px, 8px, 20px */
+
+  --calloutShadowSpread_qT4b: 0px;
+  /* [그림자 퍼짐 정도] 목적: 그림자 자체의 크기를 원본보다 키우거나 줄임 | 기본값: 0px | 옵션: -20px~40px | 예시: -5px, 0px, 10px */
+
+  --calloutShadowColor_qT4b: #000000;
+  /* [그림자 색상] 목적: 그림자의 색(투명도는 calloutShadowOpacity가 별도 결정) | 기본값: #000000 | 옵션: HEX 색상 코드 | 예시: #000000 */
+
+  --calloutShadowOpacity_qT4b: 0;
+  /* [그림자 투명도] 목적: 그림자가 얼마나 진하게 보일지 | 기본값: 0 | 옵션: 0~1 사이의 소수 | 예시: 0, 0.15, 0.3 */
+
+  --calloutShadowConfig_qT4b: none;
+  /* [그림자 최종 합성값 - 대시보드 자동 계산] 목적: 위 5개 그림자 항목을 하나의 box-shadow 값으로 합쳐서 실제 엔진 CSS가 읽는 변수 | 기본값: none | 옵션: none 또는 "가로 세로 흐림 퍼짐 색상" 형식의 완전한 값 | 예시: none, 0px 2px 8px 0px rgba(0,0,0,0.15) */
+
+
+  /* ===================== 테이블 선 노출 ===================== */
+  /* 값 형식: "none"(비노출) 또는 실제 border 값("두께 스타일 색상") 그대로 입력 */
+
+  --tblLineH_qT4b: none;
+  /* [내부 가로선] 목적: 표의 행(row)과 행 사이에 그려지는 안쪽 가로 구분선 | 기본값: none | 옵션: none 또는 "두께 스타일 색상" | 예시: none, 1px solid rgba(55,53,47,0.3) */
+
+  --tblLineV_qT4b: none;
+  /* [내부 세로선] 목적: 표의 라벨 열과 값 열 사이에 그려지는 안쪽 세로 구분선 | 기본값: none | 옵션: none 또는 "두께 스타일 색상" | 예시: none, 1px solid rgba(55,53,47,0.3) */
+
+  --tblEdgeTop_qT4b: none;
+  /* [상단 외곽선] 목적: 표의 맨 위쪽 바깥 테두리 선 | 기본값: none | 옵션: none 또는 "두께 스타일 색상" | 예시: none, 1px solid rgba(55,53,47,0.3) */
+
+  --tblEdgeBottom_qT4b: none;
+  /* [하단 외곽선] 목적: 표의 맨 아래쪽 바깥 테두리 선 | 기본값: none | 옵션: none 또는 "두께 스타일 색상" | 예시: none, 1px solid rgba(55,53,47,0.3) */
+
+  --tblEdgeLeft_qT4b: none;
+  /* [좌측 외곽선] 목적: 표의 맨 왼쪽 바깥 테두리 선 | 기본값: none | 옵션: none 또는 "두께 스타일 색상" | 예시: none, 1px solid rgba(55,53,47,0.3) */
+
+  --tblEdgeRight_qT4b: none;
+  /* [우측 외곽선] 목적: 표의 맨 오른쪽 바깥 테두리 선 | 기본값: none | 옵션: none 또는 "두께 스타일 색상" | 예시: none, 1px solid rgba(55,53,47,0.3) */
+
+
+  /* ===================== 셀 여백 ===================== */
+
+  --padY_qT4b: 6px;
+  /* [셀 상하 여백] 목적: 각 행(row)의 위/아래 안쪽 여백. 값이 클수록 행 높이가 커짐 | 기본값: 6px | 옵션: 0px 이상의 px 값 | 예시: 6px, 12px, 20px */
+
+  --padX_qT4b: 8px;
+  /* [셀 좌우 여백] 목적: 각 셀의 좌/우 안쪽 여백 | 기본값: 8px | 옵션: 0px 이상의 px 값 | 예시: 8px, 16px, 24px */
+
+
+  /* ===================== 텍스트 ===================== */
+
+  --textAlign_qT4b: left;
+  /* [셀 텍스트 정렬] 목적: 라벨/값 셀 안 텍스트의 좌우 정렬 방식(라벨/값 공통 적용) | 기본값: left | 옵션: left, center, right | 예시: center, right */
+
+  --labelFontFamily_qT4b: inherit;
+  /* [라벨 폰트 지정] 목적: 라벨 열(Tel, Fax 등) 텍스트에 적용할 폰트. 굵기(100~900)가 잘 반영되지 않을 때 가변 폰트를 직접 지정하면 개선될 수 있음 | 기본값: inherit (노션 원본 폰트 유지) | 옵션: inherit 또는 실제 폰트명 | 예시: inherit, Pretendard Variable, 'Noto Sans KR', sans-serif */
+
+  --labelFontSize_qT4b: inherit;
+  /* [라벨 글자 크기] 목적: 라벨 열 텍스트의 글자 크기 | 기본값: inherit (노션 원본 크기 유지) | 옵션: inherit 또는 px 값 | 예시: inherit, 12px, 14px, 16px */
+
+  --labelFontWeight_qT4b: inherit;
+  /* [라벨 글자 굵기] 목적: 라벨 열 텍스트의 굵기 | 기본값: inherit (노션 원본 굵기 유지) | 옵션: inherit 또는 100~900 (100 단위) | 예시: inherit, 400, 700 */
+
+  --labelColor_qT4b: unset;
+  /* [라벨 글자 색상] 목적: 라벨 열 텍스트의 색상 | 기본값: unset (노션 원본 색상 유지) | 옵션: unset, HEX 색상 코드 | 예시: unset, #999999, #787774 */
+
+  --valueFontFamily_qT4b: inherit;
+  /* [값 폰트 지정] 목적: 값 열(전화번호, 이메일 등) 텍스트에 적용할 폰트 | 기본값: inherit (노션 원본 폰트 유지) | 옵션: inherit 또는 실제 폰트명 | 예시: inherit, Pretendard Variable, 'Apple SD Gothic Neo', sans-serif */
+
+  --valueFontSize_qT4b: inherit;
+  /* [값 글자 크기] 목적: 값 열 텍스트의 글자 크기 | 기본값: inherit (노션 원본 크기 유지) | 옵션: inherit 또는 px 값 | 예시: inherit, 14px, 20px */
+
+  --valueFontWeight_qT4b: inherit;
+  /* [값 글자 굵기] 목적: 값 열 텍스트의 굵기 | 기본값: inherit (노션 원본 굵기 유지) | 옵션: inherit 또는 100~900 (100 단위) | 예시: inherit, 400, 700 */
+
+  --valueColor_qT4b: unset;
+  /* [값 글자 색상] 목적: 값 열 텍스트의 색상 | 기본값: unset (노션 원본 색상 유지) | 옵션: unset, HEX 색상 코드 | 예시: unset, #000000, #37352f */
+}
+
+</style>
+
+<style>
+
+/*
+  callout-table-engine.css (v12)
+  ------------------------------------------------------------------
+  v11 → v12 변경점:
+  1) 2열 표 비율을 --tblCol1Width_qT4b / --tblCol2Width_qT4b (JS가 계산)
+     로 교체 — colGrow=0(콘텐츠 크기 모드)일 땐 두 값을 모두 'auto'로
+     만들어서 table-layout:auto와 충돌하지 않게 함. colGrow=1일 때만
+     ratio1 비율이 실제로 셀 폭에 반영됨.
+  2) 라벨/값 폰트 패밀리 지정 변수 추가(--labelFontFamily_qT4b,
+     --valueFontFamily_qT4b, 기본 inherit) — 가변 폰트를 명시적으로
+     지정하면 굵기 100~900이 더 뚜렷하게 반영됨.
+  ------------------------------------------------------------------
+*/
+
+.notion-callout-block:has(.notion-table-block) *,
+.notion-callout-block:has(.notion-table-block) *::before,
+.notion-callout-block:has(.notion-table-block) *::after {
+  box-sizing: border-box !important;
+}
+
+.notion-callout-block:has(.notion-table-block) {
+  background: color-mix(
+    in srgb,
+    var(--calloutBgColor_qT4b, #37352f) calc(var(--calloutBgOpacity_qT4b, 0) * 100%),
+    transparent
+  ) !important;
+  box-shadow: var(--calloutShadowConfig_qT4b, none) !important;
+  border-radius: var(--radius_qT4b, 4px) !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  > div > div[style*="border-width"] {
+  border-width: var(--calloutBorderWidth_qT4b, 0px) !important;
+  border-style: solid !important;
+  border-color: color-mix(
+    in srgb,
+    var(--calloutBorderColor_qT4b, #37352f) calc(var(--calloutBorderOpacity_qT4b, 0) * 100%),
+    transparent
+  ) !important;
+  border-radius: var(--radius_qT4b, 4px) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-column_list-block + .notion-column_list-block {
+  margin-top: var(--blockGapY_qT4b, 46px) !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-column_list-block > div:has(.notion-column-block) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: stretch !important;
+  justify-content: var(--colJustify_qT4b, flex-start);
+  column-gap: var(--gap_qT4b, 46px) !important;
+  row-gap: var(--gapY_qT4b, 46px) !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-column_list-block > div > div:not(:has(.notion-column-block)) {
+  flex: 0 0 0px !important;
+  width: 0px !important;
+  min-width: 0px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-column_list-block > div > div:has(.notion-column-block) {
+  flex: var(--colGrow_qT4b, 1) 1 var(--colBasis_qT4b, 200px) !important;
+  min-width: var(--colMinWidth_qT4b, 200px) !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-column-block:has(.notion-table-block) {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-table-block {
+  margin: 0 !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-table-block ~ .notion-table-block {
+  margin-top: var(--inColGapY_qT4b, 24px) !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-scroller.horizontal {
+  overflow: visible !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.notion-callout-block:has(.notion-table-block) table {
+  width: var(--tblWidthMode_qT4b, 100%) !important;
+  table-layout: var(--tblLayoutMode_qT4b, fixed) !important;
+  margin: 0 !important;
+}
+
+.notion-callout-block:has(.notion-table-block) table td {
+  min-width: auto !important;
+  max-width: none !important;
+  width: auto !important;
+  white-space: normal !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding-top: var(--padY_qT4b, 6px) !important;
+  padding-bottom: var(--padY_qT4b, 6px) !important;
+  padding-left: var(--padX_qT4b, 8px) !important;
+  padding-right: var(--padX_qT4b, 8px) !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  tr:not(:last-child) td {
+  border-bottom: var(--tblLineH_qT4b, none) !important;
+}
+.notion-callout-block:has(.notion-table-block)
+  tr td:not(:last-child) {
+  border-right: var(--tblLineV_qT4b, none) !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  tr:first-child td {
+  border-top: var(--tblEdgeTop_qT4b, none) !important;
+}
+.notion-callout-block:has(.notion-table-block)
+  tr:last-child td {
+  border-bottom: var(--tblEdgeBottom_qT4b, none) !important;
+}
+.notion-callout-block:has(.notion-table-block)
+  tr td:first-child {
+  border-left: var(--tblEdgeLeft_qT4b, none) !important;
+}
+.notion-callout-block:has(.notion-table-block)
+  tr td:last-child {
+  border-right: var(--tblEdgeRight_qT4b, none) !important;
+}
+
+.notion-callout-block:has(.notion-table-block)
+  .notion-table-cell-text {
+  text-align: var(--textAlign_qT4b, left);
+}
+
+/* 라벨(홀수 열) — font-family + font-variation-settings 추가 */
+.notion-callout-block:has(.notion-table-block)
+  tr td:nth-child(odd) .notion-table-cell-text {
+  color: var(--labelColor_qT4b, unset) !important;
+  font-family: var(--labelFontFamily_qT4b, inherit) !important;
+  font-size: var(--labelFontSize_qT4b, inherit) !important;
+  font-weight: var(--labelFontWeight_qT4b, inherit) !important;
+  font-variation-settings: "wght" var(--labelFontWeight_qT4b, 400) !important;
+}
+
+/* 값(짝수 열) */
+.notion-callout-block:has(.notion-table-block)
+  tr td:nth-child(even) .notion-table-cell-text {
+  color: var(--valueColor_qT4b, unset) !important;
+  font-family: var(--valueFontFamily_qT4b, inherit) !important;
+  font-size: var(--valueFontSize_qT4b, inherit) !important;
+  font-weight: var(--valueFontWeight_qT4b, inherit) !important;
+  font-variation-settings: "wght" var(--valueFontWeight_qT4b, 400) !important;
+}
+
+/* 2열 표 폭 — colGrow=1일 때만 실제 비율 적용, 0일 때는 JS가 auto/auto로 넣음 */
+.notion-callout-block:has(.notion-table-block)
+  table:has(tr > td:nth-child(2):last-child) tr td:first-child {
+  width: var(--tblCol1Width_qT4b, 30%) !important;
+}
+.notion-callout-block:has(.notion-table-block)
+  table:has(tr > td:nth-child(2):last-child) tr td:last-child {
+  width: var(--tblCol2Width_qT4b, 70%) !important;
+}
+    
+</style>
