@@ -229,6 +229,13 @@ candidates.forEach(function (el) {
     return /fit|본문/i.test(raw) ? 'fit' : 'full';
   }
 
+  function efh_resolveTitlePublic_c9n(raw) {
+  if (!raw) return null;
+  if (/비공개|private/i.test(raw)) return false;
+  if (/공개|public/i.test(raw)) return true;
+  return null;
+}
+
   function efh_resolveAlignX_c9k(raw) {
     if (/좌/.test(raw)) return { items: 'flex-start', text: 'left' };
     if (/우/.test(raw)) return { items: 'flex-end', text: 'right' };
@@ -253,7 +260,8 @@ candidates.forEach(function (el) {
       bgVideoUrl: '', bgColor: '', usage: '', heightRaw: '', widthRaw: '',
       hAlignRaw: '', vAlignRaw: '', bgPositionRaw: '', bgScale: 100,
       shadowColorOverride: '', shadowAlphaOverride: '', slideDuration: 0,
-      contentOrder: []
+titlePublic: '',
+contentOrder: []
     };
 
     function pushTextItem(type, rawText) {
@@ -309,6 +317,11 @@ candidates.forEach(function (el) {
       } else if (/^세로\s*정렬/.test(fieldName)) {
         data.vAlignRaw = val.text;
       } else if (/^용도/.test(fieldName)) {
+        } else if (/^용도/.test(fieldName)) {
+  data.usage = val.text;
+} else if (/^타이틀\s*공개/.test(fieldName)) {
+  data.titlePublic = val.text;
+}
         data.usage = val.text;
       }
     });
@@ -677,7 +690,16 @@ candidates.forEach(function (el) {
     const isCarousel = populatedGroups.length >= 2;
     const slidesData = isCarousel ? populatedGroups : [populatedGroups[0] || heroGroups[0]];
 
-    efh_renderHero_x2y(slidesData, usage, isCarousel, meta);
+        efh_renderHero_x2y(slidesData, usage, isCarousel, meta);
+
+    const titlePublicVal = efh_resolveTitlePublic_c9n(metaGroup ? metaGroup.titlePublic : '');
+    if (titlePublicVal !== null) {
+      const pageTitleBlockEl = document.querySelector('.notion-page-block');
+      if (pageTitleBlockEl) pageTitleBlockEl.style.display = titlePublicVal ? '' : 'none';
+      const controlsEl = document.querySelector('.notion-page-controls');
+      const wrapEl = controlsEl ? controlsEl.parentElement : null;
+      if (wrapEl) wrapEl.style.display = titlePublicVal ? '' : 'none';
+    }
   }
 
   function efh_scheduleRetries_w3p(fn, maxTries, intervalMs) {
