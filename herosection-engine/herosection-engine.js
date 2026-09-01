@@ -367,32 +367,34 @@ contentOrder: []
   }
 
   function efh_buildBgLayerHtml_t1a(slide, isMobile) {
-    if (slide.bgVideoUrl) {
-      if (/youtube\.com|youtu\.be/.test(slide.bgVideoUrl)) {
-        const idMatch = slide.bgVideoUrl.match(/(?:v=|youtu\.be\/)([\w-]{6,})/);
-        const vid = idMatch ? idMatch[1] : '';
-        const placeholderId = 'efh_yt_' + Math.random().toString(36).slice(2, 10);
-        return '<div class="efh_bgVideoWrap_t2b" data-kind="youtube"><div id="' + placeholderId + '" class="efh_bgVideoFrame_t3c" data-video-id="' + efh_escapeHtml_c3c(vid) + '"></div></div>';
-      }
-      if (/vimeo\.com/.test(slide.bgVideoUrl)) {
-        const vMatch = slide.bgVideoUrl.match(/vimeo\.com\/(\d+)/);
-        const vimeoId = vMatch ? vMatch[1] : '';
-        return '<div class="efh_bgVideoWrap_t2b" data-kind="vimeo"><iframe class="efh_bgVideoFrame_t3c" src="https://player.vimeo.com/video/' + vimeoId +
-          '?autoplay=1&muted=1&loop=1&background=1&controls=0" frameborder="0" allow="autoplay; fullscreen" title="배경 영상"></iframe></div>';
-      }
-      return '<div class="efh_bgVideoWrap_t2b" data-kind="file"><video class="efh_bgVideoEl_t4d" src="' + efh_escapeHtml_c3c(slide.bgVideoUrl) + '" autoplay muted loop playsinline></video></div>';
+  const posY = efh_resolveBgPositionY_c9m(slide.bgPositionRaw || '');
+  const scale = (slide.bgScale || 100) / 100;
+
+  if (slide.bgVideoUrl) {
+    const wrapAttrs = ' data-bg-pos="' + posY + '" style="--efh-bgVideoScale:' + scale + ';"';
+    if (/youtube\.com|youtu\.be/.test(slide.bgVideoUrl)) {
+      const idMatch = slide.bgVideoUrl.match(/(?:v=|youtu\.be\/)([\w-]{6,})/);
+      const vid = idMatch ? idMatch[1] : '';
+      const placeholderId = 'efh_yt_' + Math.random().toString(36).slice(2, 10);
+      return '<div class="efh_bgVideoWrap_t2b" data-kind="youtube"' + wrapAttrs + '><div id="' + placeholderId + '" class="efh_bgVideoFrame_t3c" data-video-id="' + efh_escapeHtml_c3c(vid) + '"></div></div>';
     }
-    const images = (isMobile && slide.bgImagesMobile.length) ? slide.bgImagesMobile : slide.bgImages;
-    if (images.length > 0) {
-      const posY = efh_resolveBgPositionY_c9m(slide.bgPositionRaw || '');
-      const scale = (slide.bgScale || 100) / 100;
-      return images.map(function (img, i) {
-        return '<div class="efh_bgImg_t5e' + (i === 0 ? ' efh_bgImgActive_t6f' : '') + '" data-src="' + efh_escapeHtml_c3c(img.src) + '" data-idx="' + i +
-          '" style="background-position:center ' + posY + '; transform: scale(' + scale + ');" role="img" aria-label="' + efh_escapeHtml_c3c(img.alt) + '"></div>';
-      }).join('');
+    if (/vimeo\.com/.test(slide.bgVideoUrl)) {
+      const vMatch = slide.bgVideoUrl.match(/vimeo\.com\/(\d+)/);
+      const vimeoId = vMatch ? vMatch[1] : '';
+      return '<div class="efh_bgVideoWrap_t2b" data-kind="vimeo"' + wrapAttrs + '><iframe class="efh_bgVideoFrame_t3c" src="https://player.vimeo.com/video/' + vimeoId +
+        '?autoplay=1&muted=1&loop=1&background=1&controls=0" frameborder="0" allow="autoplay; fullscreen" title="배경 영상"></iframe></div>';
     }
-    return '';
+    return '<div class="efh_bgVideoWrap_t2b" data-kind="file"' + wrapAttrs + '><video class="efh_bgVideoEl_t4d" src="' + efh_escapeHtml_c3c(slide.bgVideoUrl) + '" autoplay muted loop playsinline></video></div>';
   }
+  const images = (isMobile && slide.bgImagesMobile.length) ? slide.bgImagesMobile : slide.bgImages;
+  if (images.length > 0) {
+    return images.map(function (img, i) {
+      return '<div class="efh_bgImg_t5e' + (i === 0 ? ' efh_bgImgActive_t6f' : '') + '" data-src="' + efh_escapeHtml_c3c(img.src) + '" data-idx="' + i +
+        '" style="background-position:center ' + posY + '; transform: scale(' + scale + ');" role="img" aria-label="' + efh_escapeHtml_c3c(img.alt) + '"></div>';
+    }).join('');
+  }
+  return '';
+}
 
   function efh_buildContentHtml_u1i(slide, justify) {
     let html = '<div class="efh_contentInner_s0z">';
@@ -709,9 +711,18 @@ contentOrder: []
   }
 
   function efh_bootstrap_w4q() {
-    efh_initHeroEngine_x1z();
-    efh_scheduleRetries_w3p(efh_initHeroEngine_x1z, 10, 500);
+  efh_initHeroEngine_x1z();
+  efh_scheduleRetries_w3p(efh_initHeroEngine_x1z, 20, 500);
+
+  if (window.MutationObserver) {
+    const observer = new MutationObserver(efh_debounce_z1(function () {
+      if (document.querySelector('.efh_hero_r1f')) { observer.disconnect(); return; }
+      efh_initHeroEngine_x1z();
+    }, 300));
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(function () { observer.disconnect(); }, 20000);
   }
+}
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', efh_bootstrap_w4q);

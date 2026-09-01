@@ -172,11 +172,19 @@
   .efh_bgVideoWrap_t2b { position: absolute; inset: 0; overflow: hidden; opacity: 0; transition: opacity var(--efh-bgFadeSpeed_a10) ease; }
   .efh_bgVideoWrap_t2b.efh_bgVideoLoaded_t9i { opacity: 1; }
   .efh_bgVideoEl_t4d, .efh_bgVideoFrame_t3c {
-    position: absolute; top: 50%; left: 50%;
-    width: 100vw; height: 56.25vw; min-height: 100vh; min-width: 177.78vh;
-    transform: translate(-50%, -50%);
-    object-fit: cover; border: 0; pointer-events: none;
-  }
+  position: absolute; top: 50%; left: 50%;
+  width: 100vw; height: 56.25vw; min-height: 100vh; min-width: 177.78vh;
+  transform: translate(-50%, -50%) scale(var(--efh-bgVideoScale, 1));
+  object-fit: cover; border: 0; pointer-events: none;
+}
+.efh_bgVideoWrap_t2b[data-bg-pos="top"] .efh_bgVideoEl_t4d,
+.efh_bgVideoWrap_t2b[data-bg-pos="top"] .efh_bgVideoFrame_t3c {
+  top: 0%; transform: translate(-50%, 0%) scale(var(--efh-bgVideoScale, 1));
+}
+.efh_bgVideoWrap_t2b[data-bg-pos="bottom"] .efh_bgVideoEl_t4d,
+.efh_bgVideoWrap_t2b[data-bg-pos="bottom"] .efh_bgVideoFrame_t3c {
+  top: 100%; transform: translate(-50%, -100%) scale(var(--efh-bgVideoScale, 1));
+}
 
   .efh_shadowLayer_r8m { position: absolute; inset: 0; z-index: 2; background: var(--efh-shadowColor_a1); pointer-events: none; }
 
