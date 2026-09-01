@@ -317,13 +317,10 @@ contentOrder: []
       } else if (/^세로\s*정렬/.test(fieldName)) {
         data.vAlignRaw = val.text;
       } else if (/^용도/.test(fieldName)) {
-        } else if (/^용도/.test(fieldName)) {
   data.usage = val.text;
 } else if (/^타이틀\s*공개/.test(fieldName)) {
   data.titlePublic = val.text;
 }
-        data.usage = val.text;
-      }
     });
 
     if (data.shadowColorOverride && data.shadowAlphaOverride) {
@@ -755,10 +752,10 @@ contentOrder: []
       if (el) el.style.display = visible ? '' : 'none';
     },
     setPageTitleAreaVisible: function (visible) {
-      const el = window.document.querySelector('.notion-page-controls');
-      const wrap = el ? el.closest('.width.padding') : null;
-      if (wrap) wrap.style.display = visible ? '' : 'none';
-    },
+  const el = window.document.querySelector('.notion-page-controls');
+  const wrap = el ? el.parentElement : null;
+  if (wrap) wrap.style.display = visible ? '' : 'none';
+},
     setScrollIcon: function (iconClass) {
       document.querySelectorAll('.efh_scrollHint_g1d i').forEach(function (el) { el.className = iconClass; });
     },
