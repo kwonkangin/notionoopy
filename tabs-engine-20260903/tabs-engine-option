@@ -1,0 +1,291 @@
+/*
+<!--탭디자인-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/tabs-engine-20260903/tabs-engine.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/tabs-engine-20260903/tabs-engine.js" defer></script>
+*/
+
+
+/*
+  tabs-engine-option.css
+  ------------------------------------------------------------------
+  Notion 순수 탭 + 콜아웃 + 갤러리 엔진 (v15.1) 설정 변수 전체 안내서
+  엔진 변수 접미사: _R8w
+
+  이 파일의 용도
+  - tabs-engine-dashboard.js 로 값을 조정한 뒤 "최종 적용 코드 출력하기"를 누르면
+    아래와 동일한 형태의 :root { ... } 코드가 만들어집니다.
+  - 이 코드를 Notion 페이지의 Custom CSS 영역에 붙여넣으면
+    tabs-engine.css 의 기본값을 덮어씁니다.
+  - 이 파일 자체는 각 변수의 기능/기본값/입력 가능한 값을 설명하는
+    참고용 문서이며, 그대로 복사해서 값만 바꿔 사용해도 됩니다.
+
+  주의
+  - 아래 값은 tabs-engine.css 의 기본값과 동일합니다.
+  - 대시보드에서 출력한 코드는 :root 블록만 있고, 탭 배치 모드(스크롤/줄바꿈/
+    더보기/드롭다운)는 CSS 가 아니라 별도의 <script> 로 함께 출력됩니다.
+    (이 파일 맨 아래 "탭 배치 모드" 섹션 참고)
+*/
+
+:root {
+
+  /* ===================== 1. 전체 래퍼 ===================== */
+
+  --tabWrapBorderFinal_R8w: 1px solid rgba(55, 53, 47, 0.10);
+  /* [전체 테두리] 목적: 탭 블록 전체를 감싸는 바깥 테두리의 굵기·스타일·색상·투명도 | 기본값: 1px solid rgba(55,53,47,0.10) | 옵션: "굵기px solid 색상코드" 또는 none | 대시보드: 노출 토글 + 굵기 슬라이더(0~20px) + 색상칩/투명도/코드란 (토글을 끄면 투명도만 0으로 바뀌어 안 보이게 되고, 굵기·색상 값은 유지됩니다) */
+
+  --tabWrapBgFinal_R8w: rgba(255, 255, 255, 1);
+  /* [전체 배경] 목적: 탭 목록과 본문을 함께 감싸는 전체 래퍼의 배경색·투명도 | 기본값: rgba(255,255,255,1) | 옵션: HEX 또는 RGBA | 대시보드: 색상칩 + 투명도 슬라이더 + 코드란 */
+
+  --tabWrapRadius_R8w: 20px;
+  /* [전체 모서리 둥글기] 목적: 탭 블록 전체 래퍼의 모서리 둥글기 | 기본값: 20px | 옵션: 0px 이상의 px 값 | 예시: 0px(사각형), 8px, 20px, 50px(완전 둥근 캡슐) */
+
+  --tabWrapShadow_R8w: none;
+  /* [전체 그림자] 목적: 탭 블록 전체 래퍼의 box-shadow 값 | 기본값: none | 옵션: "가로 세로 흐림 퍼짐 색상" 형식의 CSS box-shadow 문자열 또는 none | 예시: 0px 2px 8px 0px rgba(0,0,0,0.15) | 대시보드: 텍스트 직접 입력 (프리셋 없음) */
+
+
+  /* ===================== 2. 탭 목록 · 배치 ===================== */
+
+  --tabListPadding_R8w: 0px 16px 16px;
+  /* [탭 목록 패딩] 목적: 탭이 나열되는 영역의 안쪽 여백 | 기본값: 0px 16px 16px (위 0 / 좌우 16 / 아래 16) | 옵션: CSS padding shorthand | 대시보드: 노출 토글 + 상하·좌우 2단(기본) 또는 개별조정 토글 시 4방향 슬라이더 */
+
+  --tabGapX_R8w: 12px;
+  /* [탭 사이 가로 간격] 목적: 같은 줄에 나열된 탭과 탭 사이의 좌우 간격 | 기본값: 12px | 옵션: 0px 이상의 px 값 */
+
+  --tabGapY_R8w: 8px;
+  /* [탭 줄 사이 세로 간격] 목적: 줄바꿈(wrap) 모드에서 다음 줄 탭과의 세로 간격 | 기본값: 8px | 옵션: 0px 이상의 px 값 */
+
+  --tabFill_R8w: 0;
+  /* [탭 폭 균등 채움] 목적: 1이면 각 탭이 가능한 가로 폭을 균등하게 나눠 채움, 0이면 탭명 길이만큼만 폭을 차지 | 기본값: 0 | 옵션: 0 또는 1 | 대시보드: 토글 (끄면 아래 "탭 정렬 방식"이 나타남) */
+
+  --tabJustify_R8w: flex-start;
+  /* [탭 정렬 방식] 목적: 탭 폭 균등 채움이 꺼져 있을 때, 남는 공간에서 탭들을 정렬하는 방식 | 기본값: flex-start | 옵션: flex-start(좌측) / center(중앙) / flex-end(우측) / space-between(양측 정렬) */
+
+  --tabMinWidth_R8w: 0px;
+  /* [탭 최소 폭] 목적: 탭 하나가 이 폭보다 좁아지지 않게 함 | 기본값: 0px | 옵션: 0px 이상의 px 값 | 예시: 0px, 100px, 160px */
+
+  --tabWrapLong_R8w: nowrap;
+  /* [긴 탭명 줄바꿈] 목적: 긴 탭 이름의 줄바꿈 허용 여부 | 기본값: nowrap | 옵션: nowrap(한 줄 + 말줄임) 또는 normal(여러 줄 허용) | 대시보드: 토글 */
+
+
+  /* ===================== 3. 기본 탭 ===================== */
+
+  --tabPad_R8w: 6px 10px;
+  /* [기본 탭 내부 여백] 목적: 선택되지 않은 일반 탭의 상하·좌우 안쪽 여백 | 기본값: 6px 10px | 옵션: CSS padding shorthand | 대시보드: 노출 토글 + 상하·좌우 2단(기본, 값이 대칭이라 기본으로 2단 표시) */
+
+  --tabRadius_R8w: 999px;
+  /* [탭 모서리 둥글기] 목적: 각 탭 버튼의 모서리 둥글기 | 기본값: 999px(완전 pill 모양) | 옵션: 0px~999px | 예시: 0px(사각형), 6px, 12px, 999px(완전 둥근 캡슐) | 참고: v15.1부터 !important 로 강제 적용되어 Notion 기본 CSS보다 항상 우선함 */
+
+  --tabBg_R8w: rgba(255, 255, 255, 0);
+  /* [기본 탭 배경] 목적: 선택되지 않은 일반 탭의 배경색·투명도 | 기본값: 투명(rgba(255,255,255,0)) | 옵션: HEX 또는 RGBA */
+
+  --tabText_R8w: rgba(55, 53, 47, 0.70);
+  /* [기본 탭 글자색] 목적: 선택되지 않은 일반 탭 텍스트의 색상·투명도 | 기본값: rgba(55,53,47,0.70) | 옵션: HEX 또는 RGBA */
+
+  --tabFontFamily_R8w: inherit;
+  /* [기본 탭 폰트] 목적: 선택되지 않은 일반 탭 텍스트의 font-family | 기본값: inherit(노션 원본 유지) | 옵션: inherit / Pretendard Variable / Pretendard / "Noto Sans KR" 등 사전 정의 목록 / 직접 입력 | 대시보드: 드롭다운 + "직접 입력" 선택 시 텍스트란 노출 */
+
+  --tabFontSize_R8w: 14px;
+  /* [기본 탭 글자 크기] 목적: 선택되지 않은 일반 탭 텍스트의 font-size | 기본값: 14px | 옵션: 8px~48px 권장 | 대시보드: "글자 크기 · 굵기" 그룹으로 굵기와 가로 배치 */
+
+  --tabFontWeight_R8w: 400;
+  /* [기본 탭 글자 굵기] 목적: 선택되지 않은 일반 탭 텍스트의 font-weight | 기본값: 400 | 옵션: 100~900 (100단위: 100/200/300/400/500/600/700/800/900) | 대시보드: 슬라이더 + 드롭다운 양방향 동기화 */
+
+
+  /* ===================== 4. 활성 탭 ===================== */
+
+  --activeTabBg_R8w: rgba(55, 53, 47, 0.06);
+  /* [활성 탭 배경] 목적: 현재 선택된(aria-selected=true) 탭의 배경색·투명도 | 기본값: rgba(55,53,47,0.06) | 옵션: HEX 또는 RGBA */
+
+  --activeTabText_R8w: rgba(55, 53, 47, 1);
+  /* [활성 탭 글자색] 목적: 현재 선택된 탭 텍스트의 색상·투명도 | 기본값: rgba(55,53,47,1) | 옵션: HEX 또는 RGBA */
+
+  --activeTabFontFamily_R8w: inherit;
+  /* [활성 탭 폰트] 목적: 선택된 탭 텍스트의 font-family | 기본값: inherit | 옵션: 기본 탭 폰트와 동일한 선택지 */
+
+  --activeTabFontSize_R8w: 14px;
+  /* [활성 탭 글자 크기] 목적: 선택된 탭 텍스트의 font-size | 기본값: 14px | 옵션: 8px~48px 권장 */
+
+  --activeTabFontWeight_R8w: 500;
+  /* [활성 탭 글자 굵기] 목적: 선택된 탭 텍스트의 font-weight | 기본값: 500 | 옵션: 100~900 (100단위) */
+
+
+  /* ===================== 5. 기본 탭 Hover ===================== */
+
+  --tabHoverOn_R8w: 1;
+  /* [탭 hover 효과 사용] 목적: 비활성 탭에 마우스를 올렸을 때 아래 hover 관련 효과 전체를 켜거나 끔 | 기본값: 1 | 옵션: 0 또는 1 | 대시보드: 토글 (끄면 아래 배경/글자색/테두리/그림자/이동/전환 항목이 전부 숨겨지고, 실제로 hover 시 아무 변화도 일어나지 않게 됨) */
+
+  --tabHoverBg_R8w: rgba(55, 53, 47, 0.06);
+  /* [탭 hover 배경] 목적: --tabHoverOn_R8w 가 1일 때, 비활성 탭에 마우스를 올렸을 때의 배경색·투명도 | 기본값: rgba(55,53,47,0.06) | 옵션: HEX 또는 RGBA */
+
+  --tabHoverText_R8w: rgba(55, 53, 47, 1);
+  /* [탭 hover 글자색] 목적: 비활성 탭 hover 시 텍스트 색상·투명도 | 기본값: rgba(55,53,47,1) | 옵션: HEX 또는 RGBA */
+
+  --tabHoverBorder_R8w: none;
+  /* [탭 hover 테두리] 목적: 비활성 탭 hover 시 테두리 굵기·색상·투명도 | 기본값: none | 옵션: "굵기px solid 색상코드" 또는 none | 대시보드: 노출 토글 + 굵기 슬라이더 + 색상칩/투명도/코드란 */
+
+  --tabHoverShadow_R8w: none;
+  /* [탭 hover 그림자] 목적: 비활성 탭 hover 시 box-shadow | 기본값: none | 옵션: CSS box-shadow 문자열 또는 none | 대시보드: 텍스트 직접 입력 (프리셋 없음) */
+
+  --tabHoverLift_R8w: 0px;
+  /* [탭 hover 위로 이동] 목적: hover 시 탭이 위로 이동하는 거리(음수 translateY) | 기본값: 0px | 옵션: 0px~10px 권장 */
+
+  --tabHoverTransition_R8w: 160ms ease;
+  /* [탭 hover 전환] 목적: hover 배경·글자·테두리·그림자·이동 효과가 바뀌는 전환 시간과 가속 곡선 | 기본값: 160ms ease | 옵션: 지속시간 0~1000ms(10ms 단위) + 이징(linear/ease/ease-in/ease-out/ease-in-out) | 대시보드: 지속시간 슬라이더 + 이징 드롭다운 조합 */
+
+
+  /* ===================== 6. 본문 패널 ===================== */
+
+  --tabPanelPadding_R8w: 0px 16px 16px;
+  /* [본문 패딩] 목적: 탭을 눌렀을 때 보이는 tabpanel(콜아웃+갤러리) 영역의 안쪽 여백 | 기본값: 0px 16px 16px | 옵션: CSS padding shorthand | 대시보드: 노출 토글 + 상하·좌우 2단(기본값이 위≠아래라서 처음엔 자동으로 4방향 개별조정 모드로 표시됨) */
+
+  --panelBlockGap_R8w: 28px;
+  /* [본문 블록 간격] 목적: 본문 내부 콜아웃·갤러리·텍스트 블록 사이의 세로 간격 | 기본값: 28px | 옵션: 0px 이상의 px 값 | 예시: 0px, 16px, 28px, 48px */
+
+
+  /* ===================== 7. 콜아웃 ===================== */
+
+  --calloutDisplay_R8w: block;
+  /* [콜아웃 노출] 목적: 탭 패널 안의 콜아웃을 표시하거나 숨김 | 기본값: block | 옵션: block(표시) 또는 none(숨김) | 대시보드: 토글 */
+
+  --calloutBg_R8w: rgba(241, 241, 239, 1);
+  /* [콜아웃 배경] 목적: 콜아웃 박스 배경색·투명도 | 기본값: rgba(241,241,239,1) | 옵션: HEX 또는 RGBA */
+
+  --calloutBorder_R8w: none;
+  /* [콜아웃 테두리] 목적: 콜아웃 박스의 테두리 굵기·색상·투명도 | 기본값: none | 옵션: "굵기px solid 색상코드" 또는 none | 대시보드: 노출 토글 + 굵기 슬라이더 + 색상칩/투명도/코드란 */
+
+  --calloutRadius_R8w: 20px;
+  /* [콜아웃 모서리 둥글기] 목적: 콜아웃 박스 모서리 둥글기 | 기본값: 20px | 옵션: 0px 이상의 px 값 */
+
+  --calloutShadow_R8w: none;
+  /* [콜아웃 그림자] 목적: 콜아웃 박스 box-shadow | 기본값: none | 옵션: CSS box-shadow 문자열 또는 none | 대시보드: 텍스트 직접 입력 (프리셋 없음) */
+
+  --calloutPad_R8w: 22px 22px;
+  /* [콜아웃 내부 여백] 목적: 콜아웃 박스 내부 콘텐츠의 상하·좌우 여백 | 기본값: 22px 22px | 옵션: CSS padding shorthand | 대시보드: 노출 토글 + 상하·좌우 2단(기본, 값이 대칭) */
+
+
+  /* ===================== 8. 콜아웃 텍스트 ===================== */
+
+  --calloutTitleFamily_R8w: inherit;
+  /* [콜아웃 제목 폰트] 목적: 콜아웃 안의 소제목(h4) font-family | 기본값: inherit | 옵션: 폰트 드롭다운 + 직접 입력 */
+
+  --calloutTitleSize_R8w: 20px;
+  /* [콜아웃 제목 글자 크기] 목적: 콜아웃 안의 소제목(h4) font-size | 기본값: 20px | 옵션: 8px~48px 권장 */
+
+  --calloutTitleWeight_R8w: 700;
+  /* [콜아웃 제목 글자 굵기] 목적: 콜아웃 안의 소제목(h4) font-weight | 기본값: 700 | 옵션: 100~900 (100단위) */
+
+  --calloutTitleColor_R8w: rgba(55, 53, 47, 1);
+  /* [콜아웃 제목 글자색] 목적: 콜아웃 안의 소제목(h4) 색상·투명도 | 기본값: rgba(55,53,47,1) | 옵션: HEX 또는 RGBA */
+
+  --calloutDescFamily_R8w: inherit;
+  /* [콜아웃 설명 폰트] 목적: 콜아웃 안 설명 텍스트의 font-family | 기본값: inherit | 옵션: 폰트 드롭다운 + 직접 입력 */
+
+  --calloutDescSize_R8w: 14px;
+  /* [콜아웃 설명 글자 크기] 목적: 콜아웃 안 설명 텍스트의 font-size | 기본값: 14px | 옵션: 8px~48px 권장 */
+
+  --calloutDescWeight_R8w: 400;
+  /* [콜아웃 설명 글자 굵기] 목적: 콜아웃 안 설명 텍스트의 font-weight | 기본값: 400 | 옵션: 100~900 (100단위) */
+
+  --calloutDescColor_R8w: rgba(120, 119, 116, 1);
+  /* [콜아웃 설명 글자색] 목적: 콜아웃 안 설명 텍스트의 색상·투명도 | 기본값: rgba(120,119,116,1) | 옵션: HEX 또는 RGBA */
+
+
+  /* ===================== 9. 오버플로우 UI (더보기 · 전체선택) ===================== */
+
+  --overflowFontFamily_R8w: inherit;
+  /* [오버플로우 UI 폰트] 목적: 더보기 버튼, 더보기 목록, 전체 선택 트리거/목록의 font-family | 기본값: inherit | 옵션: 폰트 드롭다운 + 직접 입력 */
+
+  --overflowFontSize_R8w: 14px;
+  /* [오버플로우 UI 글자 크기] 목적: 더보기 버튼과 목록 텍스트의 font-size | 기본값: 14px | 옵션: 8px~48px 권장 */
+
+  --overflowFontWeight_R8w: 400;
+  /* [오버플로우 UI 글자 굵기] 목적: 더보기 버튼과 목록 텍스트의 font-weight | 기본값: 400 | 옵션: 100~900 (100단위) */
+
+  --overflowTextColor_R8w: rgba(55, 53, 47, 1);
+  /* [오버플로우 UI 글자색] 목적: 더보기/전체 선택 버튼과 목록 텍스트의 색상·투명도 | 기본값: rgba(55,53,47,1) | 옵션: HEX 또는 RGBA */
+
+  --overflowBtnBg_R8w: rgba(255, 255, 255, 1);
+  /* [오버플로우 버튼 배경] 목적: 더보기 버튼 및 전체 선택 트리거의 배경색·투명도 | 기본값: 흰색(rgba(255,255,255,1)) | 옵션: HEX 또는 RGBA */
+
+  --overflowBtnBorder_R8w: 1px solid rgba(55, 53, 47, 0.16);
+  /* [오버플로우 버튼 테두리] 목적: 더보기 버튼 및 전체 선택 트리거의 테두리 굵기·색상·투명도 | 기본값: 1px solid rgba(55,53,47,0.16) | 옵션: "굵기px solid 색상코드" 또는 none */
+
+  --overflowBtnRadius_R8w: 6px;
+  /* [오버플로우 버튼 모서리 둥글기] 목적: 더보기 버튼 및 전체 선택 트리거의 border-radius | 기본값: 6px | 옵션: 0px 이상의 px 값 */
+
+  --overflowMenuBg_R8w: rgba(255, 255, 255, 1);
+  /* [드롭다운 목록 배경] 목적: 더보기/전체 선택 목록 팝업의 배경색·투명도 | 기본값: 흰색(rgba(255,255,255,1)) | 옵션: HEX 또는 RGBA */
+
+  --overflowMenuBorder_R8w: 1px solid rgba(55, 53, 47, 0.16);
+  /* [드롭다운 목록 테두리] 목적: 목록 팝업의 테두리 굵기·색상·투명도 | 기본값: 1px solid rgba(55,53,47,0.16) | 옵션: "굵기px solid 색상코드" 또는 none */
+
+  --overflowMenuRadius_R8w: 6px;
+  /* [드롭다운 목록 모서리 둥글기] 목적: 목록 팝업의 border-radius | 기본값: 6px | 옵션: 0px 이상의 px 값 */
+
+  --overflowMenuShadow_R8w: 0px 5px 10px 0px rgba(0, 0, 0, 0.20);
+  /* [드롭다운 목록 그림자] 목적: 목록 팝업의 box-shadow | 기본값: 0px 5px 10px 0px rgba(0,0,0,0.20) | 옵션: CSS box-shadow 문자열 또는 none | 대시보드: 텍스트 직접 입력 (프리셋 없음) */
+
+  --overflowItemPad_R8w: 8px 12px;
+  /* [드롭다운 항목 여백] 목적: 목록 내부 각 탭 항목의 상하·좌우 여백 | 기본값: 8px 12px | 옵션: CSS padding shorthand | 대시보드: 노출 토글 + 상하·좌우 2단(기본) */
+
+  --overflowHover_R8w: rgba(55, 53, 47, 0.06);
+  /* [드롭다운 항목 hover 배경] 목적: 마우스를 올렸을 때 비활성 항목의 배경색·투명도 | 기본값: rgba(55,53,47,0.06) | 옵션: HEX 또는 RGBA */
+
+  --overflowActive_R8w: rgba(35, 131, 226, 0.08);
+  /* [드롭다운 활성 항목 배경] 목적: 전체 선택 목록에서 현재 활성 탭 항목의 배경색·투명도 | 기본값: rgba(35,131,226,0.08) | 옵션: HEX 또는 RGBA */
+
+  --overflowMenuMaxHeight_R8w: 280px;
+  /* [드롭다운 목록 최대 높이] 목적: 탭이 많을 때 팝업 최대 높이를 제한하고 내부 세로 스크롤을 발생시킴 | 기본값: 280px | 옵션: 100px~700px 권장 */
+}
+
+/*
+  ===================== 0. 탭 배치 모드 (CSS 변수가 아닌 항목) =====================
+
+  아래 항목들은 :root CSS 변수가 아니라 각 .notion-tab-block 요소의
+  data-* 속성으로 제어됩니다. tabs-engine-dashboard.js 의 "0. 탭 배치 모드"
+  섹션에서 조정하면, 최종 적용 코드 출력 시 아래와 같은 <script> 블록으로
+  함께 출력됩니다. 이 <script> 를 :root 블록과 함께 Notion Custom CSS
+  영역(또는 코드 블록)에 붙여넣으면 그대로 재현됩니다.
+
+  data-tab-overflow-config (JSON 문자열)
+  [기본 배치 모드] 목적: 탭 목록이 화면 폭을 넘칠 때의 기본 처리 방식
+    | 기본값: {"default":"scroll"}
+    | 옵션(default/mobile/overThreshold 공통):
+        scroll         = 가로 스크롤
+        wrap           = 줄바꿈 (여러 줄)
+        more-dropdown  = 넘치는 탭을 "더보기" 버튼 뒤에 숨김
+        select         = 탭 전체를 드롭다운 선택창으로 전환
+    | mobile: 768px 이하일 때 다르게 적용할 모드 (생략하면 default와 동일)
+    | overThreshold: 아래 threshold 를 넘었을 때 강제로 적용할 모드 (생략 시 미사용)
+
+  data-tab-overflow-threshold (숫자 문자열)
+  [탭 개수 임계값] 목적: 탭 개수가 이 값을 넘으면 overThreshold 모드로 강제 전환
+    | 기본값: 0 (0 = 비활성, 임계값 기능 사용 안 함) | 옵션: 0 이상의 정수
+
+  data-tab-wheel-scroll ("0" 또는 "1")
+  [휠 스크롤 사용] 목적: scroll / more-dropdown 모드에서 마우스 휠로 탭 목록을 좌우 이동
+    | 기본값: "1"(사용) | 옵션: "0"(미사용) 또는 "1"(사용)
+
+  data-tab-wheel-speed (숫자 문자열)
+  [휠 스크롤 감도] 목적: 휠 이동량에 곱해지는 배율
+    | 기본값: "1" | 옵션: 0.1 이상의 숫자 (클수록 더 빠르게 스크롤)
+
+  data-tab-more-label (문자열)
+  [더보기 버튼 문구] 목적: more-dropdown 모드에서 표시되는 버튼 텍스트
+    | 기본값: "더보기" | 옵션: 원하는 문자열
+
+  예시 (대시보드 "최종 적용 코드 출력하기" 결과와 동일한 형식):
+
+  <script>
+    (function applyNotionTabModeConfig() {
+      const cfg = {"default":"scroll"};
+      document.querySelectorAll(".notion-tab-block").forEach(function(block) {
+        block.dataset.tabOverflowConfig = JSON.stringify(cfg);
+        block.dataset.tabOverflowThreshold = "0";
+        block.dataset.tabWheelScroll = "1";
+        block.dataset.tabWheelSpeed = "1";
+        block.dataset.tabMoreLabel = "더보기";
+      });
+    })();
+  </script>
+*/

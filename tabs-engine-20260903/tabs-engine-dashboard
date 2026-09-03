@@ -1,0 +1,1273 @@
+/*
+  notion-tab-dashboard.js (v15 final v3)
+  ------------------------------------------------------------------
+  Notion 탭 엔진 v15.1 전용 통합 제어판 (콘솔 + 팝업)
+
+  v3 변경점 (v2 대비)
+  1) 색상 코드 입/출력란 폭 축소 + 슬라이더 폭 확장 (넘침 문제 해결)
+  2) 모든 슬라이더 드래그 반응성 개선
+     -> 'input' 이벤트마다 즉시 document.documentElement.style.setProperty 를
+        호출하던 것을 requestAnimationFrame 기준 프레임당 1회로 묶어서
+        메인 창 리플로우가 팝업의 드래그 추적을 막던 문제를 해결
+  3) 탭 hover 효과 사용 토글을 끄면 hover 세부 설정 항목들이 전부 숨겨짐
+     (배경/글자색/테두리/그림자/이동/전환) - 다중 reveal 대상 지원
+  4) --tabHoverTransition_R8w 를 텍스트 입력 대신
+     지속시간 슬라이더(0~1000ms) + 이징 드롭다운 조합으로 변경
+
+  * --tabRadius_R8w 미작동, hover 취소 어설픔 문제는 대시보드가 아니라
+    엔진 쪽 버그였으므로 notion-tab-engine.js v15.1 로 교체해야 실제로 해결됩니다.
+    (이 파일과 별도로 반드시 엔진도 v15.1로 갱신하세요)
+
+  사용 방법
+  1. 이 파일 전체를 콘솔에 붙여넣고 실행 (함수 정의됨)
+  2. notionTabLaunchDashboard_v15(); 실행
+*/
+function notionTabLaunchDashboard_v15() {
+  'use strict';
+
+  const popupWindow = window.open('', 'NotionTabDashboardV15', 'width=880,height=1040,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!popupWindow) {
+    alert('팝업 창 차단을 해제한 뒤 다시 실행해 주세요.');
+    return;
+  }
+
+  const SLOTS_KEY = 'notion_tab_dashboard_slots_v15';
+  const HEX_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+  /* ================= 색상/보더/패딩/전환 파싱-합성 유틸 ================= */
+
+  function hexToRgb(hex) {
+    let c = hex.replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    return { r: parseInt(c.substr(0, 2), 16), g: parseInt(c.substr(2, 2), 16), b: parseInt(c.substr(4, 2), 16) };
+  }
+  function rgbToHex(r, g, b) {
+    const h = n => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+    return '#' + h(r) + h(g) + h(b);
+  }
+  function composeRgba(hex, alphaPct) {
+    const rgb = hexToRgb(hex);
+    return 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', ' + (parseFloat(alphaPct) / 100).toFixed(2) + ')';
+  }
+  function parseColorAny(str) {
+    if (!str || str === 'none' || str === 'transparent') return { hex: '#ffffff', alphaPct: 0 };
+    const m = str.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
+    if (m) {
+      const r = parseInt(m[1], 10), g = parseInt(m[2], 10), b = parseInt(m[3], 10);
+      const a = m[4] !== undefined ? parseFloat(m[4]) : 1;
+      return { hex: rgbToHex(r, g, b), alphaPct: Math.round(a * 100) };
+    }
+    if (HEX_REGEX.test(str)) return { hex: str, alphaPct: 100 };
+    return { hex: '#000000', alphaPct: 100 };
+  }
+  function parseBorderStr(str) {
+    if (!str || str === 'none') return { width: 1, hex: '#373530', alphaPct: 0 };
+    const m = str.match(/^([\d.]+)px\s+solid\s+(.+)$/);
+    if (!m) return { width: 1, hex: '#373530', alphaPct: 0 };
+    const color = parseColorAny(m[2].trim());
+    return { width: parseFloat(m[1]), hex: color.hex, alphaPct: color.alphaPct };
+  }
+  function composeBorderStr(width, hex, alphaPct) {
+    return width + 'px solid ' + composeRgba(hex, alphaPct);
+  }
+  function parsePaddingStr(str) {
+    const parts = (str || '0px').trim().split(/\s+/).map(p => parseFloat(p) || 0);
+    let t, r, b, l;
+    if (parts.length === 1) { t = r = b = l = parts[0]; }
+    else if (parts.length === 2) { t = b = parts[0]; r = l = parts[1]; }
+    else if (parts.length === 3) { t = parts[0]; r = l = parts[1]; b = parts[2]; }
+    else { t = parts[0]; r = parts[1]; b = parts[2]; l = parts[3]; }
+    return { t, r, b, l };
+  }
+  function composePaddingStr(t, r, b, l) {
+    if (t === b && r === l) return t + 'px ' + r + 'px';
+    return t + 'px ' + r + 'px ' + b + 'px ' + l + 'px';
+  }
+  function parseTransitionStr(str) {
+    const m = (str || '160ms ease').match(/^(\d+)ms\s+(.+)$/);
+    if (!m) return { duration: 160, easing: 'ease' };
+    return { duration: parseInt(m[1], 10), easing: m[2].trim() };
+  }
+  function composeTransitionStr(duration, easing) {
+    return duration + 'ms ' + easing;
+  }
+
+  /* ================= 엔진 v15 기본값 ================= */
+
+  const DEFAULTS = {
+    '--tabWrapBorderFinal_R8w': '1px solid rgba(55, 53, 47, 0.10)',
+    '--tabWrapBgFinal_R8w': 'rgba(255, 255, 255, 1)',
+    '--tabWrapRadius_R8w': '20px',
+    '--tabWrapShadow_R8w': 'none',
+    '--tabListPadding_R8w': '0px 16px 16px',
+    '--tabGapX_R8w': '12px',
+    '--tabGapY_R8w': '8px',
+    '--tabFill_R8w': '0',
+    '--tabJustify_R8w': 'flex-start',
+    '--tabMinWidth_R8w': '0px',
+    '--tabWrapLong_R8w': 'nowrap',
+    '--tabPad_R8w': '6px 10px',
+    '--tabRadius_R8w': '999px',
+    '--tabBg_R8w': 'rgba(255, 255, 255, 0)',
+    '--tabText_R8w': 'rgba(55, 53, 47, 0.70)',
+    '--tabFontFamily_R8w': 'inherit',
+    '--tabFontSize_R8w': '14px',
+    '--tabFontWeight_R8w': '400',
+    '--activeTabBg_R8w': 'rgba(55, 53, 47, 0.06)',
+    '--activeTabText_R8w': 'rgba(55, 53, 47, 1)',
+    '--activeTabFontFamily_R8w': 'inherit',
+    '--activeTabFontSize_R8w': '14px',
+    '--activeTabFontWeight_R8w': '500',
+    '--tabHoverOn_R8w': '1',
+    '--tabHoverBg_R8w': 'rgba(55, 53, 47, 0.06)',
+    '--tabHoverText_R8w': 'rgba(55, 53, 47, 1)',
+    '--tabHoverBorder_R8w': 'none',
+    '--tabHoverShadow_R8w': 'none',
+    '--tabHoverLift_R8w': '0px',
+    '--tabHoverTransition_R8w': '160ms ease',
+    '--tabPanelPadding_R8w': '0px 16px 16px',
+    '--panelBlockGap_R8w': '28px',
+    '--calloutDisplay_R8w': 'block',
+    '--calloutBg_R8w': 'rgba(241, 241, 239, 1)',
+    '--calloutBorder_R8w': 'none',
+    '--calloutRadius_R8w': '20px',
+    '--calloutShadow_R8w': 'none',
+    '--calloutPad_R8w': '22px 22px',
+    '--calloutTitleFamily_R8w': 'inherit',
+    '--calloutTitleSize_R8w': '20px',
+    '--calloutTitleWeight_R8w': '700',
+    '--calloutTitleColor_R8w': 'rgba(55, 53, 47, 1)',
+    '--calloutDescFamily_R8w': 'inherit',
+    '--calloutDescSize_R8w': '14px',
+    '--calloutDescWeight_R8w': '400',
+    '--calloutDescColor_R8w': 'rgba(120, 119, 116, 1)',
+    '--overflowFontFamily_R8w': 'inherit',
+    '--overflowFontSize_R8w': '14px',
+    '--overflowFontWeight_R8w': '400',
+    '--overflowTextColor_R8w': 'rgba(55, 53, 47, 1)',
+    '--overflowBtnBg_R8w': 'rgba(255, 255, 255, 1)',
+    '--overflowBtnBorder_R8w': '1px solid rgba(55, 53, 47, 0.16)',
+    '--overflowBtnRadius_R8w': '6px',
+    '--overflowMenuBg_R8w': 'rgba(255, 255, 255, 1)',
+    '--overflowMenuBorder_R8w': '1px solid rgba(55, 53, 47, 0.16)',
+    '--overflowMenuRadius_R8w': '6px',
+    '--overflowMenuShadow_R8w': '0px 5px 10px 0px rgba(0, 0, 0, 0.20)',
+    '--overflowItemPad_R8w': '8px 12px',
+    '--overflowHover_R8w': 'rgba(55, 53, 47, 0.06)',
+    '--overflowActive_R8w': 'rgba(35, 131, 226, 0.08)',
+    '--overflowMenuMaxHeight_R8w': '280px'
+  };
+
+  const FONT_FAMILY_OPTIONS = [
+    ['inherit', '사용 안함 (Notion 원본)'],
+    ['Pretendard Variable', 'Pretendard Variable (가변, 추천)'],
+    ['Pretendard', 'Pretendard'],
+    ['"Noto Sans KR", sans-serif', 'Noto Sans KR'],
+    ['"Apple SD Gothic Neo", sans-serif', 'Apple SD Gothic Neo'],
+    ['"Malgun Gothic", sans-serif', '맑은 고딕'],
+    ['system-ui', '시스템 기본 폰트'],
+    ['custom', '직접 입력...']
+  ];
+  const FONT_FAMILY_KNOWN = FONT_FAMILY_OPTIONS.map(o => o[0]).filter(v => v !== 'custom');
+
+  const EASING_OPTIONS = [
+    ['linear', 'linear (일정 속도)'],
+    ['ease', 'ease (기본)'],
+    ['ease-in', 'ease-in (천천히 시작)'],
+    ['ease-out', 'ease-out (천천히 끝남)'],
+    ['ease-in-out', 'ease-in-out (양쪽 부드럽게)']
+  ];
+
+  const MODE_OPTIONS = [
+    ['scroll', '가로 스크롤'],
+    ['wrap', '줄바꿈 (여러 줄)'],
+    ['more-dropdown', '더보기 버튼'],
+    ['select', '드롭다운 선택창']
+  ];
+  const MODE_OPTIONS_WITH_NONE = [['', '(기본 모드와 동일)']].concat(MODE_OPTIONS);
+
+  /* ================= 현재 값 상태 ================= */
+
+  const rootStyles = getComputedStyle(document.documentElement);
+  const currentStyles = {};
+  Object.keys(DEFAULTS).forEach(v => {
+    const computed = rootStyles.getPropertyValue(v).trim();
+    currentStyles[v] = computed || DEFAULTS[v];
+  });
+
+  const MODE_DEFAULTS = { default: 'scroll', mobile: '', threshold: 0, overThreshold: '', wheelScroll: true, wheelSpeed: 1, moreLabel: '더보기' };
+  const modeState = { ...MODE_DEFAULTS };
+
+  (function initModeStateFromPage() {
+    const firstBlock = document.querySelector('.notion-tab-block');
+    if (!firstBlock) return;
+    try {
+      if (firstBlock.dataset.tabOverflowConfig) {
+        const cfg = JSON.parse(firstBlock.dataset.tabOverflowConfig);
+        modeState.default = cfg.default || 'scroll';
+        modeState.mobile = cfg.mobile || '';
+        modeState.overThreshold = cfg.overThreshold || '';
+      }
+    } catch (e) { /* 파싱 실패 시 기본값 유지 */ }
+    modeState.threshold = Number(firstBlock.dataset.tabOverflowThreshold || 0) || 0;
+    modeState.wheelScroll = firstBlock.dataset.tabWheelScroll !== '0';
+    modeState.wheelSpeed = Number(firstBlock.dataset.tabWheelSpeed || 1) || 1;
+    modeState.moreLabel = firstBlock.dataset.tabMoreLabel || '더보기';
+  })();
+
+  function applyModeToAllBlocks() {
+    const blocks = document.querySelectorAll('.notion-tab-block');
+    const cfg = { default: modeState.default };
+    if (modeState.mobile) cfg.mobile = modeState.mobile;
+    if (modeState.overThreshold) cfg.overThreshold = modeState.overThreshold;
+
+    blocks.forEach(block => {
+      block.dataset.tabOverflowConfig = JSON.stringify(cfg);
+      block.dataset.tabOverflowThreshold = String(modeState.threshold);
+      block.dataset.tabWheelScroll = modeState.wheelScroll ? '1' : '0';
+      block.dataset.tabWheelSpeed = String(modeState.wheelSpeed);
+      block.dataset.tabMoreLabel = modeState.moreLabel;
+    });
+  }
+
+  /* ================= 섹션 / 항목 구성 ================= */
+
+  const GROUPS = [
+    {
+      group: '1. 전체 래퍼',
+      items: [
+        { type: 'border', var: '--tabWrapBorderFinal_R8w', label: '전체 테두리' },
+        { type: 'color', var: '--tabWrapBgFinal_R8w', label: '전체 배경' },
+        { type: 'range', var: '--tabWrapRadius_R8w', label: '전체 모서리 둥글기', min: 0, max: 60, unit: 'px' },
+        { type: 'shadowtext', var: '--tabWrapShadow_R8w', label: '전체 그림자' }
+      ]
+    },
+    {
+      group: '2. 탭 목록 · 배치',
+      items: [
+        { type: 'padding', var: '--tabListPadding_R8w', label: '탭 목록 패딩' },
+        { type: 'range', var: '--tabGapX_R8w', label: '탭 사이 가로 간격', min: 0, max: 48, unit: 'px' },
+        { type: 'range', var: '--tabGapY_R8w', label: '탭 줄 사이 세로 간격', min: 0, max: 48, unit: 'px' },
+        { type: 'toggle', var: '--tabFill_R8w', label: '탭 폭 균등 채움', mapTrue: '1', mapFalse: '0', reveal: ['--tabJustify_R8w'], revealWhen: false, tip: '끄면 정렬 방식 옵션이 나타납니다' },
+        { type: 'select', var: '--tabJustify_R8w', label: '탭 정렬 방식', options: [['flex-start', '좌측'], ['center', '중앙'], ['flex-end', '우측'], ['space-between', '양측 정렬']] },
+        { type: 'range', var: '--tabMinWidth_R8w', label: '탭 최소 폭', min: 0, max: 400, unit: 'px' },
+        { type: 'toggle', var: '--tabWrapLong_R8w', label: '긴 탭명 줄바꿈', mapTrue: 'normal', mapFalse: 'nowrap' }
+      ]
+    },
+    {
+      group: '3. 기본 탭',
+      items: [
+        { type: 'padding', var: '--tabPad_R8w', label: '기본 탭 내부 여백' },
+        { type: 'range', var: '--tabRadius_R8w', label: '탭 모서리 둥글기', min: 0, max: 999, unit: 'px' },
+        { type: 'color', var: '--tabBg_R8w', label: '기본 탭 배경' },
+        { type: 'color', var: '--tabText_R8w', label: '기본 탭 글자색' },
+        { type: 'fontfamily', var: '--tabFontFamily_R8w', label: '기본 탭 폰트' },
+        { type: 'weightpair', sizeVar: '--tabFontSize_R8w', weightVar: '--tabFontWeight_R8w', label: '글자 크기 · 굵기', min: 8, max: 48, unit: 'px' }
+      ]
+    },
+    {
+      group: '4. 활성 탭',
+      items: [
+        { type: 'color', var: '--activeTabBg_R8w', label: '활성 탭 배경' },
+        { type: 'color', var: '--activeTabText_R8w', label: '활성 탭 글자색' },
+        { type: 'fontfamily', var: '--activeTabFontFamily_R8w', label: '활성 탭 폰트' },
+        { type: 'weightpair', sizeVar: '--activeTabFontSize_R8w', weightVar: '--activeTabFontWeight_R8w', label: '글자 크기 · 굵기', min: 8, max: 48, unit: 'px' }
+      ]
+    },
+    {
+      group: '5. 기본 탭 Hover',
+      items: [
+        {
+          type: 'toggle', var: '--tabHoverOn_R8w', label: '탭 hover 효과 사용', mapTrue: '1', mapFalse: '0',
+          reveal: ['--tabHoverBg_R8w', '--tabHoverText_R8w', '--tabHoverBorder_R8w', '--tabHoverShadow_R8w', '--tabHoverLift_R8w', '--tabHoverTransition_R8w'],
+          revealWhen: true,
+          tip: '끄면 아래 hover 세부 설정이 전부 숨겨지고, 실제로 hover 효과도 완전히 사라집니다'
+        },
+        { type: 'color', var: '--tabHoverBg_R8w', label: '탭 hover 배경' },
+        { type: 'color', var: '--tabHoverText_R8w', label: '탭 hover 글자색' },
+        { type: 'border', var: '--tabHoverBorder_R8w', label: '탭 hover 테두리' },
+        { type: 'shadowtext', var: '--tabHoverShadow_R8w', label: '탭 hover 그림자' },
+        { type: 'range', var: '--tabHoverLift_R8w', label: '탭 hover 위로 이동', min: 0, max: 10, unit: 'px' },
+        { type: 'transition', var: '--tabHoverTransition_R8w', label: '탭 hover 전환 (시간 · 이징)' }
+      ]
+    },
+    {
+      group: '6. 본문 패널',
+      items: [
+        { type: 'padding', var: '--tabPanelPadding_R8w', label: '본문 패딩' },
+        { type: 'range', var: '--panelBlockGap_R8w', label: '본문 블록 간격', min: 0, max: 80, unit: 'px' }
+      ]
+    },
+    {
+      group: '7. 콜아웃',
+      items: [
+        { type: 'toggle', var: '--calloutDisplay_R8w', label: '콜아웃 노출', mapTrue: 'block', mapFalse: 'none' },
+        { type: 'color', var: '--calloutBg_R8w', label: '콜아웃 배경' },
+        { type: 'border', var: '--calloutBorder_R8w', label: '콜아웃 테두리' },
+        { type: 'range', var: '--calloutRadius_R8w', label: '콜아웃 모서리 둥글기', min: 0, max: 60, unit: 'px' },
+        { type: 'shadowtext', var: '--calloutShadow_R8w', label: '콜아웃 그림자' },
+        { type: 'padding', var: '--calloutPad_R8w', label: '콜아웃 내부 여백' }
+      ]
+    },
+    {
+      group: '8. 콜아웃 텍스트',
+      items: [
+        { type: 'fontfamily', var: '--calloutTitleFamily_R8w', label: '콜아웃 제목 폰트' },
+        { type: 'weightpair', sizeVar: '--calloutTitleSize_R8w', weightVar: '--calloutTitleWeight_R8w', label: '제목 글자 크기 · 굵기', min: 8, max: 48, unit: 'px' },
+        { type: 'color', var: '--calloutTitleColor_R8w', label: '콜아웃 제목 글자색' },
+        { type: 'fontfamily', var: '--calloutDescFamily_R8w', label: '콜아웃 설명 폰트' },
+        { type: 'weightpair', sizeVar: '--calloutDescSize_R8w', weightVar: '--calloutDescWeight_R8w', label: '설명 글자 크기 · 굵기', min: 8, max: 48, unit: 'px' },
+        { type: 'color', var: '--calloutDescColor_R8w', label: '콜아웃 설명 글자색' }
+      ]
+    },
+    {
+      group: '9. 오버플로우 UI',
+      items: [
+        { type: 'fontfamily', var: '--overflowFontFamily_R8w', label: '오버플로우 UI 폰트' },
+        { type: 'weightpair', sizeVar: '--overflowFontSize_R8w', weightVar: '--overflowFontWeight_R8w', label: '글자 크기 · 굵기', min: 8, max: 48, unit: 'px' },
+        { type: 'color', var: '--overflowTextColor_R8w', label: '오버플로우 UI 글자색' },
+        { type: 'color', var: '--overflowBtnBg_R8w', label: '오버플로우 버튼 배경' },
+        { type: 'border', var: '--overflowBtnBorder_R8w', label: '오버플로우 버튼 테두리' },
+        { type: 'range', var: '--overflowBtnRadius_R8w', label: '오버플로우 버튼 모서리 둥글기', min: 0, max: 20, unit: 'px' },
+        { type: 'color', var: '--overflowMenuBg_R8w', label: '드롭다운 목록 배경' },
+        { type: 'border', var: '--overflowMenuBorder_R8w', label: '드롭다운 목록 테두리' },
+        { type: 'range', var: '--overflowMenuRadius_R8w', label: '드롭다운 목록 모서리 둥글기', min: 0, max: 20, unit: 'px' },
+        { type: 'shadowtext', var: '--overflowMenuShadow_R8w', label: '드롭다운 목록 그림자' },
+        { type: 'padding', var: '--overflowItemPad_R8w', label: '드롭다운 항목 여백' },
+        { type: 'color', var: '--overflowHover_R8w', label: '드롭다운 항목 hover 배경' },
+        { type: 'color', var: '--overflowActive_R8w', label: '드롭다운 활성 항목 배경' },
+        { type: 'range', var: '--overflowMenuMaxHeight_R8w', label: '드롭다운 목록 최대 높이', min: 100, max: 700, unit: 'px' }
+      ]
+    }
+  ];
+
+  /* ================= 값 적용 ================= */
+
+  function applyChange(varName, value) {
+    currentStyles[varName] = value;
+    document.documentElement.style.setProperty(varName, value);
+  }
+
+  /* v3: 드래그 중인 슬라이더는 프레임당 최대 1회만 실제 DOM 에 반영 (반응성 개선) */
+  let pendingFrame = null;
+  const pendingUpdates = {};
+  function scheduleApplyChange(varName, value) {
+    currentStyles[varName] = value;
+    pendingUpdates[varName] = value;
+    if (pendingFrame) return;
+    pendingFrame = requestAnimationFrame(() => {
+      Object.keys(pendingUpdates).forEach(v => {
+        document.documentElement.style.setProperty(v, pendingUpdates[v]);
+        delete pendingUpdates[v];
+      });
+      pendingFrame = null;
+    });
+  }
+
+  /* ================= HTML 빌더 ================= */
+
+  function sanitize(v) { return v.replace(/[^a-zA-Z0-9]/g, '_'); }
+  function varTag(v) { return '<div class="vtag">' + v + '</div>'; }
+
+  function buildModeSectionHtml() {
+    let defaultOpts = '';
+    MODE_OPTIONS.forEach(([val, label]) => {
+      defaultOpts += '<option value="' + val + '" ' + (val === modeState.default ? 'selected' : '') + '>' + label + '</option>';
+    });
+    let mobileOpts = '';
+    MODE_OPTIONS_WITH_NONE.forEach(([val, label]) => {
+      mobileOpts += '<option value="' + val + '" ' + (val === modeState.mobile ? 'selected' : '') + '>' + label + '</option>';
+    });
+    let overOpts = '';
+    MODE_OPTIONS_WITH_NONE.forEach(([val, label]) => {
+      overOpts += '<option value="' + val + '" ' + (val === modeState.overThreshold ? 'selected' : '') + '>' + label + '</option>';
+    });
+
+    let inner = '';
+    inner += '<div class="itemBox" data-label="탭 배치 모드 기본 모드 배치">' +
+      '<div class="itemHead"><span class="itemTitle">기본 모드</span>' + varTag('data-tab-overflow-config.default') + '</div>' +
+      '<select class="basicSel" id="modeDefault">' + defaultOpts + '</select>' +
+      '</div>';
+
+    inner += '<div class="itemBox" data-label="탭 배치 모드 모바일 배치">' +
+      '<div class="itemHead"><span class="itemTitle">모바일 모드 (768px 이하)</span>' + varTag('data-tab-overflow-config.mobile') + '<span class="tip" style="display:block;">선택하지 않으면 기본 모드와 동일하게 적용됩니다</span></div>' +
+      '<select class="basicSel" id="modeMobile">' + mobileOpts + '</select>' +
+      '</div>';
+
+    inner += '<div class="rowFlex2" data-label="탭 배치 모드 임계값 초과">' +
+      '<div class="halfCol"><span class="miniLabel">탭 개수 임계값 (0=비활성)</span><div class="rowFlex"><input type="range" class="rangeInput" id="modeThreshold" min="0" max="30" value="' + modeState.threshold + '"><input type="number" class="numInput" id="modeThresholdNum" value="' + modeState.threshold + '"></div></div>' +
+      '<div class="halfCol"><span class="miniLabel">임계값 초과 시 모드</span><select class="basicSel" id="modeOverThreshold">' + overOpts + '</select></div>' +
+      '</div>';
+
+    inner += '<div class="toggleRow" data-label="탭 배치 모드 휠 스크롤">' +
+      '<label class="toggleWrap"><input type="checkbox" id="modeWheelScroll" ' + (modeState.wheelScroll ? 'checked' : '') + '><span class="toggleSlider"></span></label>' +
+      '<div class="toggleTextCol"><span class="toggleTitle">휠 스크롤 사용</span>' + varTag('data-tab-wheel-scroll') + '<span class="tip">scroll / more-dropdown 모드에서 마우스 휠로 탭 목록을 좌우 이동</span></div>' +
+      '</div>';
+
+    inner += '<div class="itemBox" data-label="탭 배치 모드 휠 감도">' +
+      '<div class="itemHead"><span class="itemTitle">휠 스크롤 감도</span>' + varTag('data-tab-wheel-speed') + '</div>' +
+      '<div class="rowFlex"><input type="range" class="rangeInput" id="modeWheelSpeed" min="0.1" max="5" step="0.1" value="' + modeState.wheelSpeed + '"><input type="number" class="numInput" id="modeWheelSpeedNum" step="0.1" value="' + modeState.wheelSpeed + '"></div>' +
+      '</div>';
+
+    inner += '<div class="itemBox" data-label="탭 배치 모드 더보기 문구">' +
+      '<div class="itemHead"><span class="itemTitle">더보기 버튼 문구</span>' + varTag('data-tab-more-label') + '</div>' +
+      '<input type="text" class="textInput" id="modeMoreLabel" value="' + modeState.moreLabel + '">' +
+      '</div>';
+
+    return '<section class="panelSection" data-groupname="0. 탭 배치 모드">' +
+      '<details open><summary class="sectionSummary">0. 탭 배치 모드 (탭 목록이 넘칠 때 처리 방식)</summary>' +
+      '<div class="sectionBody">' + inner + '</div></details></section>';
+  }
+
+  function buildColorControl(varName) {
+    const c = parseColorAny(currentStyles[varName]);
+    const id = sanitize(varName);
+    return '<div class="colorRow">' +
+      '<input type="color" class="colorChip" id="hex_' + id + '" value="' + c.hex + '">' +
+      '<input type="range" class="rangeInput" id="alpha_' + id + '" min="0" max="100" value="' + c.alphaPct + '">' +
+      '<span class="alphaLabel" id="alphaLabel_' + id + '">' + c.alphaPct + '%</span>' +
+      '<input type="text" class="colorText mono" id="text_' + id + '" value="' + composeRgba(c.hex, c.alphaPct) + '">' +
+      '</div>';
+  }
+
+  function buildBorderControl(varName) {
+    const b = parseBorderStr(currentStyles[varName]);
+    const id = sanitize(varName);
+    const visible = b.alphaPct > 0;
+    return '<div class="borderGroup">' +
+      '<label class="toggleWrap"><input type="checkbox" id="bvis_' + id + '" ' + (visible ? 'checked' : '') + '><span class="toggleSlider"></span></label>' +
+      '<span class="toggleCaption">테두리 노출</span>' +
+      '<div class="borderDetail" id="bdetail_' + id + '" style="display:' + (visible ? 'flex' : 'none') + ';">' +
+      '<div class="rowFlex"><span class="miniLabel">굵기</span><input type="range" class="rangeInput" id="bwidth_' + id + '" min="0" max="20" value="' + b.width + '"><input type="number" class="numInput" id="bwidthnum_' + id + '" value="' + b.width + '"></div>' +
+      '<div class="colorRow"><span class="miniLabel">색상</span><input type="color" class="colorChip" id="bhex_' + id + '" value="' + b.hex + '"><input type="range" class="rangeInput" id="balpha_' + id + '" min="0" max="100" value="' + b.alphaPct + '"><span class="alphaLabel" id="balphaLabel_' + id + '">' + b.alphaPct + '%</span><input type="text" class="colorText mono" id="btext_' + id + '" value="' + composeRgba(b.hex, b.alphaPct) + '"></div>' +
+      '</div></div>';
+  }
+
+  function buildPaddingControl(varName) {
+    const p = parsePaddingStr(currentStyles[varName]);
+    const id = sanitize(varName);
+    const visible = !(p.t === 0 && p.r === 0 && p.b === 0 && p.l === 0);
+    const individual = !(p.t === p.b && p.r === p.l);
+    return '<div class="paddingGroup">' +
+      '<div class="rowFlex" style="margin-bottom:8px;">' +
+      '<label class="toggleWrap"><input type="checkbox" id="pvis_' + id + '" ' + (visible ? 'checked' : '') + '><span class="toggleSlider"></span></label>' +
+      '<span class="toggleCaption">여백 노출</span>' +
+      '<label class="toggleWrap" style="margin-left:auto;"><input type="checkbox" id="pind_' + id + '" ' + (individual ? 'checked' : '') + '><span class="toggleSlider"></span></label>' +
+      '<span class="toggleCaption">개별조정 (4방향)</span>' +
+      '</div>' +
+      '<div class="padDetail" id="pdetail_' + id + '" style="display:' + (visible ? 'block' : 'none') + ';">' +
+      '<div class="rowFlex2" id="ptb2_' + id + '" style="display:' + (individual ? 'none' : 'flex') + ';">' +
+      '<div class="halfCol"><span class="miniLabel">상하</span><input type="range" class="rangeInput" id="ptb_' + id + '" min="0" max="100" value="' + p.t + '"><input type="number" class="numInput" id="ptbnum_' + id + '" value="' + p.t + '"></div>' +
+      '<div class="halfCol"><span class="miniLabel">좌우</span><input type="range" class="rangeInput" id="plr_' + id + '" min="0" max="100" value="' + p.r + '"><input type="number" class="numInput" id="plrnum_' + id + '" value="' + p.r + '"></div>' +
+      '</div>' +
+      '<div class="rowFlex4" id="p4_' + id + '" style="display:' + (individual ? 'flex' : 'none') + ';">' +
+      '<div class="quartCol"><span class="miniLabel">위</span><input type="range" class="rangeInput" id="pt_' + id + '" min="0" max="100" value="' + p.t + '"><input type="number" class="numInput" id="ptnum_' + id + '" value="' + p.t + '"></div>' +
+      '<div class="quartCol"><span class="miniLabel">오른쪽</span><input type="range" class="rangeInput" id="pr_' + id + '" min="0" max="100" value="' + p.r + '"><input type="number" class="numInput" id="prnum_' + id + '" value="' + p.r + '"></div>' +
+      '<div class="quartCol"><span class="miniLabel">아래</span><input type="range" class="rangeInput" id="pb_' + id + '" min="0" max="100" value="' + p.b + '"><input type="number" class="numInput" id="pbnum_' + id + '" value="' + p.b + '"></div>' +
+      '<div class="quartCol"><span class="miniLabel">왼쪽</span><input type="range" class="rangeInput" id="pl_' + id + '" min="0" max="100" value="' + p.l + '"><input type="number" class="numInput" id="plnum_' + id + '" value="' + p.l + '"></div>' +
+      '</div></div></div>';
+  }
+
+  function buildWeightPairControl(sizeVar, weightVar, min, max, unit) {
+    const sizeId = sanitize(sizeVar);
+    const weightId = sanitize(weightVar);
+    const sizeVal = parseFloat(currentStyles[sizeVar]) || min;
+    const weightVal = parseInt(currentStyles[weightVar], 10) || 400;
+    let weightOptions = '';
+    [100, 200, 300, 400, 500, 600, 700, 800, 900].forEach(w => {
+      weightOptions += '<option value="' + w + '" ' + (w === weightVal ? 'selected' : '') + '>' + w + '</option>';
+    });
+    return '<div class="rowFlex2">' +
+      '<div class="halfCol"><span class="miniLabel">글자 크기</span><input type="range" class="rangeInput" id="size_' + sizeId + '" min="' + min + '" max="' + max + '" value="' + sizeVal + '"><input type="number" class="numInput" id="sizenum_' + sizeId + '" value="' + sizeVal + '"></div>' +
+      '<div class="halfCol"><span class="miniLabel">글자 굵기</span><input type="range" class="rangeInput" id="weight_' + weightId + '" min="100" max="900" step="100" value="' + weightVal + '"><select class="basicSel" id="weightsel_' + weightId + '">' + weightOptions + '</select></div>' +
+      '</div>';
+  }
+
+  function buildFontFamilyControl(varName) {
+    const id = sanitize(varName);
+    const rawVal = currentStyles[varName] || 'inherit';
+    const isCustom = FONT_FAMILY_KNOWN.indexOf(rawVal) === -1;
+    let opts = '';
+    FONT_FAMILY_OPTIONS.forEach(([val, label]) => {
+      const sel = (val === 'custom') ? isCustom : (!isCustom && val === rawVal);
+      opts += '<option value="' + val + '" ' + (sel ? 'selected' : '') + '>' + label + '</option>';
+    });
+    return '<select class="basicSel" id="fsel_' + id + '">' + opts + '</select>' +
+      '<input type="text" class="textInput mono" id="ftext_' + id + '" value="' + (isCustom ? rawVal : '') + '" placeholder="예: MyCustomFont" style="display:' + (isCustom ? 'block' : 'none') + '; margin-top:6px;">';
+  }
+
+  function buildSelectControl(varName, options) {
+    const id = sanitize(varName);
+    let opts = '';
+    options.forEach(([val, label]) => {
+      opts += '<option value="' + val + '" ' + (val === currentStyles[varName] ? 'selected' : '') + '>' + label + '</option>';
+    });
+    return '<select class="basicSel" id="sel_' + id + '">' + opts + '</select>';
+  }
+
+  function buildToggleControl(item) {
+    const id = sanitize(item.var);
+    const isOn = currentStyles[item.var] === item.mapTrue;
+    return '<div class="toggleRow">' +
+      '<label class="toggleWrap"><input type="checkbox" id="tog_' + id + '" ' + (isOn ? 'checked' : '') + '><span class="toggleSlider"></span></label>' +
+      '<div class="toggleTextCol"><span class="toggleTitle">' + item.label + '</span>' + varTag(item.var) + (item.tip ? '<span class="tip">' + item.tip + '</span>' : '') + '</div>' +
+      '</div>';
+  }
+
+  function buildRangeControl(varName, min, max, unit) {
+    const id = sanitize(varName);
+    const val = parseFloat(currentStyles[varName]) || 0;
+    return '<div class="rowFlex">' +
+      '<input type="range" class="rangeInput" id="r_' + id + '" min="' + min + '" max="' + max + '" value="' + val + '">' +
+      '<input type="number" class="numInput" id="rn_' + id + '" value="' + val + '">' +
+      '</div>';
+  }
+
+  function buildTextControl(varName) {
+    const id = sanitize(varName);
+    return '<input type="text" class="textInput mono" id="t_' + id + '" value="' + currentStyles[varName] + '">';
+  }
+
+  function buildTransitionControl(varName) {
+    const t = parseTransitionStr(currentStyles[varName]);
+    const id = sanitize(varName);
+    let easingOpts = '';
+    EASING_OPTIONS.forEach(([val, label]) => {
+      easingOpts += '<option value="' + val + '" ' + (val === t.easing ? 'selected' : '') + '>' + label + '</option>';
+    });
+    return '<div class="rowFlex2">' +
+      '<div class="halfCol"><span class="miniLabel">지속시간</span><div class="rowFlex"><input type="range" class="rangeInput" id="trdur_' + id + '" min="0" max="1000" step="10" value="' + t.duration + '"><input type="number" class="numInput" id="trdurnum_' + id + '" value="' + t.duration + '"></div></div>' +
+      '<div class="halfCol"><span class="miniLabel">이징</span><select class="basicSel" id="treas_' + id + '">' + easingOpts + '</select></div>' +
+      '</div>';
+  }
+
+  function buildItemWrapper(labelHtml, innerHtml, resetVar) {
+    let html = '<div class="itemBox">';
+    if (labelHtml) {
+      html += '<div class="itemHead">' + labelHtml +
+        '<button class="resetBtn" data-resetvar="' + (resetVar || '') + '" title="기본값으로">' +
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>' +
+        '</button></div>';
+    }
+    html += innerHtml + '</div>';
+    return html;
+  }
+
+  function renderItem(item) {
+    if (item.type === 'toggle') {
+      return '<div class="itemBox" data-label="' + item.label.toLowerCase() + '">' + buildToggleControl(item) + '</div>';
+    }
+    if (item.type === 'weightpair') {
+      const label = '<span class="itemTitle">' + item.label + '</span>' + varTag(item.sizeVar + ' / ' + item.weightVar);
+      return '<div class="itemBox" data-label="' + item.label.toLowerCase() + '">' +
+        buildItemWrapper(label, buildWeightPairControl(item.sizeVar, item.weightVar, item.min, item.max, item.unit), '') +
+        '</div>';
+    }
+
+    const label = '<span class="itemTitle">' + item.label + '</span>' + varTag(item.var);
+    let inner = '';
+    if (item.type === 'color') inner = buildColorControl(item.var);
+    else if (item.type === 'border') inner = buildBorderControl(item.var);
+    else if (item.type === 'padding') inner = buildPaddingControl(item.var);
+    else if (item.type === 'fontfamily') inner = buildFontFamilyControl(item.var);
+    else if (item.type === 'select') inner = buildSelectControl(item.var, item.options);
+    else if (item.type === 'range') inner = buildRangeControl(item.var, item.min, item.max, item.unit);
+    else if (item.type === 'shadowtext' || item.type === 'text') inner = buildTextControl(item.var);
+    else if (item.type === 'transition') inner = buildTransitionControl(item.var);
+
+    return '<div data-label="' + item.label.toLowerCase() + '">' + buildItemWrapper(label, inner, item.var) + '</div>';
+  }
+
+  function renderSection(section) {
+    let inner = '';
+    section.items.forEach(item => { inner += renderItem(item); });
+    return '<section class="panelSection" data-groupname="' + section.group.toLowerCase() + '">' +
+      '<details open><summary class="sectionSummary">' + section.group + '</summary>' +
+      '<div class="sectionBody">' + inner + '</div></details></section>';
+  }
+
+  /* ================= 전체 문서 렌더링 ================= */
+
+  const CSS_TEXT = `
+    :root { --bg:#121212; --text:#e5e5e5; --panel:#1a1a1a; --border:#2a2a2a; --summary:#222; }
+    body.light { --bg:#f4f4f5; --text:#1f2937; --panel:#ffffff; --border:#e5e7eb; --summary:#f1f5f9; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size:13px; }
+    header { position:sticky; top:0; z-index:10; background:var(--panel); padding:16px 20px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:10px; }
+    .topBar { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .themeBtn { background:transparent; border:1px solid #555; color:inherit; border-radius:6px; cursor:pointer; padding:6px 10px; }
+    .searchBox { width:100%; padding:8px 12px; background:var(--summary); color:inherit; border:1px solid var(--border); border-radius:6px; outline:none; }
+    .storageBar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .storageBtn { background:var(--summary); border:1px solid var(--border); color:inherit; border-radius:6px; cursor:pointer; padding:5px 9px; font-size:11px; }
+    .danger { color:#ef4444; }
+    .saveStatus { font-size:11px; color:#10b981; min-height:14px; }
+    .slotsPanel, .importPanel { background:var(--summary); border:1px solid var(--border); border-radius:8px; padding:10px; }
+    #importTextarea { width:100%; height:120px; background:#000; color:#10b981; border:1px solid #444; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; resize:vertical; }
+    main { padding:12px 20px; }
+    .panelSection { margin-bottom:12px; background:var(--panel); border-radius:8px; border:1px solid var(--border); }
+    .panelSection[data-groupname^="0."] { border:1px solid #eab308; }
+    .sectionSummary { font-weight:700; cursor:pointer; color:#38bdf8; outline:none; padding:12px; background:var(--summary); font-size:14px; }
+    .panelSection[data-groupname^="0."] .sectionSummary { color:#eab308; }
+    .sectionBody { padding:12px; display:flex; flex-direction:column; gap:12px; }
+    .itemBox { padding-bottom:8px; border-bottom:1px dashed #333; }
+    .itemHead { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; gap:8px; }
+    .itemTitle { color:#eee; font-weight:600; font-size:13px; display:block; }
+    .vtag { font-size:9px; color:#666; font-family:monospace; margin-top:2px; }
+    .tip { display:block; font-size:11px; color:#888; margin-top:2px; }
+    .resetBtn { background:transparent; border:none; color:#888; cursor:pointer; padding:4px; flex-shrink:0; }
+    .resetBtn:hover { color:#10b981; }
+    .rowFlex { display:flex; gap:8px; align-items:center; min-width:0; }
+    .rowFlex2 { display:flex; gap:14px; }
+    .rowFlex4 { display:flex; gap:8px; flex-wrap:wrap; }
+    .halfCol { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .quartCol { flex:1; min-width:90px; display:flex; flex-direction:column; gap:6px; }
+    .miniLabel { font-size:11px; color:#888; }
+    .rangeInput { flex:1 1 auto; min-width:0; accent-color:#10b981; cursor:pointer; }
+    .numInput { width:56px; flex:0 0 56px; padding:5px; background:#111; color:#10b981; border:1px solid #444; border-radius:6px; font-weight:700; text-align:center; }
+    /* v3: 색상 행 - 슬라이더는 남는 공간을 최대한 차지, 코드란은 짧게 고정 */
+    .colorRow { display:flex; gap:6px; align-items:center; min-width:0; }
+    .colorChip { width:30px; height:26px; padding:0; border:none; border-radius:4px; background:transparent; cursor:pointer; flex:0 0 30px; }
+    .alphaLabel { font-size:10px; color:#10b981; width:30px; text-align:right; flex:0 0 30px; }
+    .colorText { width:88px; flex:0 0 88px; font-size:10px; padding:5px 6px; }
+    .mono { font-family:monospace; font-size:10px; }
+    .textInput, input[type="text"] { background:#111; color:#eee; border:1px solid #444; border-radius:6px; padding:6px 10px; outline:none; width:100%; min-width:0; }
+    .basicSel { padding:6px; background:#111; color:#eee; border:1px solid #444; border-radius:6px; width:100%; outline:none; }
+    body.light .basicSel, body.light .numInput, body.light input[type="text"] { background:#fff; color:#1f2937; border-color:#d1d5db; }
+    .inputError { border-color:#ef4444 !important; box-shadow:0 0 0 1px #ef4444; }
+    .toggleRow { display:flex; gap:10px; align-items:center; background:var(--summary); padding:10px; border-radius:6px; }
+    .toggleTextCol { display:flex; flex-direction:column; gap:2px; }
+    .toggleTitle { color:#10b981; font-weight:700; }
+    .toggleWrap { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+    .toggleWrap input { opacity:0; width:0; height:0; position:absolute; }
+    .toggleSlider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#444; transition:.2s; border-radius:22px; }
+    .toggleSlider:before { position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:white; transition:.2s; border-radius:50%; }
+    .toggleWrap input:checked + .toggleSlider { background:#10b981; }
+    .toggleWrap input:checked + .toggleSlider:before { transform:translateX(18px); }
+    .toggleCaption { font-size:12px; color:#aaa; }
+    .borderGroup, .paddingGroup { display:flex; flex-direction:column; gap:8px; }
+    .borderDetail, .padDetail { display:flex; flex-direction:column; gap:10px; padding-left:4px; }
+    .actionBtn { width:100%; padding:10px; background:#333; color:#10b981; border:1px dashed #555; border-radius:6px; cursor:pointer; font-weight:bold; }
+    #exportArea { display:none; padding:16px 20px; border-top:1px solid var(--border); background:var(--panel); }
+    #exportTextarea { width:100%; height:250px; background:#000; color:#10b981; border:1px solid #444; border-radius:8px; padding:10px; font-family:monospace; font-size:12px; resize:vertical; white-space:pre; }
+    footer { padding:16px 20px; border-top:1px solid var(--border); background:var(--panel); position:sticky; bottom:0; }
+    ::-webkit-scrollbar { width:8px; }
+    ::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
+  `;
+
+  function buildFullHtml() {
+    let sectionsHtml = buildModeSectionHtml();
+    GROUPS.forEach(g => { sectionsHtml += renderSection(g); });
+
+    return '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>Notion 탭 엔진 대시보드 v15</title><style>' + CSS_TEXT + '</style></head><body>' +
+      '<header>' +
+      '<div class="topBar">' +
+      '<h3 style="margin:0; color:#10b981; font-size:16px; font-weight:800; flex:1;">Notion 탭 엔진 대시보드 v15</h3>' +
+      '<button id="btnTheme" class="themeBtn">🌙 다크</button>' +
+      '<button id="btnGlobalReset" class="storageBtn danger">전체 초기화</button>' +
+      '</div>' +
+      '<input type="text" id="searchInput" class="searchBox" placeholder="설정 검색 (예: hover, 그림자, 여백, 글자, 배치)">' +
+      '<div class="storageBar">' +
+      '<button id="btnSave" class="storageBtn">💾 임시저장 (새 슬롯)</button>' +
+      '<button id="btnSlots" class="storageBtn">📂 저장 슬롯 목록</button>' +
+      '<button id="btnImportToggle" class="storageBtn">📥 가져오기</button>' +
+      '<button id="btnInvalidate" class="storageBtn danger">↺ 기본값 보기 (무효화)</button>' +
+      '<button id="btnPreview" class="storageBtn">👁 기본값 잠깐보기</button>' +
+      '</div>' +
+      '<div id="saveStatus" class="saveStatus"></div>' +
+      '<div id="slotsPanel" class="slotsPanel" style="display:none;"><div id="slotsList" style="display:flex; flex-direction:column; gap:6px;"></div></div>' +
+      '<div id="importPanel" class="importPanel" style="display:none;">' +
+      '<div style="font-size:11px; color:#888; margin-bottom:6px;">이전에 출력한 코드를 붙여넣고 적용을 누르세요.</div>' +
+      '<textarea id="importTextarea" placeholder="여기에 이전 출력 코드를 붙여넣으세요"></textarea>' +
+      '<button id="btnImportApply" class="actionBtn" style="margin-top:8px;">이 코드로 값 채우기</button>' +
+      '</div>' +
+      '</header>' +
+      '<main id="mainArea">' + sectionsHtml + '</main>' +
+      '<section id="exportArea">' +
+      '<div style="font-size:12px; color:#aaa; font-weight:bold; margin-bottom:8px;">최종 통합 코드 (:root 변수 + 탭 배치 모드 안내)</div>' +
+      '<textarea id="exportTextarea"></textarea>' +
+      '<div style="display:flex; gap:10px; margin-top:10px;">' +
+      '<button id="btnCopy" style="flex:1; padding:10px; background:#3b82f6; color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">복사하기</button>' +
+      '<button id="btnCopyMin" style="flex:1; padding:10px; background:#8b5cf6; color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">미니파이 복사</button>' +
+      '</div></section>' +
+      '<footer><button id="btnExportTrigger" style="width:100%; padding:12px; background:#eab308; color:#000; border:none; border-radius:8px; font-weight:800; cursor:pointer;">최종 적용 코드 출력하기</button></footer>' +
+      '</body></html>';
+  }
+
+  /* ================= 렌더 + 이벤트 바인딩 ================= */
+
+  function renderAll() {
+    const pdoc = popupWindow.document;
+    const scrollTop = pdoc.getElementById('mainArea') ? pdoc.getElementById('mainArea').scrollTop : 0;
+    const isLight = pdoc.body && pdoc.body.classList.contains('light');
+
+    pdoc.open();
+    pdoc.write(buildFullHtml());
+    pdoc.close();
+
+    if (isLight) pdoc.body.classList.add('light');
+    if (pdoc.getElementById('mainArea')) pdoc.getElementById('mainArea').scrollTop = scrollTop;
+
+    bindEvents();
+  }
+
+  function setStatus(msg) {
+    const el = popupWindow.document.getElementById('saveStatus');
+    if (!el) return;
+    el.textContent = msg;
+    setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
+  }
+
+  function getSlots() {
+    try { return JSON.parse(localStorage.getItem(SLOTS_KEY)) || []; } catch (e) { return []; }
+  }
+  function setSlots(arr) { localStorage.setItem(SLOTS_KEY, JSON.stringify(arr)); }
+
+  function renderSlotsList() {
+    const pdoc = popupWindow.document;
+    const listEl = pdoc.getElementById('slotsList');
+    const slots = getSlots();
+    if (!slots.length) { listEl.innerHTML = '<div style="font-size:11px; color:#888;">저장된 슬롯이 없습니다.</div>'; return; }
+    listEl.innerHTML = '';
+    slots.slice().reverse().forEach(slot => {
+      const row = pdoc.createElement('div');
+      row.style.cssText = 'display:flex; gap:6px; align-items:center; background:var(--summary); padding:8px; border-radius:6px;';
+      row.innerHTML = '<span style="flex:1; font-size:12px;">' + slot.label + '</span>' +
+        '<button class="slotLoad" data-id="' + slot.id + '" style="padding:5px 8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">불러오기</button>' +
+        '<button class="slotDel" data-id="' + slot.id + '" style="padding:5px 8px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">삭제</button>';
+      listEl.appendChild(row);
+    });
+    listEl.querySelectorAll('.slotLoad').forEach(btn => btn.addEventListener('click', e => loadSlot(e.target.dataset.id)));
+    listEl.querySelectorAll('.slotDel').forEach(btn => btn.addEventListener('click', e => {
+      setSlots(getSlots().filter(s => String(s.id) !== e.target.dataset.id));
+      renderSlotsList();
+    }));
+  }
+
+  function loadSlot(id) {
+    const slot = getSlots().find(s => String(s.id) === String(id));
+    if (!slot) { setStatus('해당 슬롯을 찾을 수 없습니다.'); return; }
+    Object.keys(DEFAULTS).forEach(v => {
+      const val = slot.payload.currentStyles[v];
+      if (val !== undefined) applyChange(v, val);
+    });
+    if (slot.payload.modeState) {
+      Object.assign(modeState, slot.payload.modeState);
+      applyModeToAllBlocks();
+    }
+    renderAll();
+    setStatus('"' + slot.label + '" 슬롯을 불러왔습니다.');
+  }
+
+  function extractCssVars(text) {
+    const rootIdx = text.indexOf(':root');
+    if (rootIdx === -1) return {};
+    const braceStart = text.indexOf('{', rootIdx);
+    if (braceStart === -1) return {};
+    let depth = 0, i = braceStart;
+    for (; i < text.length; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+    }
+    const block = text.substring(braceStart, i);
+    const map = {};
+    const re = /(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);/g;
+    let m;
+    while ((m = re.exec(block)) !== null) {
+      map[m[1].trim()] = m[2].trim().replace(/\s*!important\s*$/, '');
+    }
+    return map;
+  }
+
+  function createFinalExportText() {
+    let text = '<style>\n  :root {\n';
+    Object.keys(DEFAULTS).forEach(v => {
+      text += '    ' + v + ': ' + currentStyles[v] + ';\n';
+    });
+    text += '  }\n</style>\n\n';
+    text += '<!-- 탭 배치 모드는 CSS 가 아니라 각 .notion-tab-block 요소의 data 속성입니다.\n';
+    text += '     아래 JS 를 페이지에 함께 넣어 모든 탭 블록에 이 배치 모드를 적용하세요. -->\n';
+    text += '<script>\n';
+    text += '  (function applyNotionTabModeConfig() {\n';
+    const cfg = { default: modeState.default };
+    if (modeState.mobile) cfg.mobile = modeState.mobile;
+    if (modeState.overThreshold) cfg.overThreshold = modeState.overThreshold;
+    text += '    const cfg = ' + JSON.stringify(cfg) + ';\n';
+    text += '    document.querySelectorAll(".notion-tab-block").forEach(function(block) {\n';
+    text += '      block.dataset.tabOverflowConfig = JSON.stringify(cfg);\n';
+    text += '      block.dataset.tabOverflowThreshold = "' + modeState.threshold + '";\n';
+    text += '      block.dataset.tabWheelScroll = "' + (modeState.wheelScroll ? '1' : '0') + '";\n';
+    text += '      block.dataset.tabWheelSpeed = "' + modeState.wheelSpeed + '";\n';
+    text += '      block.dataset.tabMoreLabel = "' + modeState.moreLabel.replace(/"/g, '\\"') + '";\n';
+    text += '    });\n';
+    text += '  })();\n';
+    text += '</script>';
+    return text;
+  }
+
+  function bindModeSection() {
+    const pdoc = popupWindow.document;
+
+    const defaultSel = pdoc.getElementById('modeDefault');
+    const mobileSel = pdoc.getElementById('modeMobile');
+    const overSel = pdoc.getElementById('modeOverThreshold');
+    const thresholdRange = pdoc.getElementById('modeThreshold');
+    const thresholdNum = pdoc.getElementById('modeThresholdNum');
+    const wheelToggle = pdoc.getElementById('modeWheelScroll');
+    const wheelSpeedRange = pdoc.getElementById('modeWheelSpeed');
+    const wheelSpeedNum = pdoc.getElementById('modeWheelSpeedNum');
+    const moreLabelInput = pdoc.getElementById('modeMoreLabel');
+    if (!defaultSel) return;
+
+    defaultSel.addEventListener('change', () => { modeState.default = defaultSel.value; applyModeToAllBlocks(); });
+    mobileSel.addEventListener('change', () => { modeState.mobile = mobileSel.value; applyModeToAllBlocks(); });
+    overSel.addEventListener('change', () => { modeState.overThreshold = overSel.value; applyModeToAllBlocks(); });
+
+    thresholdRange.addEventListener('input', () => { thresholdNum.value = thresholdRange.value; modeState.threshold = Number(thresholdRange.value); applyModeToAllBlocks(); });
+    thresholdNum.addEventListener('input', () => { thresholdRange.value = thresholdNum.value; modeState.threshold = Number(thresholdNum.value); applyModeToAllBlocks(); });
+
+    wheelToggle.addEventListener('change', () => { modeState.wheelScroll = wheelToggle.checked; applyModeToAllBlocks(); });
+
+    wheelSpeedRange.addEventListener('input', () => { wheelSpeedNum.value = wheelSpeedRange.value; modeState.wheelSpeed = Number(wheelSpeedRange.value); applyModeToAllBlocks(); });
+    wheelSpeedNum.addEventListener('input', () => { wheelSpeedRange.value = wheelSpeedNum.value; modeState.wheelSpeed = Number(wheelSpeedNum.value); applyModeToAllBlocks(); });
+
+    moreLabelInput.addEventListener('input', () => { modeState.moreLabel = moreLabelInput.value || '더보기'; applyModeToAllBlocks(); });
+  }
+
+  function bindEvents() {
+    const pdoc = popupWindow.document;
+
+    pdoc.getElementById('btnTheme').addEventListener('click', e => {
+      const isLight = pdoc.body.classList.toggle('light');
+      e.target.textContent = isLight ? '☀️ 라이트' : '🌙 다크';
+    });
+
+    bindModeSection();
+
+    pdoc.getElementById('searchInput').addEventListener('input', e => {
+      const term = e.target.value.trim().toLowerCase();
+      pdoc.querySelectorAll('.panelSection').forEach(sec => {
+        const groupMatch = (sec.getAttribute('data-groupname') || '').includes(term);
+        let any = false;
+        sec.querySelectorAll('[data-label]').forEach(item => {
+          const match = groupMatch || (item.getAttribute('data-label') || '').includes(term);
+          item.style.display = (term === '' || match) ? '' : 'none';
+          if (term === '' || match) any = true;
+        });
+        sec.style.display = (term === '' || any || groupMatch) ? '' : 'none';
+      });
+    });
+
+    GROUPS.forEach(g => g.items.forEach(item => {
+      if (item.type === 'color') bindColor(item.var);
+      if (item.type === 'border') bindBorder(item.var);
+      if (item.type === 'padding') bindPadding(item.var);
+      if (item.type === 'weightpair') bindWeightPair(item.sizeVar, item.weightVar);
+      if (item.type === 'fontfamily') bindFontFamily(item.var);
+      if (item.type === 'select') bindSelect(item.var);
+      if (item.type === 'toggle') bindToggle(item);
+      if (item.type === 'range') bindRange(item.var, item.unit);
+      if (item.type === 'shadowtext' || item.type === 'text') bindText(item.var);
+      if (item.type === 'transition') bindTransition(item.var);
+    }));
+
+    /* 초기 렌더 시 hover 세부 항목 노출 상태를 토글 값에 맞춰 동기화 */
+    syncAllReveals();
+
+    pdoc.querySelectorAll('.resetBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-resetvar');
+        if (!v || !DEFAULTS[v]) return;
+        applyChange(v, DEFAULTS[v]);
+        renderAll();
+        setStatus(v + ' 을 기본값으로 되돌렸습니다.');
+      });
+    });
+
+    pdoc.getElementById('btnGlobalReset').addEventListener('click', () => {
+      if (!confirm('모든 디자인 설정(탭 배치 모드 포함)을 최초 상태로 초기화하시겠습니까?')) return;
+      Object.keys(DEFAULTS).forEach(v => applyChange(v, DEFAULTS[v]));
+      Object.assign(modeState, MODE_DEFAULTS);
+      applyModeToAllBlocks();
+      renderAll();
+      setStatus('전체 설정을 초기화했습니다.');
+    });
+
+    pdoc.getElementById('btnSave').addEventListener('click', () => {
+      const nowLabel = new Date().toLocaleString('ko-KR');
+      const slots = getSlots();
+      slots.push({ id: Date.now(), label: nowLabel + ' 저장', payload: { currentStyles: { ...currentStyles }, modeState: { ...modeState } } });
+      setSlots(slots);
+      renderSlotsList();
+      setStatus('새 슬롯으로 저장했습니다 (' + nowLabel + ')');
+    });
+    pdoc.getElementById('btnSlots').addEventListener('click', () => {
+      const panel = pdoc.getElementById('slotsPanel');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      pdoc.getElementById('importPanel').style.display = 'none';
+      if (!isOpen) renderSlotsList();
+    });
+
+    pdoc.getElementById('btnInvalidate').addEventListener('click', () => {
+      if (!confirm('현재 미리보기 값을 지우고 웹사이트의 기본 설정으로 되돌리시겠습니까? (저장된 슬롯은 유지됩니다)')) return;
+      Object.keys(DEFAULTS).forEach(v => {
+        document.documentElement.style.removeProperty(v);
+        currentStyles[v] = DEFAULTS[v];
+      });
+      Object.assign(modeState, MODE_DEFAULTS);
+      applyModeToAllBlocks();
+      renderAll();
+      setStatus('웹사이트 기본 설정으로 복원했습니다.');
+    });
+
+    const previewBtn = pdoc.getElementById('btnPreview');
+    let savedBeforePreview = null;
+    const startPreview = () => {
+      savedBeforePreview = { ...currentStyles };
+      Object.keys(DEFAULTS).forEach(v => document.documentElement.style.setProperty(v, DEFAULTS[v]));
+    };
+    const endPreview = () => {
+      if (!savedBeforePreview) return;
+      Object.keys(savedBeforePreview).forEach(v => document.documentElement.style.setProperty(v, savedBeforePreview[v]));
+      savedBeforePreview = null;
+    };
+    previewBtn.addEventListener('mousedown', startPreview);
+    previewBtn.addEventListener('mouseup', endPreview);
+    previewBtn.addEventListener('mouseleave', endPreview);
+    previewBtn.addEventListener('touchstart', e => { e.preventDefault(); startPreview(); });
+    previewBtn.addEventListener('touchend', endPreview);
+
+    pdoc.getElementById('btnImportToggle').addEventListener('click', () => {
+      const panel = pdoc.getElementById('importPanel');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      pdoc.getElementById('slotsPanel').style.display = 'none';
+    });
+    pdoc.getElementById('btnImportApply').addEventListener('click', () => {
+      const raw = pdoc.getElementById('importTextarea').value;
+      if (!raw.trim()) { setStatus('붙여넣은 코드가 없습니다.'); return; }
+      const map = extractCssVars(raw);
+      if (!Object.keys(map).length) { setStatus('코드에서 인식 가능한 변수를 찾지 못했습니다.'); return; }
+      Object.keys(map).forEach(v => { if (DEFAULTS[v] !== undefined) applyChange(v, map[v]); });
+      renderAll();
+      pdoc.getElementById('importPanel').style.display = 'none';
+      setStatus('가져온 코드로 설정값을 채웠습니다.');
+    });
+
+    pdoc.getElementById('btnExportTrigger').addEventListener('click', () => {
+      pdoc.getElementById('exportTextarea').value = createFinalExportText();
+      const area = pdoc.getElementById('exportArea');
+      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+      if (area.style.display === 'block') area.scrollIntoView({ behavior: 'smooth' });
+    });
+    pdoc.getElementById('btnCopy').addEventListener('click', () => {
+      const ta = pdoc.getElementById('exportTextarea');
+      ta.select();
+      pdoc.execCommand('copy');
+      alert('출력된 설정 코드가 복사되었습니다.');
+    });
+    pdoc.getElementById('btnCopyMin').addEventListener('click', () => {
+      let raw = pdoc.getElementById('exportTextarea').value || createFinalExportText();
+      let minified = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n/g, '').replace(/\s{2,}/g, ' ').trim();
+      const temp = pdoc.createElement('textarea');
+      temp.value = minified;
+      pdoc.body.appendChild(temp);
+      temp.select();
+      pdoc.execCommand('copy');
+      pdoc.body.removeChild(temp);
+      alert('압축된 (Minify) 코드가 복사되었습니다.');
+    });
+  }
+
+  /* ================= reveal(연동 노출) 처리 ================= */
+
+  function findItemByVar(varName) {
+    for (const g of GROUPS) {
+      for (const it of g.items) {
+        if (it.var === varName) return it;
+      }
+    }
+    return null;
+  }
+
+  function setRevealVisibility(item, targetVars, show) {
+    const pdoc = popupWindow.document;
+    targetVars.forEach(targetVar => {
+      const targetItem = findItemByVar(targetVar);
+      if (!targetItem) return;
+      const container = pdoc.querySelector('[data-label="' + targetItem.label.toLowerCase() + '"]');
+      if (container) container.style.display = show ? '' : 'none';
+    });
+  }
+
+  function syncAllReveals() {
+    const pdoc = popupWindow.document;
+    GROUPS.forEach(g => g.items.forEach(item => {
+      if (item.type !== 'toggle' || !item.reveal) return;
+      const el = pdoc.getElementById('tog_' + sanitize(item.var));
+      if (!el) return;
+      const show = item.revealWhen === false ? !el.checked : el.checked;
+      setRevealVisibility(item, item.reveal, show);
+    }));
+  }
+
+  /* ================= 개별 타입별 이벤트 바인딩 함수 ================= */
+
+  function bindColor(varName) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const hexEl = pdoc.getElementById('hex_' + id);
+    const alphaEl = pdoc.getElementById('alpha_' + id);
+    const labelEl = pdoc.getElementById('alphaLabel_' + id);
+    const textEl = pdoc.getElementById('text_' + id);
+    if (!hexEl) return;
+
+    function sync(fromText) {
+      if (fromText) {
+        const typed = textEl.value.trim();
+        const parsed = parseColorAny(typed);
+        hexEl.value = parsed.hex;
+        alphaEl.value = parsed.alphaPct;
+        labelEl.textContent = parsed.alphaPct + '%';
+        textEl.classList.remove('inputError');
+        applyChange(varName, composeRgba(parsed.hex, parsed.alphaPct));
+      } else {
+        labelEl.textContent = alphaEl.value + '%';
+        const rgba = composeRgba(hexEl.value, alphaEl.value);
+        textEl.value = rgba;
+        scheduleApplyChange(varName, rgba);
+      }
+    }
+    hexEl.addEventListener('input', () => sync(false));
+    alphaEl.addEventListener('input', () => sync(false));
+    textEl.addEventListener('input', () => {
+      const typed = textEl.value.trim();
+      const looksValid = /^rgba?\(/.test(typed) || HEX_REGEX.test(typed);
+      if (!looksValid) { textEl.classList.add('inputError'); return; }
+      sync(true);
+    });
+  }
+
+  function bindBorder(varName) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const visEl = pdoc.getElementById('bvis_' + id);
+    const detailEl = pdoc.getElementById('bdetail_' + id);
+    const widthEl = pdoc.getElementById('bwidth_' + id);
+    const widthNumEl = pdoc.getElementById('bwidthnum_' + id);
+    const hexEl = pdoc.getElementById('bhex_' + id);
+    const alphaEl = pdoc.getElementById('balpha_' + id);
+    const alphaLabelEl = pdoc.getElementById('balphaLabel_' + id);
+    const textEl = pdoc.getElementById('btext_' + id);
+    if (!visEl) return;
+
+    let prevAlpha = parseFloat(alphaEl.value) || 100;
+
+    function compose(scheduled) {
+      const width = parseFloat(widthEl.value) || 0;
+      const alpha = visEl.checked ? (parseFloat(alphaEl.value) || 0) : 0;
+      const value = composeBorderStr(width, hexEl.value, alpha);
+      if (scheduled) scheduleApplyChange(varName, value);
+      else applyChange(varName, value);
+    }
+
+    visEl.addEventListener('change', () => {
+      detailEl.style.display = visEl.checked ? 'flex' : 'none';
+      if (visEl.checked) {
+        alphaEl.value = prevAlpha || 100;
+        alphaLabelEl.textContent = alphaEl.value + '%';
+      } else {
+        prevAlpha = parseFloat(alphaEl.value) || prevAlpha;
+      }
+      compose(false);
+    });
+    widthEl.addEventListener('input', () => { widthNumEl.value = widthEl.value; compose(true); });
+    widthNumEl.addEventListener('input', () => { widthEl.value = widthNumEl.value; compose(true); });
+    hexEl.addEventListener('input', () => { textEl.value = composeRgba(hexEl.value, alphaEl.value); compose(true); });
+    alphaEl.addEventListener('input', () => { alphaLabelEl.textContent = alphaEl.value + '%'; textEl.value = composeRgba(hexEl.value, alphaEl.value); compose(true); });
+    textEl.addEventListener('input', () => {
+      const typed = textEl.value.trim();
+      if (!/^rgba?\(/.test(typed) && !HEX_REGEX.test(typed)) { textEl.classList.add('inputError'); return; }
+      textEl.classList.remove('inputError');
+      const parsed = parseColorAny(typed);
+      hexEl.value = parsed.hex;
+      alphaEl.value = parsed.alphaPct;
+      alphaLabelEl.textContent = parsed.alphaPct + '%';
+      compose(false);
+    });
+  }
+
+  function bindPadding(varName) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const visEl = pdoc.getElementById('pvis_' + id);
+    const indEl = pdoc.getElementById('pind_' + id);
+    const detailEl = pdoc.getElementById('pdetail_' + id);
+    const tb2El = pdoc.getElementById('ptb2_' + id);
+    const p4El = pdoc.getElementById('p4_' + id);
+    const ptb = pdoc.getElementById('ptb_' + id), ptbNum = pdoc.getElementById('ptbnum_' + id);
+    const plr = pdoc.getElementById('plr_' + id), plrNum = pdoc.getElementById('plrnum_' + id);
+    const pt = pdoc.getElementById('pt_' + id), ptNum = pdoc.getElementById('ptnum_' + id);
+    const pr = pdoc.getElementById('pr_' + id), prNum = pdoc.getElementById('prnum_' + id);
+    const pb = pdoc.getElementById('pb_' + id), pbNum = pdoc.getElementById('pbnum_' + id);
+    const pl = pdoc.getElementById('pl_' + id), plNum = pdoc.getElementById('plnum_' + id);
+    if (!visEl) return;
+
+    let prevVals = parsePaddingStr(currentStyles[varName]);
+
+    function currentTRBL() {
+      if (indEl.checked) {
+        return { t: parseFloat(pt.value) || 0, r: parseFloat(pr.value) || 0, b: parseFloat(pb.value) || 0, l: parseFloat(pl.value) || 0 };
+      }
+      return { t: parseFloat(ptb.value) || 0, r: parseFloat(plr.value) || 0, b: parseFloat(ptb.value) || 0, l: parseFloat(plr.value) || 0 };
+    }
+
+    function compose(scheduled) {
+      if (!visEl.checked) {
+        if (scheduled) scheduleApplyChange(varName, '0px'); else applyChange(varName, '0px');
+        return;
+      }
+      const v = currentTRBL();
+      prevVals = v;
+      const value = composePaddingStr(v.t, v.r, v.b, v.l);
+      if (scheduled) scheduleApplyChange(varName, value); else applyChange(varName, value);
+    }
+
+    visEl.addEventListener('change', () => {
+      detailEl.style.display = visEl.checked ? 'block' : 'none';
+      if (visEl.checked) {
+        ptb.value = ptbNum.value = prevVals.t;
+        plr.value = plrNum.value = prevVals.r;
+        pt.value = ptNum.value = prevVals.t;
+        pr.value = prNum.value = prevVals.r;
+        pb.value = pbNum.value = prevVals.b;
+        pl.value = plNum.value = prevVals.l;
+      }
+      compose(false);
+    });
+
+    indEl.addEventListener('change', () => {
+      if (indEl.checked) {
+        const tbVal = parseFloat(ptb.value) || 0;
+        const lrVal = parseFloat(plr.value) || 0;
+        pt.value = ptNum.value = tbVal;
+        pb.value = pbNum.value = tbVal;
+        pr.value = prNum.value = lrVal;
+        pl.value = plNum.value = lrVal;
+        tb2El.style.display = 'none';
+        p4El.style.display = 'flex';
+      } else {
+        const tVal = parseFloat(pt.value) || 0;
+        const rVal = parseFloat(pr.value) || 0;
+        ptb.value = ptbNum.value = tVal;
+        plr.value = plrNum.value = rVal;
+        tb2El.style.display = 'flex';
+        p4El.style.display = 'none';
+      }
+      compose(false);
+    });
+
+    [[ptb, ptbNum], [plr, plrNum], [pt, ptNum], [pr, prNum], [pb, pbNum], [pl, plNum]].forEach(([rangeEl, numEl]) => {
+      rangeEl.addEventListener('input', () => { numEl.value = rangeEl.value; compose(true); });
+      numEl.addEventListener('input', () => { rangeEl.value = numEl.value; compose(true); });
+    });
+  }
+
+  function bindWeightPair(sizeVar, weightVar) {
+    const pdoc = popupWindow.document;
+    const sizeId = sanitize(sizeVar);
+    const weightId = sanitize(weightVar);
+    const sizeRange = pdoc.getElementById('size_' + sizeId);
+    const sizeNum = pdoc.getElementById('sizenum_' + sizeId);
+    const weightRange = pdoc.getElementById('weight_' + weightId);
+    const weightSel = pdoc.getElementById('weightsel_' + weightId);
+    if (!sizeRange) return;
+
+    sizeRange.addEventListener('input', () => { sizeNum.value = sizeRange.value; scheduleApplyChange(sizeVar, sizeRange.value + 'px'); });
+    sizeNum.addEventListener('input', () => { sizeRange.value = sizeNum.value; scheduleApplyChange(sizeVar, sizeNum.value + 'px'); });
+    weightRange.addEventListener('input', () => { weightSel.value = weightRange.value; scheduleApplyChange(weightVar, weightRange.value); });
+    weightSel.addEventListener('change', () => { weightRange.value = weightSel.value; applyChange(weightVar, weightSel.value); });
+  }
+
+  function bindFontFamily(varName) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const sel = pdoc.getElementById('fsel_' + id);
+    const text = pdoc.getElementById('ftext_' + id);
+    if (!sel) return;
+
+    sel.addEventListener('change', () => {
+      if (sel.value === 'custom') {
+        text.style.display = 'block';
+        applyChange(varName, text.value.trim() || 'inherit');
+      } else {
+        text.style.display = 'none';
+        applyChange(varName, sel.value);
+      }
+    });
+    text.addEventListener('input', () => applyChange(varName, text.value.trim() || 'inherit'));
+  }
+
+  function bindSelect(varName) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const sel = pdoc.getElementById('sel_' + id);
+    if (!sel) return;
+    sel.addEventListener('change', () => applyChange(varName, sel.value));
+  }
+
+  function bindToggle(item) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(item.var);
+    const el = pdoc.getElementById('tog_' + id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      const val = el.checked ? item.mapTrue : item.mapFalse;
+      applyChange(item.var, val);
+      if (item.reveal) {
+        const show = item.revealWhen === false ? !el.checked : el.checked;
+        setRevealVisibility(item, item.reveal, show);
+      }
+    });
+  }
+
+  function bindRange(varName, unit) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const range = pdoc.getElementById('r_' + id);
+    const num = pdoc.getElementById('rn_' + id);
+    if (!range) return;
+    range.addEventListener('input', () => { num.value = range.value; scheduleApplyChange(varName, range.value + unit); });
+    num.addEventListener('input', () => { range.value = num.value; scheduleApplyChange(varName, num.value + unit); });
+  }
+
+  function bindText(varName) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const el = pdoc.getElementById('t_' + id);
+    if (!el) return;
+    el.addEventListener('input', () => applyChange(varName, el.value));
+  }
+
+  function bindTransition(varName) {
+    const pdoc = popupWindow.document;
+    const id = sanitize(varName);
+    const durRange = pdoc.getElementById('trdur_' + id);
+    const durNum = pdoc.getElementById('trdurnum_' + id);
+    const easSel = pdoc.getElementById('treas_' + id);
+    if (!durRange) return;
+
+    function compose(scheduled) {
+      const value = composeTransitionStr(parseFloat(durRange.value) || 0, easSel.value);
+      if (scheduled) scheduleApplyChange(varName, value); else applyChange(varName, value);
+    }
+
+    durRange.addEventListener('input', () => { durNum.value = durRange.value; compose(true); });
+    durNum.addEventListener('input', () => { durRange.value = durNum.value; compose(true); });
+    easSel.addEventListener('change', () => compose(false));
+  }
+
+  /* ================= 초기 실행 ================= */
+
+  renderAll();
+}

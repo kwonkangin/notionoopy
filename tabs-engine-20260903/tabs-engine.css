@@ -1,0 +1,97 @@
+/*
+  tabs-engine.css
+  ------------------------------------------------------------------
+  Notion 순수 탭 + 콜아웃 + 갤러리 엔진 기본 CSS 변수 (v15.1, GitHub 호스팅용)
+  엔진 변수 접미사: _R8w
+
+  사용 방법
+  1. 이 파일을 tabs-engine.js 보다 먼저 또는 함께 사이트 CSS에 삽입합니다.
+  2. tabs-engine-dashboard.js 대시보드에서 만든 "최종 적용 코드"(tabs-engine-option.css 형식)는
+     이 기본값 아래에 추가합니다.
+  3. 대시보드를 실행하지 않아도 아래 기본값만으로 엔진은 정상 작동합니다.
+*/
+
+:root {
+  /* ===================== 전체 래퍼 ===================== */
+  --tabWrapBorderFinal_R8w: 1px solid rgba(55, 53, 47, 0.10);
+  --tabWrapBgFinal_R8w: rgba(255, 255, 255, 1);
+  --tabWrapRadius_R8w: 20px;
+  --tabWrapShadow_R8w: none;
+
+  /* ===================== 탭 목록 · 배치 ===================== */
+  --tabListPadding_R8w: 0px 16px 16px;
+  --tabGapX_R8w: 12px;
+  --tabGapY_R8w: 8px;
+  --tabFill_R8w: 0;
+  --tabJustify_R8w: flex-start;
+  --tabMinWidth_R8w: 0px;
+  --tabWrapLong_R8w: nowrap;
+
+  /* ===================== 기본 탭 ===================== */
+  --tabPad_R8w: 6px 10px;
+  --tabRadius_R8w: 999px;
+  --tabBg_R8w: rgba(255, 255, 255, 0);
+  --tabText_R8w: rgba(55, 53, 47, 0.70);
+  --tabFontFamily_R8w: inherit;
+  --tabFontSize_R8w: 14px;
+  --tabFontWeight_R8w: 400;
+
+  /* ===================== 활성 탭 ===================== */
+  --activeTabBg_R8w: rgba(55, 53, 47, 0.06);
+  --activeTabText_R8w: rgba(55, 53, 47, 1);
+  --activeTabFontFamily_R8w: inherit;
+  --activeTabFontSize_R8w: 14px;
+  --activeTabFontWeight_R8w: 500;
+
+  /* ===================== 기본 탭 Hover ===================== */
+  --tabHoverOn_R8w: 1;
+  --tabHoverBg_R8w: rgba(55, 53, 47, 0.06);
+  --tabHoverText_R8w: rgba(55, 53, 47, 1);
+  --tabHoverBorder_R8w: none;
+  --tabHoverShadow_R8w: none;
+  --tabHoverLift_R8w: 0px;
+  --tabHoverTransition_R8w: 160ms ease;
+
+  /* ===================== 본문 패널 ===================== */
+  --tabPanelPadding_R8w: 0px 16px 16px;
+  --panelBlockGap_R8w: 28px;
+
+  /* ===================== 콜아웃 ===================== */
+  --calloutDisplay_R8w: block;
+  --calloutBg_R8w: rgba(241, 241, 239, 1);
+  --calloutBorder_R8w: none;
+  --calloutRadius_R8w: 20px;
+  --calloutShadow_R8w: none;
+  --calloutPad_R8w: 22px 22px;
+
+  /* ===================== 콜아웃 텍스트 ===================== */
+  --calloutTitleFamily_R8w: inherit;
+  --calloutTitleSize_R8w: 20px;
+  --calloutTitleWeight_R8w: 700;
+  --calloutTitleColor_R8w: rgba(55, 53, 47, 1);
+  --calloutDescFamily_R8w: inherit;
+  --calloutDescSize_R8w: 14px;
+  --calloutDescWeight_R8w: 400;
+  --calloutDescColor_R8w: rgba(120, 119, 116, 1);
+
+  /* ===================== 더보기 · 전체 선택 목록 공통 텍스트 ===================== */
+  --overflowFontFamily_R8w: inherit;
+  --overflowFontSize_R8w: 14px;
+  --overflowFontWeight_R8w: 400;
+  --overflowTextColor_R8w: rgba(55, 53, 47, 1);
+
+  /* ===================== 더보기 버튼 · 전체 선택 트리거 ===================== */
+  --overflowBtnBg_R8w: rgba(255, 255, 255, 1);
+  --overflowBtnBorder_R8w: 1px solid rgba(55, 53, 47, 0.16);
+  --overflowBtnRadius_R8w: 6px;
+
+  /* ===================== 더보기 · 전체 선택 드롭다운 목록 ===================== */
+  --overflowMenuBg_R8w: rgba(255, 255, 255, 1);
+  --overflowMenuBorder_R8w: 1px solid rgba(55, 53, 47, 0.16);
+  --overflowMenuRadius_R8w: 6px;
+  --overflowMenuShadow_R8w: 0px 5px 10px 0px rgba(0, 0, 0, 0.20);
+  --overflowItemPad_R8w: 8px 12px;
+  --overflowHover_R8w: rgba(55, 53, 47, 0.06);
+  --overflowActive_R8w: rgba(35, 131, 226, 0.08);
+  --overflowMenuMaxHeight_R8w: 280px;
+}
