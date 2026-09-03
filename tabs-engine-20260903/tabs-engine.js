@@ -1,4 +1,15 @@
-R8w="1"]) 선택자로 hover 규칙 자체가
+/*
+  notion-tab-engine.js (v15.1)
+  ------------------------------------------------------------------
+  Notion 순수 탭 + 콜아웃 + 갤러리 엔진
+  변수 접미사: _R8w
+
+  v15.1 변경점 (v15 대비)
+  1) --tabRadius_R8w 가 Notion 자체 CSS의 !important 에 밀려 적용되지 않던 문제 수정
+     -> border-radius 만 별도로 !important 로 강제 적용
+  2) hover 끄기(--tabHoverOn_R8w: 0) 방식 변경
+     -> 기존: :hover 규칙을 유지한 채 inherit 값으로 "취소" 시도 (부정확함)
+     -> 변경: :not([data-tab-hover-off_R8w="1"]) 선택자로 hover 규칙 자체가
         아예 걸리지 않도록 변경. 취소용 별도 규칙 제거.
   나머지 로직은 v15과 100% 동일.
 */
