@@ -1,0 +1,961 @@
+/*
+<!--데이터베이스탭 디자인 -->
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main//db-tabs-20260907/db-tabs-engine.js" defer></script>
+*/
+
+<style>
+/*
+  ==================================================================
+  db-tabs-option — Notion / Oopy 삽입용 설정 코드 (v0.8)
+  ------------------------------------------------------------------
+  이 파일의 목적
+  이 파일은 "값"만 담고 있습니다. 탭의 색상·크기·여백·동작 방식을
+  결정하는 실제 데이터가 여기 있고, 이 값을 읽어서 화면에 적용하는
+  로직(엔진)은 별도 파일인 db-tabs-engine.js 에 있습니다. 즉,
+  디자인을 바꾸고 싶을 때는 db-tabs-engine.js를 건드릴 필요 없이 이
+  파일의 값만 바꾸면 됩니다.
+
+  사용 방법
+  1. db-tabs-engine.js 를 사이트(Notion 임베드 코드블록 또는 Oopy
+     커스텀 코드 삽입 영역)에 먼저 넣습니다. (이 파일과 순서는 상관없음,
+     둘 다 페이지에 있기만 하면 됨)
+  2. 이 파일 전체를 그대로 같은 방식으로 사이트에 삽입합니다.
+  3. 아래 값들을 원하는 대로 바꾸면 사이트를 새로고침했을 때 바로
+     반영됩니다. 값 하나만 바꿔도 되고, 여러 개를 한 번에 바꿔도 됩니다.
+  4. 값을 직접 하나씩 바꾸기 번거로우면 db-tabs-dashboard.js(제어판)를
+     실행해서 슬라이더/색상 선택 UI로 조정한 뒤, 거기서 나온 최종
+     코드로 이 파일 내용을 통째로 교체해도 됩니다.
+
+  변수명 규칙
+  모든 변수명 끝에는 _q9X 라는 접미사가 붙어 있습니다. 이는 이 코드가
+  다른 커스텀 코드(다른 CSS 변수 등)와 이름이 겹쳐서 서로 충돌하는 것을
+  막기 위한 식별 꼬리표입니다. 이 접미사는 db-tabs-engine.js 안에도
+  똑같이 정의되어 있으므로, 여기서 이름을 바꾸면 엔진이 값을 읽지
+  못하게 되어 전체 기능이 멈춥니다. 접미사는 절대 바꾸지 마세요.
+
+  값을 입력할 때 공통 주의사항
+  - px, ms 같은 단위를 반드시 같이 적어야 합니다. (예: 20 이 아니라 20px)
+  - 색상은 rgba(r, g, b, a) 형식이나 #hex 형식, 또는 transparent 를
+    사용할 수 있습니다. a(투명도)는 0(완전 투명)~1(완전 불투명) 사이 값.
+  - 0/1 만 입력하는 항목(토글 성격)은 반드시 숫자 0 또는 1만 넣어야
+    하며, true/false 같은 문자를 넣으면 인식되지 않습니다.
+  ==================================================================
+*/
+
+:root {
+
+  /* ================================================================
+     [그룹 1] 탭 전체 래퍼 (탭 목록 + 본문을 감싸는 바깥 박스)
+     ================================================================ */
+
+  /* 래퍼 테두리선
+     기본값: 0px solid rgba(55, 53, 47, 0)  (두께가 0이라 사실상 안 보임)
+     입력 형식: CSS border 축약값 (두께 스타일 색상)
+     예시: none / 2px dashed #37352f / 1px solid rgba(0,0,0,0.2) */
+  --wrapBorder_q9X: 0px solid rgba(55, 53, 47, 0);
+
+  /* 래퍼 배경색
+     기본값: rgba(255, 255, 255, 1) (흰색)
+     입력 형식: CSS 색상 값 아무거나 (색상명 / hex / rgb / rgba / transparent) */
+  --wrapBg_q9X: rgba(255, 255, 255, 1);
+
+  /* 래퍼 모서리 둥글기
+     기본값: 20px
+     입력 형식: px 단위 숫자. 0px = 각진 사각형, 값이 클수록 더 둥글게 */
+  --wrapRadius_q9X: 20px;
+
+  /* 래퍼 그림자
+     기본값: none (그림자 없음)
+     입력 형식: CSS box-shadow 값
+     예시: 0px 2px 8px 0px rgba(0,0,0,0.12) */
+  --wrapShadow_q9X: none;
+
+
+  /* ================================================================
+     [그룹 2] 탭 목록 배치 (탭 버튼들이 나열되는 줄)
+     ================================================================ */
+
+  /* 탭 목록 바깥 여백 — 상단
+     기본값: 0px
+     입력 형식: px 단위 숫자 */
+  --tabListPadTop_q9X: 0px;
+
+  /* 탭 목록 바깥 여백 — 하단
+     기본값: 0px
+     입력 형식: px 단위 숫자 */
+  --tabListPadBottom_q9X: 0px;
+
+  /* 탭 목록 바깥 여백 — 좌우
+     기본값: 16px
+     입력 형식: px 단위 숫자 (좌/우 동일하게 적용됨) */
+  --tabListPadX_q9X: 16px;
+
+  /* 탭과 탭 사이 가로 간격
+     기본값: 12px
+     입력 형식: px 단위 숫자 */
+  --tabGapX_q9X: 12px;
+
+  /* 탭 줄과 줄 사이 세로 간격 (오버플로우 모드가 "줄바꿈"일 때 적용)
+     기본값: 8px
+     입력 형식: px 단위 숫자 */
+  --tabGapY_q9X: 8px;
+
+  /* 탭 너비를 균등하게 꽉 채울지 여부
+     기본값: 0 (끄기 — 탭이 글자 길이만큼만 너비 차지)
+     입력 형식: 0 또는 1 만 사용. 1로 바꾸면 탭들이 줄 너비를 균등 분할 */
+  --tabFillMode_q9X: 0;
+
+  /* 탭 정렬 방향 (탭 전체 묶음이 줄 안에서 어디에 배치될지)
+     기본값: flex-start (왼쪽 정렬)
+     선택 가능 값: flex-start(왼쪽) / center(가운데) / flex-end(오른쪽)
+                  / space-between(양끝 정렬, 탭 사이 간격 자동 균등) */
+  --tabAlign_q9X: flex-start;
+
+  /* 탭 하나의 최소 너비
+     기본값: 0px (제한 없음)
+     입력 형식: px 단위. 짧은 이름의 탭도 일정 너비 이상 확보하고 싶을 때 사용 */
+  --tabMinWidth_q9X: 0px;
+
+  /* 탭 목록 바로 바깥 상자의 하단 구분선 (Notion 기본 UI 요소)
+     기본값: none (선 없음)
+     입력 형식: CSS box-shadow 값. 다시 선을 넣고 싶으면 예시처럼 입력
+     예시: 0px -1px 0px 0px rgba(233,233,231,1) inset */
+  --tabDividerLine_q9X: none;
+
+
+  /* ================================================================
+     [그룹 3] 기본(비활성) 탭 스타일
+     ================================================================ */
+
+  /* 탭 안쪽 여백 — 상하
+     기본값: 6px
+     입력 형식: px 단위 숫자 */
+  --tabPadY_q9X: 6px;
+
+  /* 탭 안쪽 여백 — 좌우
+     기본값: 10px
+     입력 형식: px 단위 숫자 */
+  --tabPadX_q9X: 10px;
+
+  /* 탭 모서리 둥글기
+     기본값: 999px (완전히 둥근 알약 모양)
+     입력 형식: px 값. 0px = 각진 사각형, 8px = 살짝 둥근 사각형 */
+  --tabRadius_q9X: 999px;
+
+  /* 비활성 탭 배경색
+     기본값: rgba(255, 255, 255, 0) (투명, 즉 배경 없음)
+     입력 형식: CSS 색상 값 아무거나 */
+  --tabBg_q9X: rgba(255, 255, 255, 0);
+
+  /* 비활성 탭 글자색
+     기본값: rgba(55, 53, 47, 0.70) (진회색, 약간 흐리게)
+     입력 형식: CSS 색상 값 아무거나 */
+  --tabTextColor_q9X: rgba(55, 53, 47, 0.70);
+
+  /* 비활성 탭 글자 크기
+     기본값: 14px
+     입력 형식: px 단위 숫자 */
+  --tabFontSize_q9X: 14px;
+
+  /* 비활성 탭 글자 굵기
+     기본값: 400 (일반)
+     선택 가능 값: 100~900 사이 100 단위 숫자
+     (100=아주 가늘게, 400=보통, 700=굵게, 900=아주 굵게) */
+  --tabFontWeight_q9X: 400;
+
+  /* 탭 아이콘(뷰 종류를 나타내는 작은 아이콘) 노출 여부
+     기본값: 1 (표시)
+     입력 형식: 0 또는 1 만 사용. 0으로 하면 아이콘이 완전히 사라짐 */
+  --tabIconToggle_q9X: 1;
+
+  /* 탭 아이콘 크기
+     기본값: 14px (Notion 원본 아이콘 크기와 동일)
+     입력 형식: px 단위 숫자 */
+  --tabIconSize_q9X: 14px;
+
+
+  /* ================================================================
+     [그룹 4] 활성(선택된) 탭 스타일
+     ================================================================ */
+
+  /* 활성 탭 배경색
+     기본값: rgba(55, 53, 47, 0.06) (아주 연한 회색)
+     입력 형식: CSS 색상 값 아무거나 */
+  --activeTabBg_q9X: rgba(55, 53, 47, 0.06);
+
+  /* 활성 탭 글자색
+     기본값: rgba(55, 53, 47, 1) (진한 검정에 가까운 회색)
+     입력 형식: CSS 색상 값 아무거나 */
+  --activeTabTextColor_q9X: rgba(55, 53, 47, 1);
+
+  /* 활성 탭 글자 크기
+     기본값: 14px
+     입력 형식: px 단위 숫자 */
+  --activeTabFontSize_q9X: 14px;
+
+  /* 활성 탭 글자 굵기
+     기본값: 500 (보통보다 약간 굵게, 선택된 느낌 강조)
+     선택 가능 값: 100~900 사이 100 단위 숫자 */
+  --activeTabFontWeight_q9X: 500;
+
+  /* 활성 탭 하단 언더라인(밑줄) 노출 여부
+     기본값: 0 (없음)
+     입력 형식: 0 또는 1 만 사용
+     주의: Notion은 활성 탭에 자체적으로 얇은 밑줄을 그리는데, 이 값을
+     0으로 두면 그 밑줄까지 포함해서 완전히 안 보이게 됩니다. 밑줄을
+     원하면 1로 켜고 아래 두 값으로 두께/색을 정하세요. */
+  --activeUnderlineToggle_q9X: 0;
+
+  /* 활성 탭 하단 언더라인 두께
+     기본값: 2px
+     입력 형식: px 단위 숫자 (activeUnderlineToggle_q9X가 1일 때만 의미 있음) */
+  --activeUnderlineSize_q9X: 2px;
+
+  /* 활성 탭 하단 언더라인 색상 (투명도 포함)
+     기본값: rgba(55, 53, 47, 1)
+     입력 형식: CSS 색상 값 아무거나 (activeUnderlineToggle_q9X가 1일 때만 의미 있음) */
+  --activeUnderlineColor_q9X: rgba(55, 53, 47, 1);
+
+
+  /* ================================================================
+     [그룹 5] 탭 마우스 오버(Hover) 효과 — 비활성 탭에 마우스를 올렸을 때
+     ================================================================ */
+
+  /* 호버 효과 켜기/끄기
+     기본값: 1 (켜짐)
+     입력 형식: 0 또는 1 만 사용. 0으로 하면 아래 호버 관련 값들이 전부 무시됨 */
+  --tabHoverToggle_q9X: 1;
+
+  /* 호버 시 배경색
+     기본값: rgba(55, 53, 47, 0.06)
+     입력 형식: CSS 색상 값 아무거나 */
+  --tabHoverBg_q9X: rgba(55, 53, 47, 0.06);
+
+  /* 호버 시 글자색
+     기본값: rgba(55, 53, 47, 1)
+     입력 형식: CSS 색상 값 아무거나 */
+  --tabHoverTextColor_q9X: rgba(55, 53, 47, 1);
+
+  /* 호버 시 위로 살짝 뜨는 효과 정도
+     기본값: 0px (효과 없음)
+     입력 형식: px 값. 2px 정도면 살짝 떠오르는 느낌 */
+  --tabHoverLift_q9X: 0px;
+
+  /* 호버 효과 전환 속도
+     기본값: 160ms ease
+     입력 형식: CSS transition duration + easing 방식 (한 칸 띄어서 같이 입력)
+     예시: 300ms ease-in-out (느리게) / 80ms linear (빠르게, 일정한 속도) */
+  --tabHoverSpeed_q9X: 160ms ease;
+
+
+  /* ================================================================
+     [그룹 6] 오버플로우(더보기 버튼/드롭다운) 생김새
+     (탭이 많아서 한 줄에 안 들어갈 때 나타나는 "더보기" 버튼이나
+     "선택박스"의 디자인입니다. 동작 방식 자체는 이 파일 맨 아래
+     window.tabDbSetting_q9X 쪽에서 데이터베이스별로 정합니다)
+     ================================================================ */
+
+  /* 더보기 버튼 / 선택박스 버튼 배경색
+     기본값: rgba(255, 255, 255, 1)
+     입력 형식: CSS 색상 값 아무거나 */
+  --overflowBtnBg_q9X: rgba(255, 255, 255, 1);
+
+  /* 더보기 버튼 / 선택박스 버튼 테두리
+     기본값: 1px solid rgba(55, 53, 47, 0.16)
+     입력 형식: CSS border 축약값 (두께 스타일 색상) */
+  --overflowBtnBorder_q9X: 1px solid rgba(55, 53, 47, 0.16);
+
+  /* 더보기 버튼 / 선택박스 버튼 모서리 둥글기
+     기본값: 6px
+     입력 형식: px 단위 숫자 */
+  --overflowBtnRadius_q9X: 6px;
+
+  /* 드롭다운 목록(팝업) 배경색
+     기본값: rgba(255, 255, 255, 1)
+     입력 형식: CSS 색상 값 아무거나 */
+  --overflowMenuBg_q9X: rgba(255, 255, 255, 1);
+
+  /* 드롭다운 목록 테두리
+     기본값: 1px solid rgba(55, 53, 47, 0.16)
+     입력 형식: CSS border 축약값 (두께 스타일 색상) */
+  --overflowMenuBorder_q9X: 1px solid rgba(55, 53, 47, 0.16);
+
+  /* 드롭다운 목록 모서리 둥글기
+     기본값: 6px
+     입력 형식: px 단위 숫자 */
+  --overflowMenuRadius_q9X: 6px;
+
+  /* 드롭다운 목록 그림자
+     기본값: 0px 5px 10px 0px rgba(0, 0, 0, 0.2)
+     입력 형식: CSS box-shadow 값 */
+  --overflowMenuShadow_q9X: 0px 5px 10px 0px rgba(0, 0, 0, 0.2);
+
+  /* 드롭다운 목록 최대 높이 (이보다 항목이 많아지면 안에서 스크롤 생김)
+     기본값: 280px
+     입력 형식: px 단위 숫자 */
+  --overflowMenuMaxHeight_q9X: 280px;
+
+  /* 버튼/목록 공통 글자색
+     기본값: rgba(55, 53, 47, 1)
+     입력 형식: CSS 색상 값 아무거나 */
+  --overflowTextColor_q9X: rgba(55, 53, 47, 1);
+
+  /* 버튼/목록 공통 글자 크기
+     기본값: 14px
+     입력 형식: px 단위 숫자 */
+  --overflowFontSize_q9X: 14px;
+
+  /* 목록 항목에 마우스를 올렸을 때 배경색
+     기본값: rgba(55, 53, 47, 0.06)
+     입력 형식: CSS 색상 값 아무거나 */
+  --overflowHoverBg_q9X: rgba(55, 53, 47, 0.06);
+
+  /* 목록 항목 중 현재 선택된 탭을 표시하는 강조 배경색
+     기본값: rgba(35, 131, 226, 0.08) (연한 파란색)
+     입력 형식: CSS 색상 값 아무거나 */
+  --overflowActiveBg_q9X: rgba(35, 131, 226, 0.08);
+
+}
+
+
+/*
+  ==================================================================
+  [그룹 7] 데이터베이스별 세부 설정 (JS 객체)
+  ------------------------------------------------------------------
+  위 :root 변수들은 "생김새(색상, 크기, 여백 등)"를 정하고, 이 객체는
+  "동작 방식과 노출 여부"를 정합니다. 사이트에 데이터베이스(탭이 달린
+  갤러리/표 등)가 여러 개 있을 때, 전부에 공통 적용할 기본값(defaults)과
+  특정 데이터베이스만 다르게 할 예외(exceptions)를 나눠서 관리합니다.
+  ==================================================================
+*/
+window.tabDbSetting_q9X = {
+
+  /* ---------------- defaults: 모든 데이터베이스에 공통 적용되는 기본값 ---------------- */
+  defaults: {
+
+    /* 데이터베이스 제목 영역(아이콘+텍스트) 노출 여부
+       기본값: true (보이게 둠)
+       선택 가능 값:
+       - true  : 화면에 표시
+       - false : 완전히 제거 (그 자리 공간도 없어지고 아래 콘텐츠가 당겨져 채움)
+       주의: Notion에서 이미 "제목 비노출"로 꺼둔 데이터베이스는 애초에
+       DOM에 제목 요소가 없어서 이 옵션이 적용될 대상 자체가 없습니다.
+       (즉 이 옵션은 Notion에서 "제목 노출"로 켜둔 데이터베이스에만 의미 있음) */
+    titleVisible: true,
+
+    /* 탭 목록(줄) 자체의 노출 여부
+       기본값: true (보이게 둠)
+       선택 가능 값: true(표시) / false(탭 줄 전체를 통째로 숨김, 아래
+       콘텐츠만 보이게 됨) */
+    tabVisible: true,
+
+    /* 탭이 많아서 한 줄에 다 안 들어갈 때(PC 기준) 처리 방식
+       기본값: 'scroll'
+       선택 가능 값:
+       - 'scroll'        가로로 밀어서 스크롤 (탭 줄은 한 줄 유지)
+       - 'wrap'          다음 줄로 자동 줄바꿈
+       - 'more-dropdown' 넘치는 탭들을 "더보기" 버튼 안 드롭다운으로 숨김
+       - 'select'        탭 목록 전체를 셀렉트박스(선택창) 하나로 대체 */
+    mode: 'scroll',
+
+    /* 모바일(가로 폭 768px 이하) 전용 처리 방식
+       기본값: null
+       선택 가능 값: 'scroll' / 'wrap' / 'more-dropdown' / 'select' / null
+       null로 두면 모바일에서도 위 mode 값을 그대로 따라갑니다.
+       모바일에서만 다르게 하고 싶을 때만 값을 채우세요. */
+    mobileMode: null,
+
+    /* 탭 개수가 threshold 값을 초과했을 때만 강제로 바꿀 처리 방식
+       기본값: null (사용 안 함)
+       선택 가능 값: 위 mode와 동일 4가지, 또는 null */
+    overThresholdMode: null,
+
+    /* overThresholdMode를 적용할 탭 개수 기준
+       기본값: 0 (0이면 이 기능 자체를 사용하지 않음)
+       입력 형식: 정수 (예: 6 → 탭이 7개 이상일 때부터 overThresholdMode 적용) */
+    threshold: 0,
+
+    /* 마우스 휠로 탭 목록을 가로 스크롤할 수 있게 할지 여부
+       (mode가 'scroll' 또는 'more-dropdown'일 때만 의미 있음)
+       기본값: true
+       선택 가능 값: true(켜기) / false(끄기) */
+    wheelScroll: true,
+
+    /* 마우스 휠 스크롤 속도 배율
+       기본값: 1 (기본 속도)
+       입력 형식: 양수. 2로 하면 2배 빠르게, 0.5면 절반 속도 */
+    wheelSpeed: 1,
+
+    /* "더보기" 버튼에 표시할 글자
+       기본값: '더보기'
+       입력 형식: 원하는 문자열 아무거나 (예: 'More', '전체보기') */
+    moreLabel: '더보기'
+  },
+
+  /* ---------------- exceptions: 특정 데이터베이스만 다르게 할 예외 목록 ---------------- */
+  /* 배열 안에 객체를 하나씩 추가해서, 그 데이터베이스만 위 defaults와
+     다른 값을 쓰게 만듭니다. 적지 않은 항목은 defaults 값을 그대로
+     사용합니다. 데이터베이스 하나당 객체는 하나만 만들면 되고, 그 안에
+     바꾸고 싶은 항목을 원하는 만큼 같이 적으면 됩니다.
+
+     label      : 예외를 적용할 데이터베이스의 이름표.
+                  Notion에서 "제목 노출" 상태인 데이터베이스에만 사용
+                  가능하며, 화면에 보이는 제목 텍스트와 정확히(띄어쓰기
+                  포함) 일치해야 합니다.
+     blockId    : Notion에서 "제목 비노출" 상태인 데이터베이스는 라벨
+                  텍스트 자체가 DOM에 없으므로 반드시 이 값을 사용해야
+                  합니다. 같은 이름의 데이터베이스가 두 개 이상 있어서
+                  label만으로 구분이 안 될 때도 사용합니다.
+                  (Notion에서 해당 데이터베이스 블록을 우클릭 > 링크
+                  복사로 얻은 주소 끝부분의 블록 ID를 넣으면 됩니다)
+                  label을 쓸 경우 blockId는 빈 문자열로, blockId를 쓸
+                  경우 label은 빈 문자열로 비워두세요. (하나만 채우면 됨)
+     그 외 항목 : defaults와 이름이 같은 항목(titleVisible, tabVisible,
+                  mode, mobileMode, overThresholdMode, threshold,
+                  wheelScroll, wheelSpeed, moreLabel) 중 이 데이터베이스만
+                  다르게 하고 싶은 값만 적으면 됩니다. */
+  exceptions: [
+    // 예시 (제목이 보이는 데이터베이스 하나에, 제목 숨기기 + 오버플로우
+    // 모드 변경을 동시에 적용하는 경우)
+    // {
+    //   label: '데이터베이스명',
+    //   blockId: '',
+    //   titleVisible: false,
+    //   tabVisible: true,
+    //   mode: 'wrap'
+    // }
+  ]
+};
+</style>
+
+
+<script>
+
+/*
+  ==================================================================
+  tabs-engine.js — Notion 데이터베이스 탭 커스텀 엔진 (v1.5, GitHub 호스팅용)
+  ------------------------------------------------------------------
+  변수 접미사: _q9X (tabs-option-notion-oopy.css 와 반드시 동일해야 함)
+
+  v1.5 변경점 (v1.4 대비)
+  - [버그 수정] 활성 탭 하단 언더라인 대상이 잘못되어 있었음.
+    Notion은 활성 [role="menuitem"] 자체에 기본 2px solid 밑줄을 그려주고
+    있었는데, 엔진은 그 안쪽의 [role="button"]에만 border-bottom을
+    설정해서 토글을 켜고 꺼도 화면에 변화가 없었음.
+    -> 이제 [role="menuitem"] 쪽의 네이티브 밑줄을 항상 먼저 제거하고,
+       토글이 켜져 있을 때만 같은 자리에 우리 값으로 다시 그림.
+  - 대시보드가 실시간으로 tabDbSetting_q9X 를 바꿨을 때 즉시 재적용할 수
+    있도록 window.efc_reapplyAllTabs_q9X 재적용 훅을 새로 노출.
+  ==================================================================
+*/
+(function notionDbTabEngine_q9X() {
+  'use strict';
+
+  const SFX = '_q9X';
+  const MOBILE_BREAKPOINT = 768;
+  const HOVER_STYLE_ID = 'notion-db-tab-engine-hover-style_q9X';
+  const MARK = 'dbTabEngineMark_q9X';
+
+  const initedRoots = new WeakSet();
+  const allStates = [];
+
+  const cssVar = (name, fallback) => `var(--${name}${SFX}, ${fallback})`;
+
+  function setStyle(el, map, important) {
+    if (!el) return;
+    Object.entries(map).forEach(([prop, value]) => {
+      el.style.setProperty(prop, value, important ? 'important' : '');
+    });
+  }
+
+  function removeStyle(el, props) {
+    if (!el) return;
+    props.forEach(p => el.style.removeProperty(p));
+  }
+
+  /* ================================================================
+     1. 탭 그룹(데이터베이스) 탐색
+     ================================================================ */
+
+  function findRoots() {
+    const tablists = Array.from(document.querySelectorAll('[role="tablist"]'));
+    const roots = new Set();
+    tablists.forEach(tablist => {
+      const root = tablist.closest('.notion-collection_view-block');
+      if (root) roots.add(root);
+    });
+    return Array.from(roots);
+  }
+
+  function getTablist(root) { return root.querySelector('[role="tablist"]'); }
+  function getTablistBox(tablist) { return tablist.parentElement; }
+  function getTabs(root) {
+    const tablist = getTablist(root);
+    return tablist ? Array.from(tablist.querySelectorAll(':scope > [role="menuitem"]')) : [];
+  }
+  function getTabButton(tab) { return tab.querySelector('[role="button"]') || tab; }
+
+  function isActiveTab(tab) {
+    if (tab.getAttribute('tabindex') === '0') return true;
+    if (tab.getAttribute('tabindex') === '-1') return false;
+    const btn = getTabButton(tab);
+    const opacity = parseFloat(btn.style.opacity || getComputedStyle(btn).opacity || '1');
+    return !Number.isNaN(opacity) && opacity >= 0.9;
+  }
+
+  function getTitleTextEl(root) { return root.querySelector('div[data-root="true"][placeholder="제목없음"]'); }
+  function getTitleWrapEl(root) {
+    const textEl = getTitleTextEl(root);
+    if (!textEl) return null;
+    const link = textEl.closest('a');
+    return link ? link.parentElement : textEl.parentElement;
+  }
+  function getLabel(root) {
+    const textEl = getTitleTextEl(root);
+    return textEl ? textEl.textContent.trim() : '';
+  }
+  function getBlockId(root) { return root.getAttribute('data-block-id') || ''; }
+
+  /* ================================================================
+     2. 설정값 결정
+     ================================================================ */
+
+  function resolveConfig(root) {
+    const setting = (typeof window.tabDbSetting_q9X === 'object' && window.tabDbSetting_q9X) || {};
+    const builtInDefault = {
+      titleVisible: true, tabVisible: true, mode: 'scroll', mobileMode: null,
+      overThresholdMode: null, threshold: 0, wheelScroll: true, wheelSpeed: 1, moreLabel: '더보기'
+    };
+    const defaults = Object.assign({}, builtInDefault, setting.defaults || {});
+    const exceptions = Array.isArray(setting.exceptions) ? setting.exceptions : [];
+    const label = getLabel(root);
+    const blockId = getBlockId(root);
+    const matched = exceptions.find(ex => {
+      if (ex.blockId) return ex.blockId === blockId;
+      if (ex.label) return ex.label === label;
+      return false;
+    });
+    return Object.assign({}, defaults, matched || {});
+  }
+
+  function pickMode(root, config) {
+    const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    let mode = config.mode;
+    if (isMobile && config.mobileMode) mode = config.mobileMode;
+    if (config.threshold > 0 && getTabs(root).length > config.threshold && config.overThresholdMode) {
+      mode = config.overThresholdMode;
+    }
+    return ['scroll', 'wrap', 'more-dropdown', 'select'].includes(mode) ? mode : 'scroll';
+  }
+
+  /* ================================================================
+     3. 호버 CSS
+     ================================================================ */
+
+  function ensureHoverStyle() {
+    if (document.getElementById(HOVER_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = HOVER_STYLE_ID;
+    style.textContent = `
+      .${MARK}-btn {
+        transition: ${cssVar('tabHoverSpeed', '160ms ease')} !important;
+      }
+      .${MARK}-btn[data-hover-off_q9X="1"] {
+        transition: none !important;
+      }
+      .${MARK}-btn:not([data-hover-off_q9X="1"]):not([data-active_q9X="1"]):hover {
+        background: ${cssVar('tabHoverBg', 'transparent')} !important;
+        color: ${cssVar('tabHoverTextColor', 'inherit')} !important;
+        transform: translateY(calc(-1 * ${cssVar('tabHoverLift', '0px')})) !important;
+      }
+      .${MARK}-btn:not([data-hover-off_q9X="1"]):not([data-active_q9X="1"]):hover * {
+        color: inherit !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  /* ================================================================
+     4. 스타일 적용
+     ================================================================ */
+
+  function applyWrap(root) {
+    setStyle(root, {
+      border: cssVar('wrapBorder', 'none'),
+      background: cssVar('wrapBg', 'transparent'),
+      'border-radius': cssVar('wrapRadius', '0px'),
+      'box-shadow': cssVar('wrapShadow', 'none'),
+      'box-sizing': 'border-box',
+      overflow: 'hidden'
+    });
+    if (getComputedStyle(root).position === 'static') root.style.setProperty('position', 'relative');
+  }
+
+  function applyTitle(root, config) {
+    const wrapEl = getTitleWrapEl(root);
+    if (!wrapEl) return;
+    if (config.titleVisible === false) wrapEl.style.setProperty('display', 'none', 'important');
+    else wrapEl.style.removeProperty('display');
+  }
+
+  function applyTabVisibility(tablist, config) {
+    const box = getTablistBox(tablist);
+    if (!box) return;
+    if (config.tabVisible === false) box.style.setProperty('display', 'none', 'important');
+    else box.style.removeProperty('display');
+  }
+
+  function applyTablistBox(tablist) {
+    const box = getTablistBox(tablist);
+    if (!box) return;
+    setStyle(box, {
+      height: 'auto', 'max-height': 'none', 'min-height': '0',
+      'box-shadow': cssVar('tabDividerLine', 'none'), 'box-sizing': 'border-box'
+    }, true);
+  }
+
+  function applyTabList(root) {
+    const tablist = getTablist(root);
+    if (!tablist) return;
+    setStyle(tablist, {
+      display: 'flex',
+      'align-items': 'center',
+      padding: `${cssVar('tabListPadTop', '0px')} ${cssVar('tabListPadX', '16px')} ${cssVar('tabListPadBottom', '0px')} ${cssVar('tabListPadX', '16px')}`,
+      gap: `${cssVar('tabGapY', '8px')} ${cssVar('tabGapX', '12px')}`,
+      'justify-content': cssVar('tabAlign', 'flex-start'),
+      'box-sizing': 'border-box',
+      width: '100%'
+    });
+    applyTablistBox(tablist);
+  }
+
+  function flagIs(root, varName, value) {
+    return getComputedStyle(root).getPropertyValue(`--${varName}${SFX}`).trim() === value;
+  }
+  function flagOn(root, varName) {
+    return getComputedStyle(root).getPropertyValue(`--${varName}${SFX}`).trim() !== '0';
+  }
+
+  function applyTabs(root) {
+    const fill = flagIs(root, 'tabFillMode', '1');
+    const hoverOn = flagOn(root, 'tabHoverToggle');
+    const iconOn = flagOn(root, 'tabIconToggle');
+    const underlineOn = flagIs(root, 'activeUnderlineToggle', '1');
+
+    getTabs(root).forEach(tab => {
+      const button = getTabButton(tab);
+      const active = isActiveTab(tab);
+
+      button.classList.add(`${MARK}-btn`);
+      button.dataset.active_q9X = active ? '1' : '0';
+      if (hoverOn) delete button.dataset.hoverOff_q9X;
+      else button.dataset.hoverOff_q9X = '1';
+
+      setStyle(tab, {
+        flex: fill ? '1 1 0px' : '0 0 auto',
+        'min-width': cssVar('tabMinWidth', '0px'),
+        'max-width': 'none',
+        'box-sizing': 'border-box'
+      });
+
+      /* Notion 이 활성 [role="menuitem"] 에 기본으로 그려주는 밑줄을
+         항상 먼저 제거한 뒤, 우리 토글이 켜져 있을 때만 같은 자리에
+         우리 값으로 다시 그림. (v1.4까지는 이 초기화가 없어서 Notion
+         기본 밑줄이 그대로 남아있었음) */
+      tab.style.setProperty('border-bottom', 'none', 'important');
+      if (underlineOn) {
+        tab.style.setProperty(
+          'border-bottom',
+          `${cssVar('activeUnderlineSize', '2px')} solid ${active ? cssVar('activeUnderlineColor', 'rgba(55,53,47,1)') : 'transparent'}`,
+          'important'
+        );
+      }
+
+      setStyle(button, {
+        display: 'inline-flex',
+        'align-items': 'center',
+        gap: '6px',
+        padding: `${cssVar('tabPadY', '6px')} ${cssVar('tabPadX', '10px')}`,
+        background: active ? cssVar('activeTabBg', 'rgba(55,53,47,0.06)') : cssVar('tabBg', 'transparent'),
+        color: active ? cssVar('activeTabTextColor', 'inherit') : cssVar('tabTextColor', 'inherit'),
+        'font-size': active ? cssVar('activeTabFontSize', '14px') : cssVar('tabFontSize', '14px'),
+        'font-weight': active ? cssVar('activeTabFontWeight', '500') : cssVar('tabFontWeight', '400'),
+        'line-height': '1.45',
+        'white-space': 'nowrap',
+        'box-sizing': 'border-box',
+        cursor: 'pointer',
+        opacity: '1'
+      });
+      button.style.setProperty('border-radius', cssVar('tabRadius', '999px'), 'important');
+
+      button.querySelectorAll('svg').forEach(svg => {
+        svg.style.setProperty('fill', 'currentColor', 'important');
+        svg.style.setProperty('flex-shrink', '0');
+        svg.style.setProperty('display', iconOn ? '' : 'none');
+        if (iconOn) {
+          svg.style.setProperty('width', cssVar('tabIconSize', '14px'));
+          svg.style.setProperty('height', cssVar('tabIconSize', '14px'));
+        }
+      });
+    });
+  }
+
+  /* ================================================================
+     5. 오버플로우(넘침 처리) 모드
+     ================================================================ */
+
+  function resetOverflow(state) {
+    const tablist = state.tablist;
+    removeStyle(tablist, ['overflow', 'overflow-x', 'overflow-y', 'flex-wrap', 'height', 'max-height']);
+    getTabs(state.root).forEach(tab => tab.style.removeProperty('display'));
+    if (state.moreButton) state.moreButton.remove();
+    if (state.moreMenu) state.moreMenu.remove();
+    if (state.selectButton) state.selectButton.remove();
+    if (state.selectMenu) state.selectMenu.remove();
+    state.moreButton = null; state.moreMenu = null; state.selectButton = null; state.selectMenu = null;
+    tablist.style.removeProperty('display');
+  }
+
+  function applyPopupButtonStyle(el) {
+    setStyle(el, {
+      background: cssVar('overflowBtnBg', '#fff'),
+      border: cssVar('overflowBtnBorder', '1px solid rgba(55,53,47,0.16)'),
+      color: cssVar('overflowTextColor', '#37352f'),
+      'font-size': cssVar('overflowFontSize', '14px'),
+      'box-sizing': 'border-box', cursor: 'pointer'
+    });
+    el.style.setProperty('border-radius', cssVar('overflowBtnRadius', '6px'), 'important');
+  }
+
+  function applyPopupMenuStyle(el) {
+    setStyle(el, {
+      background: cssVar('overflowMenuBg', '#fff'),
+      border: cssVar('overflowMenuBorder', '1px solid rgba(55,53,47,0.16)'),
+      'box-shadow': cssVar('overflowMenuShadow', 'none'),
+      color: cssVar('overflowTextColor', '#37352f'),
+      'font-size': cssVar('overflowFontSize', '14px'),
+      'box-sizing': 'border-box'
+    });
+    el.style.setProperty('border-radius', cssVar('overflowMenuRadius', '6px'), 'important');
+  }
+
+  function addPopupItem(menu, tab, active, onSelect) {
+    const label = tab.querySelector('span') ? tab.querySelector('span').textContent.trim() : tab.textContent.trim();
+    const item = document.createElement('div');
+    item.textContent = label;
+    setStyle(item, {
+      padding: '8px 12px', cursor: 'pointer', 'border-radius': '4px', 'white-space': 'nowrap',
+      overflow: 'hidden', 'text-overflow': 'ellipsis',
+      background: active ? cssVar('overflowActiveBg', 'rgba(35,131,226,0.08)') : 'transparent',
+      'font-weight': active ? '600' : 'inherit'
+    });
+    item.addEventListener('mouseenter', () => { if (!active) item.style.setProperty('background', cssVar('overflowHoverBg', 'rgba(55,53,47,0.06)')); });
+    item.addEventListener('mouseleave', () => { if (!active) item.style.setProperty('background', 'transparent'); });
+    item.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); onSelect(); });
+    menu.appendChild(item);
+  }
+
+  function clickTab(tab) {
+    getTabButton(tab).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  }
+
+  function applyScrollMode(state) {
+    setStyle(state.tablist, { 'overflow-x': 'auto', 'overflow-y': 'hidden', 'flex-wrap': 'nowrap' }, true);
+    bindWheel(state);
+  }
+  function applyWrapMode(state) {
+    setStyle(state.tablist, { 'overflow-x': 'visible', 'overflow-y': 'visible', 'flex-wrap': 'wrap' }, true);
+  }
+
+  function applyMoreMode(state) {
+    applyScrollMode(state);
+    const tabs = getTabs(state.root);
+    const available = state.tablist.getBoundingClientRect().width;
+    let used = 0; const hidden = [];
+    tabs.forEach(tab => {
+      const w = tab.getBoundingClientRect().width;
+      if (used + w <= available * 0.84) used += w; else hidden.push(tab);
+    });
+    if (!hidden.length) return;
+    hidden.forEach(tab => tab.style.setProperty('display', 'none'));
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = `${state.config.moreLabel} \u25BE`;
+    setStyle(button, { 'margin-left': '4px', padding: '6px 12px', 'white-space': 'nowrap', 'flex-shrink': '0' });
+    applyPopupButtonStyle(button);
+
+    const menu = document.createElement('div');
+    setStyle(menu, { position: 'absolute', display: 'none', 'z-index': '1000', padding: '6px', 'max-height': cssVar('overflowMenuMaxHeight', '280px'), 'overflow-y': 'auto' });
+    applyPopupMenuStyle(menu);
+
+    hidden.forEach(tab => addPopupItem(menu, tab, false, () => { clickTab(tab); menu.style.display = 'none'; }));
+
+    button.addEventListener('pointerdown', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (menu.style.display === 'none') {
+        const btnRect = button.getBoundingClientRect();
+        const rootRect = state.root.getBoundingClientRect();
+        setStyle(menu, {
+          top: `${btnRect.bottom - rootRect.top + 4}px`,
+          left: `${state.tablist.getBoundingClientRect().left - rootRect.left}px`,
+          width: `${state.tablist.getBoundingClientRect().width}px`
+        });
+        menu.style.display = 'block';
+      } else menu.style.display = 'none';
+    });
+
+    state.tablist.appendChild(button);
+    state.root.appendChild(menu);
+    state.moreButton = button; state.moreMenu = menu;
+  }
+
+  function applySelectMode(state) {
+    setStyle(state.tablist, { display: 'none' }, true);
+    const tabs = getTabs(state.root);
+    const activeTab = tabs.find(isActiveTab) || tabs[0];
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    setStyle(button, {
+      width: '100%', height: '35px', padding: '0 12px', display: 'flex',
+      'align-items': 'center', 'justify-content': 'space-between', gap: '8px',
+      margin: `${cssVar('tabListPadTop', '0px')} ${cssVar('tabListPadX', '16px')} ${cssVar('tabListPadBottom', '0px')} ${cssVar('tabListPadX', '16px')}`
+    });
+    applyPopupButtonStyle(button);
+
+    const label = document.createElement('span');
+    label.textContent = activeTab ? (activeTab.querySelector('span') ? activeTab.querySelector('span').textContent.trim() : activeTab.textContent.trim()) : '';
+    setStyle(label, { overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' });
+
+    const icon = document.createElement('span');
+    icon.textContent = '\u25BE';
+    button.append(label, icon);
+
+    const menu = document.createElement('div');
+    setStyle(menu, { position: 'absolute', display: 'none', 'z-index': '1000', padding: '6px', 'max-height': cssVar('overflowMenuMaxHeight', '280px'), 'overflow-y': 'auto' });
+    applyPopupMenuStyle(menu);
+
+    tabs.forEach(tab => addPopupItem(menu, tab, tab === activeTab, () => { clickTab(tab); label.textContent = tab.querySelector('span') ? tab.querySelector('span').textContent.trim() : tab.textContent.trim(); menu.style.display = 'none'; }));
+
+    button.addEventListener('pointerdown', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (menu.style.display === 'none') {
+        const btnRect = button.getBoundingClientRect();
+        const rootRect = state.root.getBoundingClientRect();
+        setStyle(menu, { top: `${btnRect.bottom - rootRect.top + 4}px`, left: `${btnRect.left - rootRect.left}px`, width: `${btnRect.width}px` });
+        menu.style.display = 'block';
+      } else menu.style.display = 'none';
+    });
+
+    state.tablist.parentElement.insertBefore(button, state.tablist);
+    state.root.appendChild(menu);
+    state.selectButton = button; state.selectMenu = menu;
+  }
+
+  function wheelAllowed(state) { return state.config.wheelScroll !== false; }
+  function bindWheel(state) {
+    if (state.wheelBound) return;
+    state.tablist.addEventListener('wheel', e => {
+      if (!wheelAllowed(state)) return;
+      if (!['scroll', 'more-dropdown'].includes(state.mode)) return;
+      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (!delta) return;
+      e.preventDefault();
+      state.tablist.scrollLeft += delta * (state.config.wheelSpeed || 1);
+    }, { passive: false });
+    state.wheelBound = true;
+  }
+
+  /* ================================================================
+     6. 전체 적용 + 감시
+     ================================================================ */
+
+  function applyAll(state) {
+    const tablist = getTablist(state.root);
+    if (!tablist) return;
+    state.tablist = tablist;
+    state.config = resolveConfig(state.root);
+
+    applyWrap(state.root);
+    applyTitle(state.root, state.config);
+    applyTabList(state.root);
+    applyTabVisibility(tablist, state.config);
+    applyTabs(state.root);
+
+    resetOverflow(state);
+    state.mode = pickMode(state.root, state.config);
+    if (state.mode === 'wrap') applyWrapMode(state);
+    else if (state.mode === 'more-dropdown') applyMoreMode(state);
+    else if (state.mode === 'select') applySelectMode(state);
+    else applyScrollMode(state);
+
+    applyTablistBox(tablist);
+    applyTabVisibility(tablist, state.config);
+  }
+
+  function scheduleApply(state) {
+    if (state.frame) cancelAnimationFrame(state.frame);
+    state.frame = requestAnimationFrame(() => { state.frame = 0; applyAll(state); });
+  }
+
+  function initRoot(root) {
+    if (initedRoots.has(root)) return;
+    const tablist = getTablist(root);
+    if (!tablist) return;
+
+    const state = { root, tablist, wheelBound: false, moreButton: null, moreMenu: null, selectButton: null, selectMenu: null, frame: 0 };
+    initedRoots.add(root);
+    allStates.push(state);
+
+    ensureHoverStyle();
+    applyAll(state);
+
+    new ResizeObserver(() => scheduleApply(state)).observe(root);
+
+    new MutationObserver(records => {
+      const relevant = records.some(r => {
+        if (r.type === 'attributes' && (r.attributeName === 'tabindex' || r.attributeName === 'style')) return true;
+        if (r.type === 'childList') return true;
+        return false;
+      });
+      if (relevant) scheduleApply(state);
+    }).observe(tablist, { subtree: true, childList: true, attributes: true, attributeFilter: ['tabindex', 'style'] });
+
+    document.addEventListener('pointerdown', e => {
+      const menus = [state.moreMenu, state.selectMenu].filter(Boolean);
+      const buttons = [state.moreButton, state.selectButton].filter(Boolean);
+      const onButton = buttons.some(b => b === e.target || b.contains(e.target));
+      menus.forEach(menu => {
+        if (menu.style.display !== 'none' && !menu.contains(e.target) && !onButton) menu.style.display = 'none';
+      });
+    });
+  }
+
+  function scan() { findRoots().forEach(initRoot); }
+
+  function boot() {
+    ensureHoverStyle();
+    scan();
+    new MutationObserver(() => scan()).observe(document.body, { childList: true, subtree: true });
+
+    let resizeFrame = 0;
+    window.addEventListener('resize', () => {
+      if (resizeFrame) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; allStates.forEach(scheduleApply); });
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+
+  window.efc_findGalleryTitle_q9X = getLabel;
+  window.efc_findGalleryBlockId_q9X = getBlockId;
+  /* 대시보드에서 tabDbSetting_q9X 를 실시간으로 바꾼 뒤 즉시 반영을
+     요청할 때 사용하는 재적용 훅 */
+  window.efc_reapplyAllTabs_q9X = () => allStates.forEach(scheduleApply);
+})();
+
+
+</script>
+

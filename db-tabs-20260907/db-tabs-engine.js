@@ -1,0 +1,1049 @@
+/*
+  ==================================================================
+  db-tabs-engine.js — Notion 데이터베이스 탭 커스텀 엔진 (v1.5)
+  ------------------------------------------------------------------
+  같이 쓰는 파일: db-tabs-option (값 설정), db-tabs-dashboard (제어판)
+  변수 접미사: _q9X — db-tabs-option 의 CSS 변수/설정 객체와 반드시 동일해야 함
+
+  이 파일은 GitHub에 고정 호스팅해서 Notion/Oopy 사이트에 <script>로
+  불러오는 "로직" 전용 파일입니다. 실제 디자인 값(색상, 크기, 여백 등)은
+  이 파일에 절대 하드코딩하지 않고, 전부 db-tabs-option 쪽 CSS 변수와
+  window.tabDbSetting_q9X 객체에서 읽어옵니다. 즉 이 파일은 그대로 두고
+  db-tabs-option 값만 바꿔서 디자인을 조정하는 구조입니다.
+
+  대상 구조 (콘솔 테스트로 확인된 실제 Notion 렌더링 구조)
+  - 데이터베이스 하나 = <div class="notion-collection_view-block" data-block-id="...">
+    이 블록은 내부에 같은 data-block-id 를 가진 블록을 한 번 더 중첩해서
+    포함하지만(콘텐츠 렌더링용), 탭 목록([role="tablist"])은 바깥쪽에만
+    존재하므로 [role="tablist"] 기준으로 거슬러 올라가면 자동으로 중복이
+    걸러집니다.
+  - 탭 목록: [role="tablist"] 바로 아래 [role="menuitem"] 들이 각 탭이고,
+    그 안의 [role="button"]이 실제 눈에 보이는 탭 버튼입니다.
+  - 활성 탭 표시: aria-selected 속성이 없고, 대신 tabindex="0"(활성) /
+    tabindex="-1"(비활성)과 내부 [role="button"]의 opacity 스타일로
+    구분됩니다.
+  - 데이터베이스 제목: div[data-root="true"][placeholder="제목없음"] 요소.
+    Notion에서 제목을 비노출 처리하면 이 요소 자체가 DOM에서 사라집니다.
+    (즉 제목 비노출 데이터베이스는 라벨로 예외 지정이 불가능하며 blockId
+    를 사용해야 합니다)
+  - 활성 탭 하단 밑줄: Notion이 활성 [role="menuitem"]에 기본 2px 밑줄을
+    자체적으로 그려주고 있어서, 이 엔진은 그 네이티브 밑줄을 항상 먼저
+    제거한 뒤 우리 설정값(켜져 있을 때만) 으로 다시 그립니다.
+
+  DOM 탐색은 전부 클래스명이 아니라 role, data-block-id, data-root,
+  placeholder 같은 안정적인 속성 기반으로 이루어지므로, Notion이 자체
+  CSS 클래스명(css-xxxxx)을 바꿔도 이 엔진은 영향받지 않습니다.
+
+  문제가 생겼을 때
+  - 탭 디자인이 하나도 안 바뀐다: db-tabs-option 이 이 파일보다 먼저
+    또는 함께 삽입되어 있는지, 변수 접미사(_q9X)가 서로 일치하는지 확인.
+  - 특정 데이터베이스만 설정이 안 먹는다: 그 데이터베이스의 제목 노출
+    여부와 db-tabs-option의 exceptions에 적은 label/blockId가 실제
+    값과 정확히 일치하는지 확인 (db-tabs-howto.md 참고).
+  ==================================================================
+*/
+
+!function efc_launchTabDashboard_d3q() {
+
+  const popupWindow = window.open('', 'TabDashboard_d3q', 'width=720,height=1000,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!popupWindow) { alert('팝업 창 차단을 해제해 주십시오.'); return; }
+
+  const scriptContent = `
+    const targetHtml = window.opener.document.documentElement;
+    const DYNAMIC_STYLE_ID_d3q = 'efc_dynamic_dashboard_style_d3q';
+    const STORAGE_LIST_KEY_d3q = 'efc_tab_dashboard_saves_d3q';
+    const COLOR_REGEX_d3q = /^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})|rgba?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*(,\\s*(0|1|0?\\.\\d+)\\s*)?\\)|transparent)$/;
+    const WEIGHT_LIST_d3q = [100,200,300,400,500,600,700,800,900];
+
+    const VIRTUAL_KEYS_d3q = [
+      '--wrapBorderToggle_q9X','--wrapBorderSize_q9X','--wrapBorderColor_q9X',
+      '--tabHoverSpeedMs_q9X','--tabHoverEasing_q9X',
+      '--tabListPadSimple_q9X','--tabListPadAdvToggle_q9X',
+      '--wrapShadowToggle_q9X','--wrapShadowX_q9X','--wrapShadowY_q9X','--wrapShadowBlur_q9X','--wrapShadowSpread_q9X','--wrapShadowColor_q9X',
+      '--overflowMenuShadowToggle_q9X','--overflowMenuShadowX_q9X','--overflowMenuShadowY_q9X','--overflowMenuShadowBlur_q9X','--overflowMenuShadowSpread_q9X','--overflowMenuShadowColor_q9X',
+      '--overflowBtnBorderToggle_q9X','--overflowBtnBorderSize_q9X','--overflowBtnBorderColor_q9X',
+      '--overflowMenuBorderToggle_q9X','--overflowMenuBorderSize_q9X','--overflowMenuBorderColor_q9X'
+    ];
+    function isVirtualOrSkip_d3q(key) { return VIRTUAL_KEYS_d3q.includes(key); }
+
+    /* ================================================================
+       1. 설정 항목 정의
+       ================================================================ */
+    const qaConfig = [
+      {
+        group: "1. 탭 전체 래퍼",
+        items: [
+          { var: "--wrapBg_q9X", label: "배경 색상", type: "color-alpha", defHex: "#ffffff", defAlpha: "100", def: "rgba(255,255,255,1)" },
+          { var: "--wrapBorderToggle_q9X", label: "테두리 표시", type: "toggle", def: false, tip: "켜면 두께/색상 설정이 나타납니다", reveal: ["--wrapBorderSize_q9X", "--wrapBorderColor_q9X"] },
+          { var: "--wrapBorderSize_q9X", label: "테두리 두께", type: "range", min: 0, max: 10, unit: "px", def: "1" },
+          { var: "--wrapBorderColor_q9X", label: "테두리 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "10", def: "rgba(55,53,47,0.1)" },
+          { var: "--wrapRadius_q9X", label: "모서리 둥글기", type: "range", min: 0, max: 60, unit: "px", def: "20" },
+          { var: "--wrapShadowToggle_q9X", label: "그림자 사용", type: "toggle", def: false, tip: "켜면 아래 세부 그림자 설정이 나타납니다", reveal: ["--wrapShadowX_q9X","--wrapShadowY_q9X","--wrapShadowBlur_q9X","--wrapShadowSpread_q9X","--wrapShadowColor_q9X"] },
+          { var: "--wrapShadowX_q9X", label: "그림자 가로 위치", type: "range", min: -20, max: 20, unit: "px", def: "0", rowGroup: "wsxy" },
+          { var: "--wrapShadowY_q9X", label: "그림자 세로 위치", type: "range", min: -20, max: 20, unit: "px", def: "2", rowGroup: "wsxy" },
+          { var: "--wrapShadowBlur_q9X", label: "흐림 정도", type: "range", min: 0, max: 40, unit: "px", def: "8", rowGroup: "wsbs" },
+          { var: "--wrapShadowSpread_q9X", label: "퍼짐 정도", type: "range", min: -10, max: 20, unit: "px", def: "0", rowGroup: "wsbs" },
+          { var: "--wrapShadowColor_q9X", label: "그림자 색상", type: "color-alpha", defHex: "#000000", defAlpha: "12", def: "rgba(0,0,0,0.12)" }
+        ]
+      },
+      {
+        group: "2. 탭 목록 배치",
+        items: [
+          { var: "--tabListPadSimple_q9X", label: "목록 상하 여백 (함께 조정)", type: "range", min: 0, max: 60, unit: "px", def: "0" },
+          { var: "--tabListPadAdvToggle_q9X", label: "상하 여백 상세 조정", type: "toggle", def: false, tip: "켜면 상단/하단을 따로 조정할 수 있습니다", reveal: ["--tabListPadTop_q9X","--tabListPadBottom_q9X"], hide: ["--tabListPadSimple_q9X"] },
+          { var: "--tabListPadTop_q9X", label: "상단 여백", type: "range", min: 0, max: 60, unit: "px", def: "0", rowGroup: "tlpadadv" },
+          { var: "--tabListPadBottom_q9X", label: "하단 여백", type: "range", min: 0, max: 60, unit: "px", def: "0", rowGroup: "tlpadadv" },
+          { var: "--tabListPadX_q9X", label: "목록 좌우 여백", type: "range", min: 0, max: 60, unit: "px", def: "16" },
+          { var: "--tabGapY_q9X", label: "탭 줄 세로 간격", type: "range", min: 0, max: 50, unit: "px", def: "8", rowGroup: "tgap" },
+          { var: "--tabGapX_q9X", label: "탭 사이 가로 간격", type: "range", min: 0, max: 50, unit: "px", def: "12", rowGroup: "tgap" },
+          { var: "--tabFillMode_q9X", label: "탭 너비 균등 채움", type: "toggle01", def: false },
+          { var: "--tabAlign_q9X", label: "정렬 방향", type: "select", options: [["flex-start","왼쪽"],["center","가운데"],["flex-end","오른쪽"],["space-between","양끝 정렬"]], def: "flex-start" },
+          { var: "--tabMinWidth_q9X", label: "탭 최소 너비", type: "range", min: 0, max: 200, unit: "px", def: "0" },
+          { var: "--tabDividerLine_q9X", label: "탭 박스 하단 구분선 (CSS box-shadow 원본값)", type: "text-raw", def: "none" }
+        ]
+      },
+      {
+        group: "3. 기본(비활성) 탭 스타일",
+        items: [
+          { var: "--tabPadY_q9X", label: "탭 상하 여백", type: "range", min: 0, max: 40, unit: "px", def: "6", rowGroup: "tpad" },
+          { var: "--tabPadX_q9X", label: "탭 좌우 여백", type: "range", min: 0, max: 40, unit: "px", def: "10", rowGroup: "tpad" },
+          { var: "--tabRadius_q9X", label: "탭 모서리 둥글기", type: "range", min: 0, max: 40, unit: "px", def: "999" },
+          { var: "--tabBg_q9X", label: "배경 색상", type: "color-alpha", defHex: "#ffffff", defAlpha: "0", def: "rgba(255,255,255,0)" },
+          { var: "--tabTextColor_q9X", label: "글자 색상", type: "color-alpha", defHex: "#787774", defAlpha: "70", def: "rgba(55,53,47,0.7)" },
+          { var: "--tabFontSize_q9X", label: "글자 크기", type: "range", min: 10, max: 30, unit: "px", def: "14", rowGroup: "fontA" },
+          { var: "--tabFontWeight_q9X", label: "글자 굵기", type: "weight-slider", min: 100, max: 900, step: 100, def: "400", rowGroup: "fontA" },
+          { var: "--tabIconToggle_q9X", label: "아이콘 표시", type: "toggle01", def: true, reveal: ["--tabIconSize_q9X"] },
+          { var: "--tabIconSize_q9X", label: "아이콘 크기", type: "range", min: 8, max: 40, unit: "px", def: "14" }
+        ]
+      },
+      {
+        group: "4. 활성(선택된) 탭 스타일",
+        items: [
+          { var: "--activeTabBg_q9X", label: "배경 색상", type: "color-alpha", defHex: "#f1f1ef", defAlpha: "100", def: "rgba(55,53,47,0.06)" },
+          { var: "--activeTabTextColor_q9X", label: "글자 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55,53,47,1)" },
+          { var: "--activeTabFontSize_q9X", label: "글자 크기", type: "range", min: 10, max: 30, unit: "px", def: "14", rowGroup: "fontB" },
+          { var: "--activeTabFontWeight_q9X", label: "글자 굵기", type: "weight-slider", min: 100, max: 900, step: 100, def: "500", rowGroup: "fontB" },
+          { var: "--activeUnderlineToggle_q9X", label: "하단 언더라인 표시", type: "toggle01", def: false, tip: "Notion 기본 밑줄을 대체합니다. 켜면 두께/색상 설정이 나타납니다", reveal: ["--activeUnderlineSize_q9X","--activeUnderlineColor_q9X"] },
+          { var: "--activeUnderlineSize_q9X", label: "언더라인 두께", type: "range", min: 1, max: 10, unit: "px", def: "2" },
+          { var: "--activeUnderlineColor_q9X", label: "언더라인 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55,53,47,1)" }
+        ]
+      },
+      {
+        group: "5. 탭 호버(마우스 오버) 효과",
+        items: [
+          { var: "--tabHoverToggle_q9X", label: "호버 효과 사용", type: "toggle01", def: true, tip: "끄면 아래 호버 설정이 전부 무시됩니다", reveal: ["--tabHoverBg_q9X", "--tabHoverTextColor_q9X", "--tabHoverLift_q9X", "--tabHoverSpeedMs_q9X", "--tabHoverEasing_q9X"] },
+          { var: "--tabHoverBg_q9X", label: "호버 배경 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "6", def: "rgba(55,53,47,0.06)" },
+          { var: "--tabHoverTextColor_q9X", label: "호버 글자 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55,53,47,1)" },
+          { var: "--tabHoverLift_q9X", label: "호버 시 위로 뜨는 정도", type: "range", min: 0, max: 10, unit: "px", def: "0" },
+          { var: "--tabHoverSpeedMs_q9X", label: "호버 전환 속도", type: "range", min: 0, max: 1000, step: 10, unit: "ms", def: "160", rowGroup: "hoverSpeed" },
+          { var: "--tabHoverEasing_q9X", label: "호버 전환 방식", type: "select", options: [["ease","ease"],["linear","linear"],["ease-in","ease-in"],["ease-out","ease-out"],["ease-in-out","ease-in-out"]], def: "ease", rowGroup: "hoverSpeed" }
+        ]
+      },
+      {
+        group: "6. 오버플로우(더보기/드롭다운) 생김새",
+        items: [
+          { var: "--overflowBtnBg_q9X", label: "버튼 배경 색상", type: "color-alpha", defHex: "#ffffff", defAlpha: "100", def: "rgba(255,255,255,1)" },
+          { var: "--overflowBtnBorderToggle_q9X", label: "버튼 테두리 표시", type: "toggle", def: true, reveal: ["--overflowBtnBorderSize_q9X","--overflowBtnBorderColor_q9X"] },
+          { var: "--overflowBtnBorderSize_q9X", label: "버튼 테두리 두께", type: "range", min: 0, max: 10, unit: "px", def: "1", rowGroup: "obtb" },
+          { var: "--overflowBtnBorderColor_q9X", label: "버튼 테두리 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "16", def: "rgba(55,53,47,0.16)" },
+          { var: "--overflowBtnRadius_q9X", label: "버튼 모서리 둥글기", type: "range", min: 0, max: 30, unit: "px", def: "6" },
+          { var: "--overflowMenuBg_q9X", label: "목록 배경 색상", type: "color-alpha", defHex: "#ffffff", defAlpha: "100", def: "rgba(255,255,255,1)" },
+          { var: "--overflowMenuBorderToggle_q9X", label: "목록 테두리 표시", type: "toggle", def: true, reveal: ["--overflowMenuBorderSize_q9X","--overflowMenuBorderColor_q9X"] },
+          { var: "--overflowMenuBorderSize_q9X", label: "목록 테두리 두께", type: "range", min: 0, max: 10, unit: "px", def: "1" },
+          { var: "--overflowMenuBorderColor_q9X", label: "목록 테두리 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "16", def: "rgba(55,53,47,0.16)" },
+          { var: "--overflowMenuRadius_q9X", label: "목록 모서리 둥글기", type: "range", min: 0, max: 30, unit: "px", def: "6" },
+          { var: "--overflowMenuShadowToggle_q9X", label: "목록 그림자 사용", type: "toggle", def: true, reveal: ["--overflowMenuShadowX_q9X","--overflowMenuShadowY_q9X","--overflowMenuShadowBlur_q9X","--overflowMenuShadowSpread_q9X","--overflowMenuShadowColor_q9X"] },
+          { var: "--overflowMenuShadowX_q9X", label: "그림자 가로 위치", type: "range", min: -20, max: 20, unit: "px", def: "0", rowGroup: "omsxy" },
+          { var: "--overflowMenuShadowY_q9X", label: "그림자 세로 위치", type: "range", min: -20, max: 20, unit: "px", def: "5", rowGroup: "omsxy" },
+          { var: "--overflowMenuShadowBlur_q9X", label: "흐림 정도", type: "range", min: 0, max: 40, unit: "px", def: "10", rowGroup: "omsbs" },
+          { var: "--overflowMenuShadowSpread_q9X", label: "퍼짐 정도", type: "range", min: -10, max: 20, unit: "px", def: "0", rowGroup: "omsbs" },
+          { var: "--overflowMenuShadowColor_q9X", label: "그림자 색상", type: "color-alpha", defHex: "#000000", defAlpha: "20", def: "rgba(0,0,0,0.2)" },
+          { var: "--overflowMenuMaxHeight_q9X", label: "목록 최대 높이", type: "range", min: 100, max: 600, unit: "px", def: "280" },
+          { var: "--overflowTextColor_q9X", label: "글자 색상", type: "color-alpha", defHex: "#37352f", defAlpha: "100", def: "rgba(55,53,47,1)" },
+          { var: "--overflowFontSize_q9X", label: "글자 크기", type: "range", min: 10, max: 20, unit: "px", def: "14" },
+          { var: "--overflowHoverBg_q9X", label: "목록 항목 호버 배경", type: "color-alpha", defHex: "#37352f", defAlpha: "6", def: "rgba(55,53,47,0.06)" },
+          { var: "--overflowActiveBg_q9X", label: "선택된 항목 강조 배경", type: "color-alpha", defHex: "#2383e2", defAlpha: "8", def: "rgba(35,131,226,0.08)" }
+        ]
+      }
+    ];
+
+    /* ================================================================
+       2. 데이터베이스 기본값 + 목록 초기화
+       ================================================================ */
+    window.efc_dbDefaults_d3q = { titleVisible: true, tabVisible: true, mode: 'scroll' };
+    window.efc_dbRows_d3q = [];
+
+    try {
+      const openerGalleries = window.opener.document.querySelectorAll('.notion-collection_view-block');
+      const seen_d3q = {};
+      openerGalleries.forEach(gal => {
+        const hasTabs = gal.querySelector('[role="tablist"]');
+        if (!hasTabs) return;
+        let labelTxt = '';
+        let blockIdTxt = gal.getAttribute('data-block-id') || '';
+        try { if (typeof window.opener.efc_findGalleryTitle_q9X === 'function') labelTxt = window.opener.efc_findGalleryTitle_q9X(gal); } catch(e) {}
+        const key = blockIdTxt || labelTxt;
+        if (!key || seen_d3q[key]) return;
+        seen_d3q[key] = true;
+        window.efc_dbRows_d3q.push({
+          idMode: labelTxt ? 'label' : 'blockId', label: labelTxt, blockId: blockIdTxt,
+          titleVisible: true, tabVisible: true, mode: 'scroll',
+          mobileMode: '', overThresholdMode: '', threshold: 0, wheelScroll: true, wheelSpeed: 1, moreLabel: '더보기',
+          advancedOpen: false
+        });
+      });
+    } catch(e) { console.log('데이터베이스 목록을 가져올 수 없습니다.', e); }
+
+    /* ================================================================
+       3. 화면 뼈대
+       ================================================================ */
+    let htmlBuilder = \`
+      <header class="headerWrap_d3q">
+        <div class="topBar_d3q">
+          <div><h3 style="margin:0 0 4px 0; color:#10b981; font-size:18px; font-weight:800;">탭 통합 제어판</h3></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button id="efc_themeBtn_d3q" class="efc_themeBtn_d3q">🌙 다크</button>
+            <button id="efc_resetBtn_d3q" style="background:transparent; border:1px solid #444; color:#aaa; border-radius:6px; cursor:pointer; padding:6px 10px;">전체 복구</button>
+          </div>
+        </div>
+        <input type="text" id="efc_searchInput_d3q" placeholder="설정 검색 (예: 글자, 그림자, 여백, 아이콘, 언더라인)" class="efc_searchBox_d3q">
+        <div class="efc_storageBar_d3q">
+          <button id="efc_saveSlotBtn_d3q" class="efc_storageBtn_d3q">💾 임시저장(새 슬롯)</button>
+          <button id="efc_slotsToggleBtn_d3q" class="efc_storageBtn_d3q">📂 저장 슬롯 목록</button>
+          <button id="efc_importToggleBtn_d3q" class="efc_storageBtn_d3q">📥 가져오기</button>
+          <span style="display:inline-flex; align-items:center; gap:4px;">
+            <button id="efc_invalidateBtn_d3q" class="efc_storageBtn_d3q efc_storageBtnDanger_d3q">↺ 기본값 보기(무효화)</button>
+            <button id="efc_peekEyeBtn_d3q" class="efc_storageBtn_d3q" title="누르고 있는 동안만 원래 기본값을 미리봅니다">👁</button>
+          </span>
+        </div>
+        <div id="efc_saveStatus_d3q" class="efc_saveStatus_d3q"></div>
+        <div id="efc_slotsPanel_d3q" class="efc_panelBox_d3q" style="display:none;">
+          <div id="efc_slotsList_d3q" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+        <div id="efc_importPanel_d3q" class="efc_panelBox_d3q" style="display:none;">
+          <div style="font-size:11px; color:#888; margin-bottom:6px;">이전에 "최종 적용 코드 출력하기"로 뽑았던 코드를 그대로 붙여넣고 적용을 누르세요.</div>
+          <textarea id="efc_importTextarea_d3q" placeholder="여기에 이전 출력 코드를 붙여넣으세요"></textarea>
+          <button id="efc_importApplyBtn_d3q" class="efc_actionBtn_d3q" style="margin-top:8px;">이 코드로 값 채우기</button>
+        </div>
+      </header>
+      <main class="mainLayout_d3q" id="efc_scrollArea_d3q">\`;
+
+    window.efc_currentStyles_d3q = {};
+
+    function labelWithVar_d3q(itemObj) {
+      return itemObj.label + ' <span class="efc_varTag_d3q">' + itemObj.var + '</span>';
+    }
+
+    function buildColorAlpha_d3q(itemObj, rawVal) {
+      let out = '<div style="display:flex; gap:8px; align-items:center; width:100%;">';
+      out += '<input type="color" class="efc_colorPicker_d3q" data-var="' + itemObj.var + '" value="' + itemObj.defHex + '">';
+      out += '<input type="range" class="efc_alphaRange_d3q efc_inputRange_d3q" data-var="' + itemObj.var + '" min="0" max="100" value="' + itemObj.defAlpha + '" style="flex:1;">';
+      out += '<span class="efc_alphaVal_d3q" style="font-size:11px; color:#10b981; width:34px; text-align:right;">' + itemObj.defAlpha + '%</span>';
+      out += '<input type="text" class="efc_colorTxt_d3q" data-var="' + itemObj.var + '" value="' + rawVal + '" style="width:150px; font-family:monospace; font-size:11px;">';
+      out += '</div>';
+      return out;
+    }
+    function buildWeightSlider_d3q(itemObj, rawVal) {
+      let out = '<div style="display:flex; gap:8px; align-items:center;">';
+      out += '<input type="range" class="efc_inputRange_d3q efc_weightRange_d3q" data-var="' + itemObj.var + '" min="' + itemObj.min + '" max="' + itemObj.max + '" step="' + itemObj.step + '" value="' + rawVal + '" style="flex:1;">';
+      out += '<select class="efc_basicSel_d3q efc_weightSel_d3q" data-var="' + itemObj.var + '" style="width:90px;">';
+      WEIGHT_LIST_d3q.forEach(w => { const wv = String(w); out += '<option value="' + wv + '" ' + (wv === String(rawVal) ? 'selected' : '') + '>' + wv + '</option>'; });
+      out += '</select></div>';
+      return out;
+    }
+    function buildRange_d3q(itemObj, rawVal) {
+      let numVal = parseFloat(rawVal); if (isNaN(numVal)) numVal = 0;
+      let out = '<div style="display:flex; gap:10px; align-items:center;">';
+      out += '<input type="range" class="efc_inputRange_d3q efc_valRange_d3q" data-var="' + itemObj.var + '" data-unit="' + (itemObj.unit||'') + '" min="' + itemObj.min + '" max="' + itemObj.max + '" step="' + (itemObj.step||1) + '" value="' + numVal + '">';
+      out += '<input type="number" class="efc_inputNum_d3q" data-var="' + itemObj.var + '" data-unit="' + (itemObj.unit||'') + '" step="' + (itemObj.step||1) + '" value="' + numVal + '">';
+      out += '</div>';
+      return out;
+    }
+    function buildSelect_d3q(itemObj, rawVal) {
+      let out = '<select class="efc_basicSel_d3q" data-var="' + itemObj.var + '">';
+      itemObj.options.forEach(([val, txt]) => { out += '<option value="' + val + '" ' + (val === rawVal ? 'selected' : '') + '>' + txt + '</option>'; });
+      out += '</select>';
+      return out;
+    }
+    function buildTextRaw_d3q(itemObj, rawVal) {
+      return '<input type="text" class="efc_rawTxt_d3q" data-var="' + itemObj.var + '" value="' + rawVal + '" style="width:100%; font-family:monospace; font-size:11px;">';
+    }
+    function buildItemInner_d3q(itemObj, rawVal) {
+      if (itemObj.type === 'color-alpha') return buildColorAlpha_d3q(itemObj, rawVal);
+      if (itemObj.type === 'weight-slider') return buildWeightSlider_d3q(itemObj, rawVal);
+      if (itemObj.type === 'range') return buildRange_d3q(itemObj, rawVal);
+      if (itemObj.type === 'select') return buildSelect_d3q(itemObj, rawVal);
+      if (itemObj.type === 'text-raw') return buildTextRaw_d3q(itemObj, rawVal);
+      return '';
+    }
+
+    function renderFullItem_d3q(itemObj, rootStyles) {
+      let rawVal = itemObj.def;
+      const computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+      if (computedVal) rawVal = (itemObj.type === 'range') ? parseFloat(computedVal).toString() : computedVal;
+      if (itemObj.type === 'weight-slider') {
+        const numeric = parseInt(computedVal || itemObj.def, 10);
+        rawVal = isNaN(numeric) ? itemObj.def : String(numeric);
+      }
+      window.efc_currentStyles_d3q[itemObj.var] = rawVal + (itemObj.unit && itemObj.type === 'range' ? itemObj.unit : '');
+
+      let html = '<div class="efc_itemBox_d3q" data-label="' + itemObj.label.toLowerCase() + '">';
+      html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">';
+      html += '<div style="width:100%;"><label style="color:#eee; font-weight:600; font-size:13px;">' + labelWithVar_d3q(itemObj) + '</label>';
+      html += '<div style="font-size:11px; color:#888;">' + (itemObj.tip || '') + '</div></div>';
+      html += '<button class="efc_resetOneBtn_d3q" data-var="' + itemObj.var + '" data-def="' + itemObj.def + '" data-defhex="' + (itemObj.defHex||'') + '" data-defalpha="' + (itemObj.defAlpha||'') + '">↺</button>';
+      html += '</div>';
+      html += buildItemInner_d3q(itemObj, rawVal);
+      html += '</div>';
+      return html;
+    }
+
+    function renderToggleItem_d3q(itemObj, rootStyles, isToggle01) {
+      let rawVal = itemObj.def;
+      const computedVal = rootStyles.getPropertyValue(itemObj.var).trim();
+      if (computedVal !== '') rawVal = isToggle01 ? (computedVal === '1') : (computedVal === 'true');
+      window.efc_currentStyles_d3q[itemObj.var] = isToggle01 ? (rawVal ? '1' : '0') : rawVal;
+
+      const defBool = itemObj.def === true || itemObj.def === '1' || itemObj.def === 1;
+      const revealAttr = itemObj.reveal ? ' data-reveal="' + itemObj.reveal.join(',') + '"' : '';
+      const hideAttr = itemObj.hide ? ' data-hide="' + itemObj.hide.join(',') + '"' : '';
+      const toggleTypeAttr = isToggle01 ? ' data-toggle01="1"' : '';
+      let html = '<div class="efc_itemBox_d3q" data-label="' + itemObj.label.toLowerCase() + '" style="border-bottom:none; padding-bottom:0;">';
+      html += '<div style="display:flex; gap:10px; align-items:center; background:var(--efc-summary-bg); padding:10px; border-radius:6px;">';
+      html += '<label class="efc_toggleWrap_d3q"><input type="checkbox" class="efc_toggleInput_d3q" data-var="' + itemObj.var + '" data-def="' + defBool + '"' + revealAttr + hideAttr + toggleTypeAttr + ' ' + (rawVal ? 'checked' : '') + '><span class="efc_toggleSlider_d3q"></span></label>';
+      html += '<div style="display:flex; flex-direction:column; gap:2px;"><span style="color:#10b981; font-weight:700;">' + labelWithVar_d3q(itemObj) + '</span><span style="font-size:11px; color:#888;">' + (itemObj.tip || '') + '</span></div>';
+      html += '</div></div>';
+      return html;
+    }
+
+    qaConfig.forEach(groupObj => {
+      htmlBuilder += '<section class="panelSection_d3q efc_secBox_d3q" data-groupname="' + groupObj.group.toLowerCase() + '">' +
+        '<details open><summary class="efc_summary_d3q">' + groupObj.group + '</summary>' +
+        '<div style="padding:12px; display:flex; flex-direction:column; gap:14px;">';
+
+      const rootStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
+      const doneIdx = {};
+      groupObj.items.forEach((itemObj, i) => {
+        if (doneIdx[i]) return;
+        if (itemObj.type === 'toggle') { htmlBuilder += renderToggleItem_d3q(itemObj, rootStyles, false); return; }
+        if (itemObj.type === 'toggle01') { htmlBuilder += renderToggleItem_d3q(itemObj, rootStyles, true); return; }
+        if (itemObj.rowGroup) {
+          const partnerIdx = groupObj.items.findIndex((o, j) => j > i && o.rowGroup === itemObj.rowGroup);
+          if (partnerIdx > -1) {
+            doneIdx[partnerIdx] = true;
+            htmlBuilder += '<div style="display:flex; gap:10px; align-items:flex-start;"><div style="flex:1;">' + renderFullItem_d3q(itemObj, rootStyles) + '</div><div style="flex:1;">' + renderFullItem_d3q(groupObj.items[partnerIdx], rootStyles) + '</div></div>';
+            return;
+          }
+        }
+        htmlBuilder += renderFullItem_d3q(itemObj, rootStyles);
+      });
+
+      htmlBuilder += '</div></details></section>';
+    });
+
+    /* ================================================================
+       4. 데이터베이스별 설정 섹션
+       ================================================================ */
+    htmlBuilder += \`
+      <section class="panelSection_d3q efc_secBox_d3q" data-groupname="데이터베이스 설정">
+        <details open>
+          <summary class="efc_summary_d3q" style="color:#f43f5e;">7. 데이터베이스별 제목·탭·배열 설정 <span class="efc_varTag_d3q">tabDbSetting_q9X</span></summary>
+          <div style="padding:12px; display:flex; flex-direction:column; gap:14px;">
+            <div style="font-size:11px; color:#888;">기본값을 먼저 정하고, 특정 데이터베이스만 다르게 하려면 그 행의 값을 바꾸세요. 값을 바꾸면 실제 사이트 화면에 바로 반영됩니다.</div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:var(--efc-summary-bg); padding:10px; border-radius:6px;">
+              <label style="color:#eee; font-weight:700; font-size:12px; width:100%;">공통 기본값</label>
+              <select id="efc_defModeSel_d3q" class="efc_basicSel_d3q" style="flex:1; min-width:90px;">
+                <option value="scroll">스크롤</option><option value="wrap" selected>줄바꿈</option><option value="more-dropdown">더보기</option><option value="select">선택박스</option>
+              </select>
+              <select id="efc_defTitleSel_d3q" class="efc_basicSel_d3q" style="flex:1; min-width:90px;">
+                <option value="show" selected>제목표시</option><option value="hide">제목숨김</option>
+              </select>
+              <select id="efc_defTabSel_d3q" class="efc_basicSel_d3q" style="flex:1; min-width:90px;">
+                <option value="show" selected>탭줄표시</option><option value="hide">탭줄숨김</option>
+              </select>
+            </div>
+            <hr style="border:0; border-top:1px dashed #444; margin:4px 0;">
+            <div id="efc_dbRowsArea_d3q" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <button id="efc_addDbRowBtn_d3q" class="efc_actionBtn_d3q">+ 데이터베이스 설정 추가</button>
+          </div>
+        </details>
+      </section>
+    </main>\`;
+
+    htmlBuilder += \`
+      <section id="efc_exportArea_d3q" style="display:none; padding:16px 20px; border-top:1px solid var(--efc-panel-border); background:var(--efc-panel-bg);">
+        <div style="font-size:12px; color:#aaa; font-weight:bold; margin-bottom:8px;">최종 통합 코드 (CSS + JS)</div>
+        <textarea id="efc_exportTextarea_d3q" placeholder="코드를 복사하십시오"></textarea>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button id="efc_copyBtn_d3q" style="flex:1; padding:10px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-weight:800; cursor:pointer;">기본 복사</button>
+          <button id="efc_copyMinBtn_d3q" style="flex:1; padding:10px; background:#8b5cf6; color:#fff; border:none; border-radius:6px; font-weight:800; cursor:pointer;">압축(Minify) 복사</button>
+        </div>
+      </section>
+      <footer style="padding:16px 20px; border-top:1px solid var(--efc-panel-border); background:var(--efc-panel-bg); position:sticky; bottom:0;">
+        <button id="efc_exportTriggerBtn_d3q" style="width:100%; padding:12px; background:#eab308; color:#000; border:none; border-radius:8px; font-weight:800; cursor:pointer;">최종 적용 코드 출력하기</button>
+      </footer>\`;
+
+    document.getElementById('app').innerHTML = htmlBuilder;
+
+    /* ================================================================
+       5. 색상 변환 유틸
+       ================================================================ */
+    const hexToRgb_d3q = hex => {
+      let c = hex.replace('#','');
+      if (c.length === 3) c = c.split('').map(ch => ch+ch).join('');
+      return { r: parseInt(c.substring(0,2),16), g: parseInt(c.substring(2,4),16), b: parseInt(c.substring(4,6),16) };
+    };
+
+    /* ================================================================
+       6. 값 적용 (가상 항목 합성 포함)
+       ================================================================ */
+    const generateCssRules_d3q = () => {
+      let css = '<style id="' + DYNAMIC_STYLE_ID_d3q + '">\\n:root {\\n';
+      for (let key in window.efc_currentStyles_d3q) {
+        if (isVirtualOrSkip_d3q(key)) continue;
+        css += '  ' + key + ': ' + window.efc_currentStyles_d3q[key] + ' !important;\\n';
+      }
+      css += '}\\n</style>';
+      return css;
+    };
+
+    function recomposeVirtual_d3q() {
+      const cs = window.efc_currentStyles_d3q;
+
+      const borderOn = cs['--wrapBorderToggle_q9X'] === true || cs['--wrapBorderToggle_q9X'] === 'true';
+      cs['--wrapBorder_q9X'] = borderOn ? ((parseFloat(cs['--wrapBorderSize_q9X'])||0) + 'px solid ' + (cs['--wrapBorderColor_q9X'] || 'rgba(55,53,47,0)')) : '0px solid rgba(55,53,47,0)';
+
+      const ms = parseFloat(cs['--tabHoverSpeedMs_q9X']);
+      cs['--tabHoverSpeed_q9X'] = (isNaN(ms) ? 160 : ms) + 'ms ' + (cs['--tabHoverEasing_q9X'] || 'ease');
+
+      const wsOn = cs['--wrapShadowToggle_q9X'] === true || cs['--wrapShadowToggle_q9X'] === 'true';
+      cs['--wrapShadow_q9X'] = wsOn
+        ? ((parseFloat(cs['--wrapShadowX_q9X'])||0) + 'px ' + (parseFloat(cs['--wrapShadowY_q9X'])||0) + 'px ' + (parseFloat(cs['--wrapShadowBlur_q9X'])||0) + 'px ' + (parseFloat(cs['--wrapShadowSpread_q9X'])||0) + 'px ' + (cs['--wrapShadowColor_q9X'] || 'rgba(0,0,0,0.12)'))
+        : 'none';
+
+      const omsOn = cs['--overflowMenuShadowToggle_q9X'] === true || cs['--overflowMenuShadowToggle_q9X'] === 'true';
+      cs['--overflowMenuShadow_q9X'] = omsOn
+        ? ((parseFloat(cs['--overflowMenuShadowX_q9X'])||0) + 'px ' + (parseFloat(cs['--overflowMenuShadowY_q9X'])||0) + 'px ' + (parseFloat(cs['--overflowMenuShadowBlur_q9X'])||0) + 'px ' + (parseFloat(cs['--overflowMenuShadowSpread_q9X'])||0) + 'px ' + (cs['--overflowMenuShadowColor_q9X'] || 'rgba(0,0,0,0.2)'))
+        : 'none';
+
+      const obtOn = cs['--overflowBtnBorderToggle_q9X'] === true || cs['--overflowBtnBorderToggle_q9X'] === 'true';
+      cs['--overflowBtnBorder_q9X'] = obtOn ? ((parseFloat(cs['--overflowBtnBorderSize_q9X'])||0) + 'px solid ' + (cs['--overflowBtnBorderColor_q9X'] || 'rgba(55,53,47,0.16)')) : 'none';
+
+      const omtOn = cs['--overflowMenuBorderToggle_q9X'] === true || cs['--overflowMenuBorderToggle_q9X'] === 'true';
+      cs['--overflowMenuBorder_q9X'] = omtOn ? ((parseFloat(cs['--overflowMenuBorderSize_q9X'])||0) + 'px solid ' + (cs['--overflowMenuBorderColor_q9X'] || 'rgba(55,53,47,0.16)')) : 'none';
+    }
+
+    const applyChange_d3q = (varName, value) => {
+      window.efc_currentStyles_d3q[varName] = value;
+      recomposeVirtual_d3q();
+      let tag = window.opener.document.getElementById(DYNAMIC_STYLE_ID_d3q);
+      if (tag) tag.remove();
+      window.opener.document.head.insertAdjacentHTML('beforeend', generateCssRules_d3q());
+    };
+
+    /* ================================================================
+       7. 테마 / 검색 / reveal(+hide)
+       ================================================================ */
+    document.getElementById('efc_themeBtn_d3q').addEventListener('click', e => {
+      const isLight = document.body.classList.toggle('efc_lightMode_d3q');
+      e.target.innerText = isLight ? '☀️ 라이트' : '🌙 다크';
+    });
+
+    document.getElementById('efc_searchInput_d3q').addEventListener('input', e => {
+      const term = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('.efc_secBox_d3q').forEach(sec => {
+        const groupMatch = (sec.getAttribute('data-groupname')||'').includes(term);
+        let anyVisible = false;
+        sec.querySelectorAll('.efc_itemBox_d3q').forEach(item => {
+          const match = groupMatch || (item.getAttribute('data-label')||'').includes(term);
+          item.style.display = (term === '' || match) ? '' : 'none';
+          if (term === '' || match) anyVisible = true;
+        });
+        sec.style.display = (term === '' || anyVisible || groupMatch) ? '' : 'none';
+      });
+    });
+
+    function bindRevealToggles_d3q() {
+      document.querySelectorAll('.efc_toggleInput_d3q').forEach(toggle => {
+        const revealTargets = (toggle.getAttribute('data-reveal')||'').split(',').filter(Boolean);
+        const hideTargets = (toggle.getAttribute('data-hide')||'').split(',').filter(Boolean);
+        if (!revealTargets.length && !hideTargets.length) return;
+        const sync = () => {
+          revealTargets.forEach(t => {
+            const targetInput = document.querySelector('[data-var="' + t + '"]');
+            const box = targetInput ? targetInput.closest('.efc_itemBox_d3q') : null;
+            if (box) box.style.display = toggle.checked ? '' : 'none';
+          });
+          hideTargets.forEach(t => {
+            const targetInput = document.querySelector('[data-var="' + t + '"]');
+            const box = targetInput ? targetInput.closest('.efc_itemBox_d3q') : null;
+            if (box) box.style.display = toggle.checked ? 'none' : '';
+          });
+        };
+        toggle.addEventListener('change', sync);
+        sync();
+      });
+    }
+    bindRevealToggles_d3q();
+
+    /* ================================================================
+       8. 입력 이벤트 바인딩
+       ================================================================ */
+    document.querySelectorAll('.efc_colorPicker_d3q, .efc_alphaRange_d3q, .efc_colorTxt_d3q').forEach(inputEl => {
+      inputEl.addEventListener('input', ev => {
+        const box = ev.target.closest('.efc_itemBox_d3q');
+        const varName = box.querySelector('.efc_colorPicker_d3q').getAttribute('data-var');
+        if (ev.target.classList.contains('efc_colorTxt_d3q')) {
+          const typed = ev.target.value.trim();
+          if (!COLOR_REGEX_d3q.test(typed)) { ev.target.classList.add('efc_inputError_d3q'); return; }
+          ev.target.classList.remove('efc_inputError_d3q');
+          applyChange_d3q(varName, typed);
+        } else {
+          const hexPicker = box.querySelector('.efc_colorPicker_d3q');
+          const alphaSlider = box.querySelector('.efc_alphaRange_d3q');
+          box.querySelector('.efc_alphaVal_d3q').innerText = alphaSlider.value + '%';
+          const rgb = hexToRgb_d3q(hexPicker.value);
+          const finalStr = parseInt(alphaSlider.value) === 0 ? 'transparent' : 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + (parseInt(alphaSlider.value)/100).toFixed(2) + ')';
+          const txtEl = box.querySelector('.efc_colorTxt_d3q');
+          txtEl.value = finalStr;
+          txtEl.classList.remove('efc_inputError_d3q');
+          applyChange_d3q(varName, finalStr);
+        }
+      });
+    });
+
+    document.querySelectorAll('.efc_valRange_d3q, .efc_inputNum_d3q').forEach(inputEl => {
+      inputEl.addEventListener('input', ev => {
+        const varName = ev.target.getAttribute('data-var');
+        const unit = ev.target.getAttribute('data-unit') || '';
+        const raw = ev.target.value;
+        if (ev.target.classList.contains('efc_valRange_d3q')) ev.target.nextElementSibling.value = raw;
+        else ev.target.previousElementSibling.value = raw;
+
+        if (varName === '--tabListPadSimple_q9X') {
+          applyChange_d3q('--tabListPadTop_q9X', raw + unit);
+          applyChange_d3q('--tabListPadBottom_q9X', raw + unit);
+        }
+        applyChange_d3q(varName, raw + unit);
+      });
+    });
+
+    document.querySelectorAll('.efc_rawTxt_d3q').forEach(inputEl => {
+      inputEl.addEventListener('input', ev => applyChange_d3q(ev.target.getAttribute('data-var'), ev.target.value));
+    });
+
+    document.querySelectorAll('.efc_basicSel_d3q').forEach(selEl => {
+      if (['efc_defModeSel_d3q','efc_defTitleSel_d3q','efc_defTabSel_d3q'].includes(selEl.id)) return;
+      if (selEl.classList.contains('efc_weightSel_d3q')) return;
+      selEl.addEventListener('change', ev => applyChange_d3q(ev.target.getAttribute('data-var'), ev.target.value));
+    });
+
+    document.querySelectorAll('.efc_weightRange_d3q').forEach(el => {
+      el.addEventListener('input', e => {
+        const varName = e.target.getAttribute('data-var');
+        e.target.closest('.efc_itemBox_d3q').querySelector('.efc_weightSel_d3q').value = e.target.value;
+        applyChange_d3q(varName, e.target.value);
+      });
+    });
+    document.querySelectorAll('.efc_weightSel_d3q').forEach(el => {
+      el.addEventListener('change', e => {
+        const varName = e.target.getAttribute('data-var');
+        e.target.closest('.efc_itemBox_d3q').querySelector('.efc_weightRange_d3q').value = e.target.value;
+        applyChange_d3q(varName, e.target.value);
+      });
+    });
+
+    document.querySelectorAll('.efc_toggleInput_d3q').forEach(toggle => {
+      toggle.addEventListener('change', e => {
+        const varName = e.target.getAttribute('data-var');
+        const isToggle01 = e.target.getAttribute('data-toggle01') === '1';
+        applyChange_d3q(varName, isToggle01 ? (e.target.checked ? '1' : '0') : e.target.checked);
+      });
+    });
+
+    /* ================================================================
+       9. 개별 초기화 / 전체 초기화
+       ================================================================ */
+    document.querySelectorAll('.efc_resetOneBtn_d3q').forEach(btn => {
+      btn.addEventListener('click', ev => {
+        const node = ev.currentTarget;
+        const varName = node.getAttribute('data-var');
+        const defVal = node.getAttribute('data-def');
+        const defHex = node.getAttribute('data-defhex');
+        const defAlpha = node.getAttribute('data-defalpha');
+        applyChange_d3q(varName, defVal);
+        if (varName === '--tabListPadSimple_q9X') {
+          applyChange_d3q('--tabListPadTop_q9X', defVal);
+          applyChange_d3q('--tabListPadBottom_q9X', defVal);
+        }
+        const box = node.closest('.efc_itemBox_d3q');
+        box.querySelectorAll('input, select').forEach(inputEl => {
+          if (inputEl.classList.contains('efc_colorPicker_d3q') && defHex) inputEl.value = defHex;
+          else if (inputEl.classList.contains('efc_alphaRange_d3q') && defAlpha) { inputEl.value = defAlpha; box.querySelector('.efc_alphaVal_d3q').innerText = defAlpha + '%'; }
+          else if (inputEl.classList.contains('efc_colorTxt_d3q') || inputEl.classList.contains('efc_basicSel_d3q') || inputEl.classList.contains('efc_rawTxt_d3q')) { inputEl.value = defVal; inputEl.classList.remove('efc_inputError_d3q'); }
+          else if (inputEl.classList.contains('efc_valRange_d3q') || inputEl.classList.contains('efc_inputNum_d3q')) inputEl.value = parseFloat(defVal) || 0;
+        });
+      });
+    });
+
+    document.getElementById('efc_resetBtn_d3q').addEventListener('click', () => {
+      if (!confirm('모든 디자인 설정을 최초 상태로 초기화하시겠습니까?')) return;
+      document.querySelectorAll('.efc_resetOneBtn_d3q').forEach(btn => btn.click());
+      document.querySelectorAll('.efc_toggleInput_d3q').forEach(toggle => {
+        const defBool = toggle.getAttribute('data-def') === 'true';
+        toggle.checked = defBool;
+        toggle.dispatchEvent(new Event('change'));
+      });
+      window.efc_dbRows_d3q = [];
+      renderDbRows_d3q();
+      bindRevealToggles_d3q();
+      pushLiveDbSetting_d3q();
+    });
+
+    /* ================================================================
+       10. 데이터베이스 행 렌더링 + 실시간 반영
+       ================================================================ */
+    function pushLiveDbSetting_d3q() {
+      const live = {
+        defaults: {
+          titleVisible: window.efc_dbDefaults_d3q.titleVisible,
+          tabVisible: window.efc_dbDefaults_d3q.tabVisible,
+          mode: window.efc_dbDefaults_d3q.mode,
+          mobileMode: null, overThresholdMode: null, threshold: 0,
+          wheelScroll: true, wheelSpeed: 1, moreLabel: '더보기'
+        },
+        exceptions: window.efc_dbRows_d3q
+          .filter(r => (r.idMode === 'label' ? r.label : r.blockId))
+          .map(r => ({
+            label: r.idMode === 'label' ? r.label : '',
+            blockId: r.idMode === 'blockId' ? r.blockId : '',
+            titleVisible: r.titleVisible, tabVisible: r.tabVisible, mode: r.mode,
+            mobileMode: r.mobileMode || null, overThresholdMode: r.overThresholdMode || null,
+            threshold: r.threshold || 0, wheelScroll: r.wheelScroll !== false,
+            wheelSpeed: r.wheelSpeed || 1, moreLabel: r.moreLabel || '더보기'
+          }))
+      };
+      try {
+        window.opener.tabDbSetting_q9X = live;
+        if (typeof window.opener.efc_reapplyAllTabs_q9X === 'function') window.opener.efc_reapplyAllTabs_q9X();
+      } catch(e) { console.log('실시간 반영 실패:', e); }
+    }
+
+    document.getElementById('efc_defModeSel_d3q').addEventListener('change', e => { window.efc_dbDefaults_d3q.mode = e.target.value; pushLiveDbSetting_d3q(); });
+    document.getElementById('efc_defTitleSel_d3q').addEventListener('change', e => { window.efc_dbDefaults_d3q.titleVisible = e.target.value === 'show'; pushLiveDbSetting_d3q(); });
+    document.getElementById('efc_defTabSel_d3q').addEventListener('change', e => { window.efc_dbDefaults_d3q.tabVisible = e.target.value === 'show'; pushLiveDbSetting_d3q(); });
+
+    function renderDbRows_d3q() {
+      const area = document.getElementById('efc_dbRowsArea_d3q');
+      area.innerHTML = '';
+      window.efc_dbRows_d3q.forEach((row, idx) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex; flex-direction:column; gap:6px; background:var(--efc-summary-bg); padding:10px; border-radius:6px;';
+        wrap.innerHTML = \`
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <select class="efc_rowIdModeSel_d3q" data-idx="\${idx}" style="width:90px;">
+              <option value="label" \${row.idMode==='label'?'selected':''}>라벨</option>
+              <option value="blockId" \${row.idMode==='blockId'?'selected':''}>blockId</option>
+            </select>
+            <input type="text" class="efc_rowIdInput_d3q" data-idx="\${idx}" value="\${row.idMode==='label'?row.label:row.blockId}" placeholder="\${row.idMode==='label'?'제목 텍스트':'Notion block-id'}" style="flex:2; min-width:140px;">
+            <select class="efc_rowModeSel_d3q" data-idx="\${idx}" style="flex:1; min-width:90px;">
+              <option value="scroll" \${row.mode==='scroll'?'selected':''}>스크롤</option>
+              <option value="wrap" \${row.mode==='wrap'?'selected':''}>줄바꿈</option>
+              <option value="more-dropdown" \${row.mode==='more-dropdown'?'selected':''}>더보기</option>
+              <option value="select" \${row.mode==='select'?'selected':''}>선택박스</option>
+            </select>
+            <select class="efc_rowTitleSel_d3q" data-idx="\${idx}" style="flex:1; min-width:80px;">
+              <option value="show" \${row.titleVisible?'selected':''}>제목표시</option>
+              <option value="hide" \${!row.titleVisible?'selected':''}>제목숨김</option>
+            </select>
+            <select class="efc_rowTabSel_d3q" data-idx="\${idx}" style="flex:1; min-width:80px;">
+              <option value="show" \${row.tabVisible?'selected':''}>탭줄표시</option>
+              <option value="hide" \${!row.tabVisible?'selected':''}>탭줄숨김</option>
+            </select>
+            <button class="efc_rowAdvBtn_d3q" data-idx="\${idx}" style="padding:6px 8px; background:#334155; color:#e5e5e5; border:none; border-radius:4px; cursor:pointer;">고급</button>
+            <button class="efc_rowDupBtn_d3q" data-idx="\${idx}" style="padding:6px 8px; background:#334155; color:#e5e5e5; border:none; border-radius:4px; cursor:pointer;">복제</button>
+            <button class="efc_rowDelBtn_d3q" data-idx="\${idx}" style="padding:6px 8px; background:#ef4444; color:#fff; border:none; border-radius:4px; cursor:pointer;">삭제</button>
+          </div>
+          <div class="efc_rowAdvArea_d3q" data-idx="\${idx}" style="display:\${row.advancedOpen?'flex':'none'}; flex-wrap:wrap; gap:6px; padding-top:6px; border-top:1px dashed #444;">
+            <select class="efc_rowMobileSel_d3q" data-idx="\${idx}" style="flex:1; min-width:110px;">
+              <option value="" \${row.mobileMode===''?'selected':''}>모바일: PC와 동일</option>
+              <option value="scroll" \${row.mobileMode==='scroll'?'selected':''}>모바일: 스크롤</option>
+              <option value="wrap" \${row.mobileMode==='wrap'?'selected':''}>모바일: 줄바꿈</option>
+              <option value="more-dropdown" \${row.mobileMode==='more-dropdown'?'selected':''}>모바일: 더보기</option>
+              <option value="select" \${row.mobileMode==='select'?'selected':''}>모바일: 선택박스</option>
+            </select>
+            <input type="number" class="efc_rowThresholdInput_d3q" data-idx="\${idx}" value="\${row.threshold}" placeholder="임계치(개수)" style="width:110px;">
+            <select class="efc_rowOverSel_d3q" data-idx="\${idx}" style="flex:1; min-width:110px;">
+              <option value="" \${row.overThresholdMode===''?'selected':''}>초과모드: 없음</option>
+              <option value="scroll" \${row.overThresholdMode==='scroll'?'selected':''}>초과모드: 스크롤</option>
+              <option value="wrap" \${row.overThresholdMode==='wrap'?'selected':''}>초과모드: 줄바꿈</option>
+              <option value="more-dropdown" \${row.overThresholdMode==='more-dropdown'?'selected':''}>초과모드: 더보기</option>
+              <option value="select" \${row.overThresholdMode==='select'?'selected':''}>초과모드: 선택박스</option>
+            </select>
+            <label style="display:flex; align-items:center; gap:4px; font-size:11px;"><input type="checkbox" class="efc_rowWheelChk_d3q" data-idx="\${idx}" \${row.wheelScroll?'checked':''}> 휠 스크롤</label>
+            <input type="number" step="0.1" class="efc_rowWheelSpeedInput_d3q" data-idx="\${idx}" value="\${row.wheelSpeed}" placeholder="휠 속도" style="width:90px;">
+            <input type="text" class="efc_rowMoreLabelInput_d3q" data-idx="\${idx}" value="\${row.moreLabel}" placeholder="더보기 글자" style="width:100px;">
+          </div>
+        \`;
+        area.appendChild(wrap);
+      });
+
+      area.querySelectorAll('.efc_rowIdModeSel_d3q').forEach(el => el.addEventListener('change', e => { window.efc_dbRows_d3q[e.target.dataset.idx].idMode = e.target.value; renderDbRows_d3q(); pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowIdInput_d3q').forEach(el => el.addEventListener('input', e => {
+        const row = window.efc_dbRows_d3q[e.target.dataset.idx];
+        if (row.idMode === 'label') row.label = e.target.value; else row.blockId = e.target.value;
+        pushLiveDbSetting_d3q();
+      }));
+      area.querySelectorAll('.efc_rowModeSel_d3q').forEach(el => el.addEventListener('change', e => { window.efc_dbRows_d3q[e.target.dataset.idx].mode = e.target.value; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowTitleSel_d3q').forEach(el => el.addEventListener('change', e => { window.efc_dbRows_d3q[e.target.dataset.idx].titleVisible = e.target.value === 'show'; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowTabSel_d3q').forEach(el => el.addEventListener('change', e => { window.efc_dbRows_d3q[e.target.dataset.idx].tabVisible = e.target.value === 'show'; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowMobileSel_d3q').forEach(el => el.addEventListener('change', e => { window.efc_dbRows_d3q[e.target.dataset.idx].mobileMode = e.target.value; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowThresholdInput_d3q').forEach(el => el.addEventListener('input', e => { window.efc_dbRows_d3q[e.target.dataset.idx].threshold = parseInt(e.target.value,10) || 0; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowOverSel_d3q').forEach(el => el.addEventListener('change', e => { window.efc_dbRows_d3q[e.target.dataset.idx].overThresholdMode = e.target.value; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowWheelChk_d3q').forEach(el => el.addEventListener('change', e => { window.efc_dbRows_d3q[e.target.dataset.idx].wheelScroll = e.target.checked; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowWheelSpeedInput_d3q').forEach(el => el.addEventListener('input', e => { window.efc_dbRows_d3q[e.target.dataset.idx].wheelSpeed = parseFloat(e.target.value) || 1; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowMoreLabelInput_d3q').forEach(el => el.addEventListener('input', e => { window.efc_dbRows_d3q[e.target.dataset.idx].moreLabel = e.target.value; pushLiveDbSetting_d3q(); }));
+      area.querySelectorAll('.efc_rowAdvBtn_d3q').forEach(el => el.addEventListener('click', e => {
+        const row = window.efc_dbRows_d3q[e.target.dataset.idx];
+        row.advancedOpen = !row.advancedOpen;
+        renderDbRows_d3q();
+      }));
+      area.querySelectorAll('.efc_rowDupBtn_d3q').forEach(el => el.addEventListener('click', e => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        const src = window.efc_dbRows_d3q[idx];
+        const copy = Object.assign({}, src);
+        if (copy.idMode === 'label') copy.label = src.label + ' (복사)'; else copy.blockId = src.blockId + '-copy';
+        window.efc_dbRows_d3q.splice(idx + 1, 0, copy);
+        renderDbRows_d3q();
+        pushLiveDbSetting_d3q();
+      }));
+      area.querySelectorAll('.efc_rowDelBtn_d3q').forEach(el => el.addEventListener('click', e => {
+        window.efc_dbRows_d3q.splice(parseInt(e.target.dataset.idx, 10), 1);
+        renderDbRows_d3q();
+        pushLiveDbSetting_d3q();
+      }));
+    }
+
+    document.getElementById('efc_addDbRowBtn_d3q').addEventListener('click', () => {
+      window.efc_dbRows_d3q.push({
+        idMode: 'label', label: '', blockId: '',
+        titleVisible: window.efc_dbDefaults_d3q.titleVisible, tabVisible: window.efc_dbDefaults_d3q.tabVisible, mode: window.efc_dbDefaults_d3q.mode,
+        mobileMode: '', overThresholdMode: '', threshold: 0, wheelScroll: true, wheelSpeed: 1, moreLabel: '더보기', advancedOpen: false
+      });
+      renderDbRows_d3q();
+      pushLiveDbSetting_d3q();
+    });
+    renderDbRows_d3q();
+    pushLiveDbSetting_d3q();
+
+    /* ================================================================
+       11. 상태 문구 / 저장 슬롯 여러 개 (localStorage)
+       ================================================================ */
+    const setSaveStatus_d3q = msg => {
+      const el = document.getElementById('efc_saveStatus_d3q');
+      el.innerText = msg;
+      setTimeout(() => { if (el.innerText === msg) el.innerText = ''; }, 4000);
+    };
+    function getSlots_d3q() { try { return JSON.parse(localStorage.getItem(STORAGE_LIST_KEY_d3q)) || []; } catch(e) { return []; } }
+    function setSlots_d3q(arr) { localStorage.setItem(STORAGE_LIST_KEY_d3q, JSON.stringify(arr)); }
+
+    function buildResolvedMap_d3q(sourceGetter) {
+      const map = {};
+      document.querySelectorAll('[data-var]').forEach(el => {
+        const v = el.getAttribute('data-var');
+        if (v && !(v in map)) {
+          const sv = sourceGetter(v);
+          if (sv !== undefined && sv !== null && sv !== '') map[v] = sv;
+        }
+      });
+      return map;
+    }
+    function refreshFormFromMap_d3q(map) {
+      document.querySelectorAll('[data-var]').forEach(el => {
+        const v = el.getAttribute('data-var');
+        if (!v || !(v in map)) return;
+        const sv = map[v];
+        if (el.classList.contains('efc_toggleInput_d3q')) {
+          const isT01 = el.getAttribute('data-toggle01') === '1';
+          el.checked = isT01 ? (sv === '1' || sv === true) : (sv === true || sv === 'true');
+          el.dispatchEvent(new Event('change'));
+        }
+        else if (el.classList.contains('efc_weightRange_d3q')) { const n = parseInt(sv,10); if(!isNaN(n)) { el.value = n; el.dispatchEvent(new Event('input')); } }
+        else if (el.classList.contains('efc_valRange_d3q') || el.classList.contains('efc_inputNum_d3q')) { const n = parseFloat(sv); if(!isNaN(n)) { el.value = n; el.dispatchEvent(new Event('input')); } }
+        else if (el.classList.contains('efc_colorTxt_d3q') || el.classList.contains('efc_rawTxt_d3q')) { el.value = sv; el.dispatchEvent(new Event('input')); }
+        else if (el.classList.contains('efc_basicSel_d3q') && !el.classList.contains('efc_weightSel_d3q')) { el.value = sv; el.dispatchEvent(new Event('change')); }
+      });
+    }
+
+    function renderSlotsList_d3q() {
+      const listEl = document.getElementById('efc_slotsList_d3q');
+      const slots = getSlots_d3q();
+      if (!slots.length) { listEl.innerHTML = '<div style="font-size:11px; color:#888;">저장된 슬롯이 없습니다.</div>'; return; }
+      listEl.innerHTML = '';
+      slots.slice().reverse().forEach(slot => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:6px; align-items:center; background:var(--efc-panel-bg); padding:8px; border-radius:6px;';
+        row.innerHTML = '<span style="flex:1; font-size:12px;">' + slot.label + '</span>' +
+          '<button class="efc_slotLoadBtn_d3q" data-id="' + slot.id + '" style="padding:5px 8px; background:#3b82f6; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:11px;">불러오기</button>' +
+          '<button class="efc_slotDelBtn_d3q" data-id="' + slot.id + '" style="padding:5px 8px; background:#ef4444; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:11px;">삭제</button>';
+        listEl.appendChild(row);
+      });
+      listEl.querySelectorAll('.efc_slotLoadBtn_d3q').forEach(btn => btn.addEventListener('click', e => loadSlot_d3q(e.target.dataset.id)));
+      listEl.querySelectorAll('.efc_slotDelBtn_d3q').forEach(btn => btn.addEventListener('click', e => {
+        setSlots_d3q(getSlots_d3q().filter(s => String(s.id) !== e.target.dataset.id));
+        renderSlotsList_d3q();
+      }));
+    }
+
+    function applyLoadedPayload_d3q(payload) {
+      window.efc_dbRows_d3q = payload.dbRows || [];
+      window.efc_dbDefaults_d3q = payload.dbDefaults || window.efc_dbDefaults_d3q;
+      renderDbRows_d3q();
+      document.getElementById('efc_defModeSel_d3q').value = window.efc_dbDefaults_d3q.mode;
+      document.getElementById('efc_defTitleSel_d3q').value = window.efc_dbDefaults_d3q.titleVisible ? 'show' : 'hide';
+      document.getElementById('efc_defTabSel_d3q').value = window.efc_dbDefaults_d3q.tabVisible ? 'show' : 'hide';
+      if (payload.currentStyles) refreshFormFromMap_d3q(payload.currentStyles);
+      bindRevealToggles_d3q();
+      pushLiveDbSetting_d3q();
+    }
+
+    function loadSlot_d3q(id) {
+      const slot = getSlots_d3q().find(s => String(s.id) === String(id));
+      if (!slot) { setSaveStatus_d3q('해당 슬롯을 찾을 수 없습니다.'); return; }
+      applyLoadedPayload_d3q(slot.payload);
+      setSaveStatus_d3q('"' + slot.label + '" 슬롯을 불러왔습니다.');
+    }
+
+    document.getElementById('efc_saveSlotBtn_d3q').addEventListener('click', () => {
+      const nowLabel = new Date().toLocaleString('ko-KR');
+      const payload = { currentStyles: window.efc_currentStyles_d3q, dbRows: window.efc_dbRows_d3q, dbDefaults: window.efc_dbDefaults_d3q };
+      const slots = getSlots_d3q();
+      slots.push({ id: Date.now(), label: nowLabel + ' 저장', payload });
+      setSlots_d3q(slots);
+      renderSlotsList_d3q();
+      setSaveStatus_d3q('새 슬롯으로 저장했습니다 (' + nowLabel + ')');
+    });
+
+    document.getElementById('efc_slotsToggleBtn_d3q').addEventListener('click', () => {
+      const panel = document.getElementById('efc_slotsPanel_d3q');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      document.getElementById('efc_importPanel_d3q').style.display = 'none';
+      if (!isOpen) renderSlotsList_d3q();
+    });
+
+    document.getElementById('efc_invalidateBtn_d3q').addEventListener('click', () => {
+      if (!confirm('현재 미리보기 값을 지우고 웹사이트의 원래 기본 설정으로 되돌리시겠습니까? (저장된 슬롯은 유지됩니다)')) return;
+      let dyn = window.opener.document.getElementById(DYNAMIC_STYLE_ID_d3q);
+      if (dyn) dyn.remove();
+      const freshStyles = window.opener.getComputedStyle(window.opener.document.documentElement);
+      const freshMap = buildResolvedMap_d3q(v => freshStyles.getPropertyValue(v).trim());
+      refreshFormFromMap_d3q(freshMap);
+      setSaveStatus_d3q('현재 웹사이트 기본 설정으로 복원했습니다.');
+    });
+
+    let peekSavedStyleHtml_d3q = '';
+    const peekBtn = document.getElementById('efc_peekEyeBtn_d3q');
+    peekBtn.addEventListener('mousedown', () => {
+      const tag = window.opener.document.getElementById(DYNAMIC_STYLE_ID_d3q);
+      if (tag) { peekSavedStyleHtml_d3q = tag.outerHTML; tag.remove(); }
+    });
+    const peekRestore_d3q = () => {
+      if (peekSavedStyleHtml_d3q) { window.opener.document.head.insertAdjacentHTML('beforeend', peekSavedStyleHtml_d3q); peekSavedStyleHtml_d3q = ''; }
+    };
+    peekBtn.addEventListener('mouseup', peekRestore_d3q);
+    peekBtn.addEventListener('mouseleave', peekRestore_d3q);
+
+    /* ================================================================
+       12. 가져오기(Import)
+       ================================================================ */
+    document.getElementById('efc_importToggleBtn_d3q').addEventListener('click', () => {
+      const panel = document.getElementById('efc_importPanel_d3q');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      document.getElementById('efc_slotsPanel_d3q').style.display = 'none';
+    });
+
+    function extractObjectLiteral_d3q(text, marker) {
+      const startIdx = text.indexOf(marker);
+      if (startIdx === -1) return null;
+      const braceStart = text.indexOf('{', startIdx);
+      if (braceStart === -1) return null;
+      let depth = 0, i = braceStart;
+      for (; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+      }
+      try { return new Function('return ' + text.substring(braceStart, i))(); } catch(e) { return null; }
+    }
+    function extractCssVars_d3q(text) {
+      const rootIdx = text.indexOf(':root');
+      if (rootIdx === -1) return {};
+      const braceStart = text.indexOf('{', rootIdx);
+      if (braceStart === -1) return {};
+      let depth = 0, i = braceStart;
+      for (; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+      }
+      const block = text.substring(braceStart, i);
+      const map = {}; const re = /(--[a-zA-Z0-9_-]+)\\s*:\\s*([^;]+);/g;
+      let m; while ((m = re.exec(block)) !== null) map[m[1].trim()] = m[2].trim();
+      return map;
+    }
+
+    document.getElementById('efc_importApplyBtn_d3q').addEventListener('click', () => {
+      const raw = document.getElementById('efc_importTextarea_d3q').value;
+      if (!raw.trim()) { setSaveStatus_d3q('붙여넣은 코드가 없습니다.'); return; }
+
+      const cssMap = extractCssVars_d3q(raw);
+      const dbSetting = extractObjectLiteral_d3q(raw, 'tabDbSetting_q9X');
+      if (!Object.keys(cssMap).length && !dbSetting) { setSaveStatus_d3q('코드에서 인식 가능한 설정을 찾지 못했습니다.'); return; }
+
+      if (Object.keys(cssMap).length) refreshFormFromMap_d3q(cssMap);
+
+      if (dbSetting) {
+        const d = dbSetting.defaults || {};
+        window.efc_dbDefaults_d3q = { titleVisible: d.titleVisible !== false, tabVisible: d.tabVisible !== false, mode: d.mode || 'scroll' };
+        window.efc_dbRows_d3q = (dbSetting.exceptions || []).map(ex => ({
+          idMode: ex.blockId ? 'blockId' : 'label', label: ex.label || '', blockId: ex.blockId || '',
+          titleVisible: ex.titleVisible !== undefined ? ex.titleVisible : window.efc_dbDefaults_d3q.titleVisible,
+          tabVisible: ex.tabVisible !== undefined ? ex.tabVisible : window.efc_dbDefaults_d3q.tabVisible,
+          mode: ex.mode || window.efc_dbDefaults_d3q.mode,
+          mobileMode: ex.mobileMode || '', overThresholdMode: ex.overThresholdMode || '',
+          threshold: ex.threshold || 0, wheelScroll: ex.wheelScroll !== false, wheelSpeed: ex.wheelSpeed || 1,
+          moreLabel: ex.moreLabel || '더보기', advancedOpen: false
+        }));
+        renderDbRows_d3q();
+        document.getElementById('efc_defModeSel_d3q').value = window.efc_dbDefaults_d3q.mode;
+        document.getElementById('efc_defTitleSel_d3q').value = window.efc_dbDefaults_d3q.titleVisible ? 'show' : 'hide';
+        document.getElementById('efc_defTabSel_d3q').value = window.efc_dbDefaults_d3q.tabVisible ? 'show' : 'hide';
+        pushLiveDbSetting_d3q();
+      }
+
+      bindRevealToggles_d3q();
+      document.getElementById('efc_importPanel_d3q').style.display = 'none';
+      setSaveStatus_d3q('가져온 코드로 설정값을 채웠습니다. 세부 조정 후 다시 출력하세요.');
+    });
+
+    /* ================================================================
+       13. 최종 코드 출력 / 복사 / 압축 복사
+       ================================================================ */
+    const createFinalExportText_d3q = () => {
+      let text = '<style>\\n  /* 노션/우피 삽입용 가변 데이터 구역 (tabs-option-notion-oopy.css 대체용) */\\n  :root {\\n';
+      for (let key in window.efc_currentStyles_d3q) {
+        if (isVirtualOrSkip_d3q(key)) continue;
+        text += '    ' + key + ': ' + window.efc_currentStyles_d3q[key] + ';\\n';
+      }
+      text += '  }\\n</style>\\n\\n';
+
+      text += '<script>\\n  window.tabDbSetting_q9X = {\\n    defaults: {\\n';
+      text += '      titleVisible: ' + window.efc_dbDefaults_d3q.titleVisible + ',\\n';
+      text += '      tabVisible: ' + window.efc_dbDefaults_d3q.tabVisible + ',\\n';
+      text += '      mode: \\'' + window.efc_dbDefaults_d3q.mode + '\\',\\n';
+      text += '      mobileMode: null,\\n      overThresholdMode: null,\\n      threshold: 0,\\n';
+      text += '      wheelScroll: true,\\n      wheelSpeed: 1,\\n      moreLabel: \\'더보기\\'\\n    },\\n';
+      text += '    exceptions: [\\n';
+      const rowsText = window.efc_dbRows_d3q.filter(r => (r.idMode === 'label' ? r.label : r.blockId)).map(r => {
+        let s = '      {\\n';
+        s += '        label: \\'' + (r.idMode === 'label' ? r.label.replace(/'/g,"\\\\'") : '') + '\\',\\n';
+        s += '        blockId: \\'' + (r.idMode === 'blockId' ? r.blockId.replace(/'/g,"\\\\'") : '') + '\\',\\n';
+        s += '        titleVisible: ' + r.titleVisible + ',\\n';
+        s += '        tabVisible: ' + r.tabVisible + ',\\n';
+        s += '        mode: \\'' + r.mode + '\\'' + (r.mobileMode ? ',\\n        mobileMode: \\'' + r.mobileMode + '\\'' : '') +
+             (r.overThresholdMode ? ',\\n        overThresholdMode: \\'' + r.overThresholdMode + '\\'' : '') +
+             (r.threshold ? ',\\n        threshold: ' + r.threshold : '') +
+             (!r.wheelScroll ? ',\\n        wheelScroll: false' : '') +
+             (r.wheelSpeed && r.wheelSpeed !== 1 ? ',\\n        wheelSpeed: ' + r.wheelSpeed : '') +
+             (r.moreLabel && r.moreLabel !== '더보기' ? ',\\n        moreLabel: \\'' + r.moreLabel + '\\'' : '') + '\\n';
+        s += '      }';
+        return s;
+      });
+      text += rowsText.join(',\\n');
+      text += '\\n    ]\\n  };\\n<\\/script>';
+      return text;
+    };
+
+    document.getElementById('efc_exportTriggerBtn_d3q').addEventListener('click', () => {
+      document.getElementById('efc_exportTextarea_d3q').value = createFinalExportText_d3q();
+      const area = document.getElementById('efc_exportArea_d3q');
+      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+      if (area.style.display === 'block') area.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    document.getElementById('efc_copyBtn_d3q').addEventListener('click', () => {
+      document.getElementById('efc_exportTextarea_d3q').select();
+      document.execCommand('copy');
+      alert('출력된 설정 코드가 복사되었습니다.');
+    });
+
+    document.getElementById('efc_copyMinBtn_d3q').addEventListener('click', () => {
+      const raw = document.getElementById('efc_exportTextarea_d3q').value;
+      const min = raw.replace(/\\/\\*[\\s\\S]*?\\*\\//g, '').replace(/\\n/g, '').replace(/\\s{2,}/g, ' ').trim();
+      const ta = document.createElement('textarea');
+      ta.value = min;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('압축된(Minify) 코드가 복사되었습니다.');
+    });
+  `;
+
+  popupWindow.document.open();
+  popupWindow.document.write(`
+  <!DOCTYPE html>
+  <html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <title>탭 통합 제어판</title>
+    <style>
+      :root { --efc-bg:#121212; --efc-text:#e5e5e5; --efc-panel-bg:#1a1a1a; --efc-panel-border:#2a2a2a; --efc-summary-bg:#222; }
+      body.efc_lightMode_d3q { --efc-bg:#f4f4f5; --efc-text:#1f2937; --efc-panel-bg:#fff; --efc-panel-border:#e5e7eb; --efc-summary-bg:#f1f5f9; }
+      body { margin:0; background:var(--efc-bg); color:var(--efc-text); font-family: ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; font-size:13px; }
+      .headerWrap_d3q { position:sticky; top:0; z-index:10; background:var(--efc-panel-bg); padding:16px 20px; border-bottom:1px solid var(--efc-panel-border); display:flex; flex-direction:column; gap:10px; }
+      .topBar_d3q { display:flex; justify-content:space-between; align-items:center; }
+      .efc_themeBtn_d3q { background:transparent; border:1px solid #444; color:inherit; border-radius:6px; cursor:pointer; padding:6px 10px; }
+      .efc_searchBox_d3q { width:100%; box-sizing:border-box; padding:8px 12px; background:var(--efc-summary-bg); color:inherit; border:1px solid var(--efc-panel-border); border-radius:6px; outline:none; }
+      .efc_storageBar_d3q { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+      .efc_storageBtn_d3q { background:var(--efc-summary-bg); border:1px solid var(--efc-panel-border); color:inherit; border-radius:6px; cursor:pointer; padding:5px 9px; font-size:11px; }
+      .efc_storageBtnDanger_d3q { color:#ef4444; }
+      .efc_saveStatus_d3q { font-size:11px; color:#10b981; min-height:14px; }
+      .efc_panelBox_d3q { background:var(--efc-summary-bg); border:1px solid var(--efc-panel-border); border-radius:8px; padding:10px; }
+      #efc_importTextarea_d3q { width:100%; height:120px; background:#000; color:#10b981; border:1px solid #444; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; box-sizing:border-box; resize:vertical; }
+      .mainLayout_d3q { padding:12px 20px; }
+      .panelSection_d3q { margin-bottom:12px; background:var(--efc-panel-bg); border-radius:8px; border:1px solid var(--efc-panel-border); }
+      .efc_summary_d3q { font-weight:700; cursor:pointer; color:#38bdf8; outline:none; padding:12px; background:var(--efc-summary-bg); font-size:14px; display:block; }
+      .efc_varTag_d3q { font-weight:400; color:#888; font-size:11px; font-family:monospace; margin-left:4px; }
+      .efc_itemBox_d3q { display:flex; flex-direction:column; gap:6px; padding-bottom:8px; border-bottom:1px dashed #333; }
+      .efc_resetOneBtn_d3q { background:transparent; border:none; color:#888; cursor:pointer; padding:4px; font-size:13px; }
+      .efc_resetOneBtn_d3q:hover { color:#10b981; }
+      .efc_basicSel_d3q { padding:6px; background:#111; color:#eee; border:1px solid #444; border-radius:6px; width:100%; outline:none; }
+      body.efc_lightMode_d3q .efc_basicSel_d3q, body.efc_lightMode_d3q .efc_inputNum_d3q, body.efc_lightMode_d3q .efc_colorTxt_d3q, body.efc_lightMode_d3q .efc_rawTxt_d3q, body.efc_lightMode_d3q input[type="text"], body.efc_lightMode_d3q input[type="number"] { background:#fff; color:#1f2937; border-color:#d1d5db; }
+      input[type="text"], input[type="number"], .efc_colorTxt_d3q, .efc_rawTxt_d3q { background:#111; color:#eee; border:1px solid #444; border-radius:6px; padding:6px 10px; box-sizing:border-box; outline:none; }
+      .efc_colorTxt_d3q.efc_inputError_d3q { border-color:#ef4444 !important; box-shadow:0 0 0 1px #ef4444; }
+      .efc_colorPicker_d3q { width:34px; height:26px; padding:0; border:none; border-radius:4px; background:transparent; cursor:pointer; }
+      .efc_inputRange_d3q { flex:1; accent-color:#10b981; cursor:pointer; }
+      .efc_inputNum_d3q { width:75px; padding:6px; background:#111; color:#10b981; border:1px solid #444; border-radius:6px; font-weight:700; text-align:center; }
+      .efc_actionBtn_d3q { width:100%; padding:10px; background:#333; color:#10b981; border:1px dashed #555; border-radius:6px; cursor:pointer; font-weight:bold; }
+      .efc_actionBtn_d3q:hover { background:#444; }
+      #efc_exportTextarea_d3q { width:100%; height:250px; background:#000; color:#10b981; border:1px solid #444; border-radius:8px; padding:10px; font-family:monospace; resize:vertical; outline:none; box-sizing:border-box; font-size:12px; white-space:pre; }
+      .efc_toggleWrap_d3q { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+      .efc_toggleInput_d3q { opacity:0; width:0; height:0; position:absolute; }
+      .efc_toggleSlider_d3q { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#444; transition:.2s; border-radius:22px; }
+      .efc_toggleSlider_d3q:before { position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; }
+      .efc_toggleInput_d3q:checked + .efc_toggleSlider_d3q { background:#10b981; }
+      .efc_toggleInput_d3q:checked + .efc_toggleSlider_d3q:before { transform:translateX(18px); }
+      ::-webkit-scrollbar { width:8px; }
+      ::-webkit-scrollbar-track { background:var(--efc-panel-bg); }
+      ::-webkit-scrollbar-thumb { background:#333; border-radius:4px; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>${scriptContent}<\/script>
+  </body>
+  </html>
+  `);
+  popupWindow.document.close();
+}();
