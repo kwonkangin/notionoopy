@@ -91,7 +91,7 @@
 // =====================================================================================
 
 
-!function efc_launchMasterDashboard_v3() {
+!function efc_launchMasterDashboard() {
   'use strict';
   var popup = window.open('', 'NavDashboardMasterFinal', 'width=800,height=960,scrollbars=yes,resizable=yes');
   if (!popup) { alert('팝업 차단을 해제해 주십시오.'); return; }
@@ -152,7 +152,7 @@
     '.ddAuto .fixedOnly{display:none}body:not(.ddAuto) .autoOnly{display:none}'
   ].join('\n');
   pDoc.open();
-  pDoc.write('<!DOCTYPE html><html lang="ko" data-theme="dark"><head><meta charset="utf-8"><title>내비게이션 마스터 제어판 v3</title><style>' + POPUP_CSS + '</style></head><body><div id="app"></div></body></html>');
+  pDoc.write('<!DOCTYPE html><html lang="ko" data-theme="dark"><head><meta charset="utf-8"><title>메뉴바 대시보드 2.0</title><style>' + POPUP_CSS + '</style></head><body><div id="app"></div></body></html>');
   pDoc.close();
 
   /* ───────── 유틸 ───────── */
@@ -637,7 +637,7 @@
   /* 선택 사용 변수: 해제하면 변수를 출력하지 않아 PC 값(폴백)을 따름 */
   mk.opt = function (it, ctx) {
     var last = it.def;
-    var inner = mkit.type { last = v; ctx.commit(v); } });
+    var inner = mk[it.type](it, { commit: function (v) { last = v; ctx.commit(v); } });
     var chk = h('input', { type: 'checkbox' });
     var box = h('div', { style: 'margin-top:6px' }, [inner.el]);
     function enable(on) { box.style.opacity = on ? '1' : '.4'; box.style.pointerEvents = on ? 'auto' : 'none'; }
@@ -656,7 +656,7 @@
 
   function buildItem(it) {
     var ctx = { commit: function (v) { setStyle(it.v, v, true); } };
-    var c = mkit.optional ? 'opt' : it.type;
+    var c = mk[it.optional ? 'opt' : it.type](it, ctx);
     var rb = h('button', { type: 'button', className: 'rbtn', title: '실행 시점 값으로 되돌리기', text: '↺' });
     var cls = 'item' + (it.det ? ' detOnly' : '') + (it.mode === 'auto' ? ' autoOnly' : '') + (it.mode === 'fixed' ? ' fixedOnly' : '');
     var wrap = h('div', { className: cls, 'data-search': (it.label + ' ' + it.v).toLowerCase() }, [
@@ -679,7 +679,7 @@
   var themeSel = h('select', { className: 'inp', style: 'width:110px' }, [h('option', { value: 'dark', text: '다크모드' }), h('option', { value: 'light', text: '라이트모드' })]);
   var resetAllBtn = h('button', { type: 'button', className: 'btn', text: '전체 복구' });
   app.appendChild(h('header', { className: 'top' }, [
-    h('div', { className: 'trow' }, [h('h3', { text: '내비게이션 마스터 제어판 v3' }), h('div', { className: 'row', style: 'width:auto' }, [filterIn, themeSel, resetAllBtn])]),
+    h('div', { className: 'trow' }, [h('h3', { text: '메뉴바 대시보드 2.0' }), h('div', { className: 'row', style: 'width:auto' }, [filterIn, themeSel, resetAllBtn])]),
     statusEl
   ]));
   var main = h('main', { className: 'main' }); app.appendChild(main);
@@ -736,7 +736,7 @@
       h('button', { type: 'button', className: 'rbtn danger', text: '삭제', onclick: function () { arr.splice(i, 1); rerender(); rebuild(); } })
     ]);
   }
-  function parseFaClass(s) { var m = s.match(/class\s*=\s*"'["']/); return (m ? m[1] : s).trim(); }
+  function parseFaClass(s) { var m = s.match(/class\s*=\s*["']([^"']+)["']/); return (m ? m[1] : s).trim(); }
   function colorOverride(icon, key, label, gvar) {
     var chk = h('input', { type: 'checkbox' }); chk.checked = !!icon[key];
     var chip = h('input', { type: 'color', className: 'chip' });
@@ -972,7 +972,7 @@
   if (typeof window.efc_rebuildNav_v2a === 'function' && !/arrowAnimation/.test(String(window.efc_rebuildNav_v2a))) {
     engineWarn = ' · 주의: 현재 엔진이 신규 옵션(모바일 아코디언, 화살표 애니메이션, 내용 맞춤 너비, 모바일 로고)을 지원하지 않는 버전입니다';
   }
-  if (!hasSrc) setStatus('window.efcMenubarConfig 이 없어 기본값으로 시작합니다. 메뉴바 코드가 먼저 로드되어야 합니다.', true);
+  if (!hasSrc) setStatus('window.efcMenubarConfig 가 없어 기본값으로 시작합니다. 메뉴바 코드가 먼저 로드되어야 합니다.', true);
   else setStatus('미리보기 연결 중…');
   rebuild();
 }();
