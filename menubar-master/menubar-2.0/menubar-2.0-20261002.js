@@ -297,11 +297,12 @@ group.appendChild(submenu);
     }
 
     function efc_triggerOopySearch_m4k(planMode) {
-      var selector = planMode === 'pro' ? '.xi-search' : '.search-button';
-      var targetSearchBtn = document.querySelector(selector);
-      if (targetSearchBtn) targetSearchBtn.click();
-      else alert('우피 설정에서 검색 기능을 켜주십시오.');
-    }
+  var order = planMode === 'standard' ? ['.search-button', '.xi-search'] : ['.xi-search', '.search-button'];
+  var btn = null;
+  for (var i = 0; i < order.length && !btn; i++) btn = document.querySelector(order[i]);
+  if (btn) btn.click();
+  else alert('우피 검색 버튼을 찾지 못했습니다.\n우피 설정(app.oopy.io/styles)에서 검색 버튼 표시가 켜져 있는지 확인해 주세요.\n시도한 선택자: ' + order.join(', '));
+}
 
     let globalScrollHandler_l2g = null; let globalResizeHandler_m3h = null;
 
@@ -329,10 +330,13 @@ group.appendChild(submenu);
           if (globalResizeHandler_m3h) window.removeEventListener("resize", globalResizeHandler_m3h);
       }
 
-      if (cfg.hideNotionTopbar) {
-        var notionTopbar = document.querySelector('.notion-topbar');
-        if (notionTopbar) { notionTopbar.style.opacity = '0'; notionTopbar.style.pointerEvents = 'none'; notionTopbar.style.position = 'absolute'; notionTopbar.style.top = '-9999px'; }
-      }
+      var notionTopbar = document.querySelector('.notion-topbar');
+if (notionTopbar) {
+  if (cfg.hideNotionTopbar) { notionTopbar.style.position = 'absolute'; notionTopbar.style.top = '-9999px'; }
+  else { notionTopbar.style.position = ''; notionTopbar.style.top = ''; }
+  notionTopbar.style.opacity = '';
+  notionTopbar.style.pointerEvents = '';
+}
 
       var header = createEl_d3y("header", "efc_header_h7k");
       if (!cfg.useHeaderShadow) header.classList.add("no-shadow_n9x");
