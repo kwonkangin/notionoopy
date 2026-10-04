@@ -1,13 +1,14 @@
 // =====================================================================================
-// menubar-2.0-dashboard-20261004.js   |   메뉴바 대시보드 2.0 (PC 전용)
+// menubar-2.0-dashboard-20261005.js   |   메뉴바 대시보드 2.0 (PC 전용)
 // 한 줄 설명 : 메뉴바의 모양(CSS 변수)과 내용(메뉴, 버튼, 검색, 옵션)을 팝업 창에서 조정하면 원래
 //              페이지에 바로 반영해 보여주고, 결과를 option 코드로 출력하는 도구.
-// 짝 파일    : menubar-2.0-20261004.js (엔진), menubar-2.0-20261004.css (스타일),
-//              menubar-2.0-option-20261004.html (출력 결과를 붙여 넣는 파일)
+// 짝 파일    : menubar-2.0-20261005.js (엔진), menubar-2.0-20261005.css (스타일),
+//              menubar-2.0-option-20261005.html (출력 결과를 붙여 넣는 파일)
 // 접미사     : 팝업 안 요소의 클래스는 짧은 이름(item, row, box 등)을 쓴다. 원래 페이지에는 미리보기용
 //              style 태그(id: efc_nav_dynamic_style_s1d) 하나만 추가한다.
 // 의존성     :
-//   - 메뉴바 엔진 2.0 : 같은 페이지에 로드되어 있어야 한다 (efc_rebuildNav_v2a 사용).
+//   - 메뉴바 엔진 2.0 (20261005 이상) : 같은 페이지에 로드되어 있어야 한다 (efc_rebuildNav_v2a 사용).
+//     PC 햄버거 옵션은 이 버전 이상의 엔진에서만 동작하며, 이전 버전이면 상단에 경고가 뜬다.
 //   - option 설정 : 현재 값을 읽어 시작한다 (window.efcMenubarConfig 와 :root 변수).
 //   - 브라우저 팝업 허용 : 팝업이 막혀 있으면 안내 창이 뜨고 실행되지 않는다.
 // =====================================================================================
@@ -21,6 +22,8 @@
 //   - 콘텐츠 : 로고 주소, 대메뉴/하위메뉴 빌더, CTA 버튼 빌더 (텍스트로 직접 입력하는 부분을 한곳에 모음)
 //   - 검색 : 기본 설정 → PC 검색 버튼 → 모바일 검색 → 열린 검색창(플레이스홀더, 위치/크기, 모서리,
 //            결과 표시 항목, 결과 디자인) 순서. 각 스위치를 켜면 바로 아래에 값이 나타난다.
+//   - 모바일 : 햄버거 전환 시점, 'PC에서도 햄버거 메뉴 사용' 스위치와 PC 햄버거 패널 값(폭 비율, 열 수,
+//              위아래 여백, 열 사이 간격), 헤더 여백, 펼침 패널, 메뉴 항목, 모바일 CTA.
 //
 // [사용법]
 // 1) 메뉴바가 적용된 Oopy 페이지를 PC 브라우저로 연다.
@@ -58,7 +61,10 @@
 // - 선택 사용 변수 : '사용' 체크를 해제하면 출력에서 빠지고 PC 값(또는 우피 기본)을 따른다.
 //   미리보기에서도 즉시 반영된다.
 // - 스위치에 따라 나타나는 항목 : 상세형 너비 방식(고정/내용에 맞춤), 검색창 위치/크기, 검색창 모서리,
-//   검색 결과 디자인, 하위메뉴 서식 방식. 검색 기능(useSearch)이 꺼져 있으면 검색 하위 항목은 숨긴다.
+//   검색 결과 디자인, PC 햄버거 패널 값(폭 비율, 열 수, 위아래 여백, 열 사이 간격), 하위메뉴 서식 방식.
+//   검색 기능(useSearch)이 꺼져 있으면 검색 하위 항목은 숨긴다.
+// - PC에서도 햄버거 메뉴 : 모바일 구역의 스위치(desktopHamburger)를 켜면 PC 폭에서도 햄버거 메뉴가 되고,
+//   바로 아래에 패널 값 4개가 나타난다. 미리보기는 원래 페이지 폭 그대로 확인한다.
 // - 메뉴 빌더 : 대메뉴/하위메뉴/CTA 추가, 삭제, 순서 변경(위/아래), 복제(바로 아래에 같은 내용으로 복제하고
 //   이름 뒤에 " (복사)"를 붙임, 하위메뉴 포함), 하위메뉴 종류 선택, 메뉴별 화살표 설정.
 // - 아이콘 입력 : 폰트어썸 클래스 칸에 아이콘 태그 전체를 붙여 넣으면 class 값만 자동으로 뽑는다.
@@ -73,7 +79,7 @@
 //   "true"/"false" 문자열은 불리언). 글자 앞뒤 공백은 출력할 때 지운다.
 // - 출력 정리 : 하위메뉴가 없는 대메뉴에는 dropdownStyle 을 쓰지 않는다. 아이콘 값이 없으면 none 으로 쓴다.
 //   모든 설정 키를 빠짐없이 명시해서 내보낸다(엔진 기본값에 의존하지 않는다).
-// - 엔진 점검 : 엔진이 새 검색 옵션을 지원하지 않는 버전이면 상단 상태줄에 경고를 보여준다.
+// - 엔진 점검 : 엔진이 PC 햄버거 옵션(20261005 이상)을 지원하지 않는 버전이면 상단 상태줄에 경고를 보여준다.
 //
 // [동작 원리]
 // - 변수 미리보기 : 바꾼 값을 모아 원래 페이지에 style 태그(id: efc_nav_dynamic_style_s1d)로 넣는다.
@@ -84,13 +90,13 @@
 //
 // [기본값 (처음 보이는 값)]
 // - 변수 : option 파일 상단 주석의 '기본값' 참고. 페이지에 이미 정의된 변수가 있으면 그 값으로 시작한다.
-// - 설정 : mobileBreakpoint 1024, useSearch false, showMobileSearchBtn true, showMobileSearchBar false,
-//   searchPosition right, oopyPlan standard, hideNotionTopbar true, showMobileDesc true,
-//   mobileCtaLayout horizontal, mobileCtaGridCols 2, useHeaderShadow true, showArrowDefault true,
-//   defaultDropdownStyle detailed, mobileAccordion false, arrowAnimation true, detailedWidthMode fixed,
-//   searchPanelCustom/searchRadiusCustom/searchResultCustom false, searchPlaceholder 빈 값,
-//   searchResultShow 모두 true, scrollEffect true, scrollThreshold 10, offsetBody true,
-//   logo.alt 브랜드 로고, logo.link /
+// - 설정 : mobileBreakpoint 1024, desktopHamburger false, useSearch false, showMobileSearchBtn true,
+//   showMobileSearchBar false, searchPosition right, oopyPlan standard, hideNotionTopbar true,
+//   showMobileDesc true, mobileCtaLayout horizontal, mobileCtaGridCols 2, useHeaderShadow true,
+//   showArrowDefault true, defaultDropdownStyle detailed, mobileAccordion false, arrowAnimation true,
+//   detailedWidthMode fixed, searchPanelCustom/searchRadiusCustom/searchResultCustom false,
+//   searchPlaceholder 빈 값, searchResultShow 모두 true, scrollEffect true, scrollThreshold 10,
+//   offsetBody true, logo.alt 브랜드 로고, logo.link /
 //
 // [알려진 제한]
 // - PC 전용이다. 휴대폰이나 태블릿 브라우저에서는 팝업 창 방식 때문에 사용하지 않는다.
@@ -105,13 +111,18 @@
 // - 주소 입력칸에는 주소 형식 검사가 없다. 잘못된 주소는 그대로 출력된다.
 // - 가져오기는 이 대시보드가 내보낸 형식을 기준으로 읽는다. 손으로 크게 고친 코드는 오류 위치를 알려주고
 //   적용하지 않는다.
+// - PC 햄버거 모드에서는 PC 검색 버튼이 숨겨지므로, 검색 버튼이 필요하면 검색 구역의
+//   '상단바 검색 아이콘' 스위치를 함께 켠다.
 //
 // [검증 상태]
 // - 확인함 : PC 브라우저에서의 실행, 미리보기 반영, 코드 출력과 option 파일 적용, 구역 재배치,
 //            바로가기 바와 전체 펼치기/접기, 저장 슬롯과 자동 저장, 가져오기, 사이트 기본으로 되돌리기,
 //            눈 아이콘, 복제 버튼, 검색 관련 모든 항목
-// - 미확인 : 휴대폰/태블릿에서 대시보드 실행 (지원 대상 아님)
+// - 미확인 : PC에서도 햄버거 메뉴 스위치와 PC 햄버거 패널 값 4개 (코드 문법과 가상 환경에서의 동작만
+//            검증했고, 실제 우피 화면에서의 모양은 확인 전),
+//            휴대폰/태블릿에서 대시보드 실행 (지원 대상 아님)
 // =====================================================================================
+
 
 
 
@@ -177,6 +188,7 @@
         '.ddAuto .fixedOnly{display:none}body:not(.ddAuto) .autoOnly{display:none}',
     'body:not(.panelOn) .panelOnly{display:none}',
     'body:not(.radiusOn) .radiusOnly{display:none}body:not(.resultOn) .resultOnly{display:none}',
+    'body:not(.pcHamOn) .pchamOnly{display:none}',
     '.setrow{margin-bottom:2px}',
     '.subhead{font-weight:700;color:var(--ac);margin:14px 0 4px;padding-top:10px;border-top:1px solid var(--bdd)}',
     'body.searchOff .needSearch{display:none}body.filtering .subhead{display:none}',
@@ -291,6 +303,7 @@
   var RD = function (it) { it.radius = true; return it; };
   var RS = function (it) { it.result = true; return it; };
   var NS = function (it) { it.ns = true; return it; };
+    var PH = function (it) { it.pcham = true; return it; };
   var SET = function (label, build, ns) { return { k: 'set', label: label, build: build, ns: !!ns }; };
   var HEAD = function (text, ns) { return { k: 'head', text: text, ns: !!ns }; };
   var MODE = { k: 'mode' };
@@ -465,7 +478,12 @@
       NS(RS(W('--searchResultFooterWeight_s21', '검색 결과 하단 문구 굵기', '400'))),
       NS(RS(C('--searchResultFooterColor_s22', '검색 결과 하단 문구 색', 'rgba(55, 53, 47, 0.4)')))
     ] },
-    { id: 'sec-mobile', toc: '모바일', title: '8. 모바일', blocks: [
+        { id: 'sec-mobile', toc: '모바일', title: '8. 모바일', blocks: [
+      SET('PC에서도 햄버거 메뉴 사용 desktopHamburger 폭 열 수 위아래 여백', function () { return [toggle('PC에서도 햄버거 메뉴 사용 (desktopHamburger)', state.nav, 'desktopHamburger')]; }),
+      PH(R('--pcPanelWidth_k1', 'PC 햄버거 패널 폭 (헤더 콘텐츠 폭 대비)', 50, 100, '%', '100%')),
+      PH(R('--pcPanelCols_k2', 'PC 햄버거 패널 열 수', 1, 3, '', '1')),
+      PH(R('--pcPanelPadY_k3', 'PC 햄버거 패널 위아래 여백', 0, 80, 'px', '20px')),
+      PH(R('--pcPanelColGap_k4', 'PC 햄버거 패널 열 사이 간격', 0, 80, 'px', '32px')),
       SET('모바일 햄버거 전환 시점 mobileBreakpoint', function () { return [numRange('모바일 햄버거 전환 시점 (px, mobileBreakpoint)', state.nav, 'mobileBreakpoint', 480, 1600, 1)]; }),
       O(R('--mobileHeaderPaddingX_a9', '모바일 헤더 좌우 여백', 0, 100, 'px', '16px')),
       HEAD('펼침 패널'),
@@ -513,7 +531,7 @@
     logo: { url: '', mobileUrl: '', alt: '브랜드 로고', link: '/' }, showArrowDefault: true, defaultDropdownStyle: 'detailed',
     mobileAccordion: false, arrowAnimation: true, detailedWidthMode: 'fixed',
     showMobileSearchBar: false, searchPanelCustom: false, searchPlaceholder: '', searchPlaceholderMobile: '',
-    searchRadiusCustom: false, searchResultCustom: false,
+       searchRadiusCustom: false, searchResultCustom: false, desktopHamburger: false,
     searchResultShow: { icon: true, location: true, desc: true, type: true, footer: true },
     menuItems: [], ctaButtons: [], scrollEffect: true, scrollThreshold: 10, offsetBody: true
   };
@@ -551,7 +569,7 @@
     b = isObj(b) ? b : {};
     return { label: str(b.label), url: b.url || '#', target: b.target === '_blank' ? '_blank' : '_self', variant: b.variant === 'solid' ? 'solid' : 'outline', showOnMobileBar: toBool(b.showOnMobileBar, false) };
   }
-  var BOOL_KEYS = ['useSearch', 'showMobileSearchBtn', 'hideNotionTopbar', 'showMobileDesc', 'useHeaderShadow', 'showArrowDefault', 'scrollEffect', 'offsetBody', 'mobileAccordion', 'arrowAnimation', 'showMobileSearchBar', 'searchPanelCustom', 'searchRadiusCustom', 'searchResultCustom'];
+  var BOOL_KEYS = ['useSearch', 'showMobileSearchBtn', 'hideNotionTopbar', 'showMobileDesc', 'useHeaderShadow', 'showArrowDefault', 'scrollEffect', 'offsetBody', 'mobileAccordion', 'arrowAnimation', 'showMobileSearchBar', 'searchPanelCustom', 'searchRadiusCustom', 'searchResultCustom', 'desktopHamburger'];
   function normalizeNav(src, base) {
     var nav = deepMerge(base || NAV_DEFAULT, isObj(src) ? src : {});
     BOOL_KEYS.forEach(function (k) { nav[k] = toBool(nav[k], NAV_DEFAULT[k]); });
@@ -602,7 +620,7 @@
       mobileAccordion: !!d.mobileAccordion, arrowAnimation: d.arrowAnimation !== false, detailedWidthMode: d.detailedWidthMode === 'auto' ? 'auto' : 'fixed',
       showMobileSearchBar: !!d.showMobileSearchBar, searchPanelCustom: !!d.searchPanelCustom,
       searchPlaceholder: str(d.searchPlaceholder).trim(), searchPlaceholderMobile: str(d.searchPlaceholderMobile).trim(),
-      searchRadiusCustom: !!d.searchRadiusCustom, searchResultCustom: !!d.searchResultCustom,
+            searchRadiusCustom: !!d.searchRadiusCustom, searchResultCustom: !!d.searchResultCustom, desktopHamburger: !!d.desktopHamburger,
       searchResultShow: { icon: d.searchResultShow.icon !== false, location: d.searchResultShow.location !== false, desc: d.searchResultShow.desc !== false, type: d.searchResultShow.type !== false, footer: d.searchResultShow.footer !== false },
       menuItems: d.menuItems.map(cleanItem),
       ctaButtons: d.ctaButtons.map(function (b) { return { label: str(b.label).trim(), url: str(b.url).trim() || '#', target: b.target, variant: b.variant, showOnMobileBar: !!b.showOnMobileBar }; }),
@@ -830,7 +848,7 @@
     var makeCtl = mk[it.optional ? 'opt' : it.type];
     var c = makeCtl(it, ctx);
     var rb = h('button', { type: 'button', className: 'rbtn', title: '실행 시점 값으로 되돌리기', text: '↺' });
-    var cls = 'item' + (it.det ? ' detOnly' : '') + (it.mode === 'auto' ? ' autoOnly' : '') + (it.mode === 'fixed' ? ' fixedOnly' : '') + (it.panel ? ' panelOnly' : '') + (it.radius ? ' radiusOnly' : '') + (it.result ? ' resultOnly' : '') + (it.ns ? ' needSearch' : '');
+    var cls = 'item' + (it.det ? ' detOnly' : '') + (it.mode === 'auto' ? ' autoOnly' : '') + (it.mode === 'fixed' ? ' fixedOnly' : '') + (it.panel ? ' panelOnly' : '') + (it.radius ? ' radiusOnly' : '') + (it.result ? ' resultOnly' : '') + (it.pcham ? ' pchamOnly' : '') + (it.ns ? ' needSearch' : '');
     var wrap = h('div', { className: cls, 'data-search': (it.label + ' ' + it.v).toLowerCase() }, [
       h('div', { className: 'ihead' }, [
         h('div', {}, [h('span', { className: 'lbl', text: it.label }), h('span', { className: 'dot', title: '변경됨' }), h('span', { className: 'vn', text: it.v })]),
@@ -1399,7 +1417,7 @@
   var differs0 = Object.keys(SYNC).some(function (k) { return state.styles[k] !== state.styles[SYNC[k]]; });
   setMode(!differs0, false);
   refreshSettings(); renderMenu(); renderCta(); renderSlots(); applyCss();
-  if (typeof window.efc_rebuildNav_v2a === 'function' && !/searchResultCustom/.test(String(window.efc_rebuildNav_v2a))) {
+  if (typeof window.efc_rebuildNav_v2a === 'function' &&!/desktopHamburger/.test(String(window.efc_rebuildNav_v2a))) {
     engineWarn = ' · 주의: 현재 엔진이 신규 검색 옵션(검색창 모서리, 검색 결과 커스텀 등)을 지원하지 않는 버전입니다. 엔진을 20261004 버전으로 교체하세요';
   }
   if (storageOk) {

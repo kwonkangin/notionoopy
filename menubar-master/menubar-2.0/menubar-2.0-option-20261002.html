@@ -1,36 +1,33 @@
-<!-- 메뉴바 2.0 디자인 20261004 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-2.0/menubar-2.0-20261002.css">
-<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-2.0/menubar-2.0-20261002.js" defer></script>
--->
-
 <!--
 =====================================================================================
-menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메뉴 내용 설정)
-한 줄 설명 : 메뉴바의 모양(CSS 변수)과 내용(메뉴, 버튼, 검색, 모바일 옵션)을 정하는 파일. 대시보드가
-             만든 코드를 붙여 넣는 자리다.
-짝 파일    : menubar-2.0-20261004.css, menubar-2.0-20261004.js (엔진),
-             menubar-2.0-dashboard-20261004.js (대시보드)
+menubar-2.0-option-20261005.html   |   메뉴바 옵션 2.0 (모양 변수 + 메뉴 내용 설정)
+한 줄 설명 : 메뉴바의 모양(CSS 변수)과 내용(메뉴, 버튼, 검색, 모바일/PC 햄버거 옵션)을 정하는 파일.
+             대시보드가 만든 코드를 붙여 넣는 자리다.
+짝 파일    : menubar-2.0-20261005.css, menubar-2.0-20261005.js (엔진),
+             menubar-2.0-dashboard-20261005.js (대시보드)
 의존성     : 엔진보다 먼저 실행되어야 한다. 직접 고치기보다 대시보드로 출력해 통째로 교체하는 것을 권장한다.
 =====================================================================================
 
 [이 파일의 구성]  한 파일 안에 두 가지가 들어 있고, 대시보드가 둘을 한 번에 출력한다.
-1) style 블록 : :root 안의 CSS 변수. 색, 크기, 간격 같은 "모양"을 정한다. (변수 총 112개)
+1) style 블록 : :root 안의 CSS 변수. 색, 크기, 간격 같은 "모양"을 정한다. (변수 총 116개)
 2) script 블록 : window.efcMenubarConfig. 메뉴 이름, 링크, 하위메뉴, 버튼, 검색 같은 "내용"과 동작 옵션을 정한다.
 
 [변수 이름 규칙]
 - 이름 끝의 _a1, _c4 같은 접미사는 영역(알파벳)과 순번을 나타내는 식별 코드다. 값에는 영향이 없다.
 - 엔진과 대시보드가 이름으로 변수를 찾으므로 이름을 바꾸거나 지우지 않는다.
 - 색상은 #HEX, rgba(), transparent 로 쓴다. 길이 값은 px, 시간은 s 처럼 단위를 반드시 붙인다
-  (단위가 빠지면 그 값은 무시된다). 굵기, z-index, 줄 수는 숫자만 쓴다.
+  (단위가 빠지면 그 값은 무시된다). 굵기, z-index, 줄 수, 열 수는 숫자만 쓴다.
 - '선택' 변수(모바일 헤더 좌우 여백, 모바일 로고 높이, 모바일 상단바 검색 아이콘 내부 여백,
   모바일 검색창 위쪽 여백/너비)는 줄을 지우면 PC 값(또는 우피 기본)을 따른다. 값을 비워 두면
   (예: --mobileHeaderPaddingX_a9: ;) 안 되고, 쓰지 않을 때는 줄 자체를 지운다.
 - 검색창 관련 변수(--searchPanel..., --searchResult...)는 해당 스위치(searchPanelCustom,
   searchRadiusCustom, searchResultCustom)가 true 일 때만 화면에 적용된다.
+- PC 햄버거 패널 변수(--pcPanel...)는 desktopHamburger 가 true 이고 화면이 PC 폭일 때만 적용된다.
 
 [CSS 변수 목록]  (의미 / 기본값 / 설정값 / 적용 범위)
   기본값은 대시보드가 처음 보여주는 값이다. '적용' 항목이 'PC 상세형만' 인 변수는 모바일과 심플형에는
-  반영되지 않는다. 구역 이름은 대시보드의 구역과 같다.
+  반영되지 않는다. 구역 이름은 대시보드의 구역과 같다. "실제 모바일 폭"은 화면 너비가
+  mobileBreakpoint 이하인 경우를 뜻한다.
 
   ■ 2. 헤더
     --headerBg_a1
@@ -44,10 +41,10 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       적용 : 공통 (본문 상단 여백, 모바일 패널 최대 높이 계산에도 사용)
     --headerMaxWidth_a4
       의미 : 내부 콘텐츠 최대 너비   |   기본값 : 1280px   |   설정값 : none / 1024px / 1280px / 직접 입력
-      적용 : 공통
+      적용 : 공통 (PC 햄버거 패널 폭의 기준이 되는 헤더 콘텐츠 폭도 이 값을 따름)
     --headerPaddingX_a5
       의미 : 헤더 좌우 여백   |   기본값 : 24px   |   설정값 : 0~100px
-      적용 : PC (모바일은 --mobileHeaderPaddingX_a9 가 있으면 그 값을 따름)
+      적용 : PC · PC 햄버거 모드 (실제 모바일 폭에서는 --mobileHeaderPaddingX_a9 가 있으면 그 값을 따름)
     --headerZIndex_a6
       의미 : 겹침 순서(z-index)   |   기본값 : 9999   |   설정값 : 10~9999
       적용 : 공통 · 다른 요소에 가려지면 값을 올린다 (엔진 내부 폴백은 50)
@@ -61,10 +58,10 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
   ■ 3. 로고
     --logoHeight_b1
       의미 : 로고 높이   |   기본값 : 28px   |   설정값 : 10~100px
-      적용 : PC (모바일은 --logoHeightMobile_b2 가 있으면 그 값을 따름)
+      적용 : PC · PC 햄버거 모드 (실제 모바일 폭에서는 --logoHeightMobile_b2 가 있으면 그 값을 따름)
     --logoHeightMobile_b2
       의미 : 모바일 로고 높이   |   기본값 : 24px   |   설정값 : 10~100px
-      적용 : 모바일 전용 · 선택(줄을 지우면 b1 값을 따름)
+      적용 : 실제 모바일 폭 전용 · 선택(줄을 지우면 b1 값을 따름)
 
   ■ 4. 대메뉴 (PC)
     --navAlign_c9
@@ -199,22 +196,22 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
   ■ 6. CTA 버튼 (PC)
     --ctaGap_f1
       의미 : 버튼 사이 간격   |   기본값 : 10px   |   설정값 : 0~40px
-      적용 : PC
+      적용 : PC · PC 햄버거 모드
     --ctaRadius_f2
       의미 : 버튼 모서리 둥글기   |   기본값 : 999px   |   설정값 : 0~999px (999 = 알약)
       적용 : PC · 모바일 패널 CTA
     --ctaFontSize_f3
       의미 : 글자 크기   |   기본값 : 14px   |   설정값 : 10~24px
-      적용 : PC만
+      적용 : PC · PC 햄버거 모드
     --ctaFontWeight_z7
       의미 : 글자 굵기   |   기본값 : 700   |   설정값 : 100~900
       적용 : PC · 모바일(패널·상단바)
     --ctaPaddingY_f5
       의미 : 상하 여백   |   기본값 : 10px   |   설정값 : 0~30px
-      적용 : PC만
+      적용 : PC · PC 햄버거 모드
     --ctaPaddingX_f4
       의미 : 좌우 여백   |   기본값 : 18px   |   설정값 : 0~50px
-      적용 : PC만
+      적용 : PC · PC 햄버거 모드
     --ctaSolidBg_z1
       의미 : 채우기(solid) 배경색   |   기본값 : rgba(49,130,246,1)   |   설정값 : 색상
       적용 : PC · 모바일
@@ -282,10 +279,10 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       적용 : 열린 검색창 · searchPanelCustom 이 true 일 때
     --searchPanelTopMobile_s3
       의미 : 검색창 위쪽 여백 (모바일)   |   기본값 : 90px   |   설정값 : 0~400px
-      적용 : 모바일 폭 · 선택(줄을 지우면 s1 값을 따름)
+      적용 : 실제 모바일 폭 · 선택(줄을 지우면 s1 값을 따름)
     --searchPanelWidthMobile_s4
       의미 : 검색창 너비 (모바일)   |   기본값 : 100%   |   설정값 : 50~100%
-      적용 : 모바일 폭 · 선택(줄을 지우면 100%)
+      적용 : 실제 모바일 폭 · 선택(줄을 지우면 100%)
     --searchPanelRadius_s5
       의미 : 검색창 모서리 둥글기   |   기본값 : 3px   |   설정값 : 0~30px
       적용 : 열린 검색창 · searchRadiusCustom 이 true 일 때 (입력줄·결과·하단 문구가 함께 둥글게 잘림)
@@ -341,34 +338,46 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       의미 : 검색 결과 하단 문구 색   |   기본값 : rgba(55,53,47,0.4)   |   설정값 : 색상
       적용 : searchResultCustom 이 true 일 때
 
-  ■ 8. 모바일
+  ■ 8. 모바일 / PC 햄버거
+    --pcPanelWidth_k1
+      의미 : PC 햄버거 패널 폭 (헤더 콘텐츠 폭 대비)   |   기본값 : 100%   |   설정값 : 50~100%
+      적용 : PC 햄버거 모드(desktopHamburger 가 true 이고 PC 폭)의 펼침 패널만. 100% 보다 작으면 가운데 정렬
+    --pcPanelCols_k2
+      의미 : PC 햄버거 패널 열 수   |   기본값 : 1   |   설정값 : 1~3
+      적용 : PC 햄버거 모드의 펼침 패널만 (대메뉴를 열 단위로 배치, 검색 버튼은 한 줄 전체)
+    --pcPanelPadY_k3
+      의미 : PC 햄버거 패널 위아래 여백   |   기본값 : 20px   |   설정값 : 0~80px
+      적용 : PC 햄버거 모드의 펼침 패널만
+    --pcPanelColGap_k4
+      의미 : PC 햄버거 패널 열 사이 간격   |   기본값 : 32px   |   설정값 : 0~80px
+      적용 : PC 햄버거 모드의 펼침 패널만 (열 수가 2 이상일 때)
     --mobileHeaderPaddingX_a9
       의미 : 모바일 헤더 좌우 여백   |   기본값 : 16px   |   설정값 : 0~100px
-      적용 : 모바일 전용 · 선택(줄을 지우면 a5 값을 따름)
+      적용 : 실제 모바일 폭 전용 · 선택(줄을 지우면 a5 값을 따름)
     --mobilePanelBg_h1
       의미 : 모바일 패널 배경색   |   기본값 : #ffffff   |   설정값 : 색상
-      적용 : 모바일
+      적용 : 모바일 · PC 햄버거 모드
     --mobilePanelPaddingX_h5
       의미 : 모바일 패널 좌우 추가 여백   |   기본값 : 0px   |   설정값 : 0~60px
-      적용 : 모바일 (헤더 여백 위에 더해짐)
+      적용 : 모바일 · PC 햄버거 모드 (헤더 여백 위에 더해짐)
     --mobileActionGap_o2
       의미 : 모바일 헤더 오른쪽 영역 간격   |   기본값 : 12px   |   설정값 : 0~40px
-      적용 : 모바일 (CTA · 검색 아이콘 · 햄버거 사이)
+      적용 : 모바일 · PC 햄버거 모드 (CTA · 검색 아이콘 · 햄버거 사이)
     --toggleColor_g1
       의미 : 햄버거 아이콘 색   |   기본값 : #1f2937   |   설정값 : 색상
-      적용 : 모바일
+      적용 : 모바일 · PC 햄버거 모드
     --mobileItemFontSize_h2
       의미 : 모바일 대메뉴 글자 크기   |   기본값 : 15px   |   설정값 : 10~24px
-      적용 : 모바일
+      적용 : 모바일 · PC 햄버거 모드
     --mobileItemColor_h3
       의미 : 모바일 메뉴 글자색   |   기본값 : #333333   |   설정값 : 색상
-      적용 : 모바일 대메뉴 · 하위 항목
+      적용 : 모바일 · PC 햄버거 모드 (대메뉴, 하위 항목)
     --mobileCaretColor_h4
       의미 : 모바일 화살표 색   |   기본값 : #9aa0a6   |   설정값 : 색상
-      적용 : 모바일
+      적용 : 모바일 · PC 햄버거 모드
     --mobileBarCtaGap_i1
       의미 : 상단바 CTA 간격   |   기본값 : 8px   |   설정값 : 0~20px
-      적용 : 모바일 상단바 (showOnMobileBar 가 true 인 버튼)
+      적용 : 모바일 상단바 (showOnMobileBar 가 true 인 버튼). PC 햄버거 모드에서는 이 묶음이 숨겨짐
     --mobileBarCtaFontSize_i2
       의미 : 상단바 CTA 글자 크기   |   기본값 : 12px   |   설정값 : 8~20px
       적용 : 모바일 상단바
@@ -383,14 +392,16 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       적용 : 모바일 상단바
 
 [설정 객체 window.efcMenubarConfig]  (괄호 안은 대시보드 기본값)
-- mobileBreakpoint (1024) : 이 너비(px) 이하이면 모바일 메뉴(햄버거)로 바뀐다.
+- mobileBreakpoint (1024) : 이 너비(px) 이하이면 "실제 모바일 폭"으로 보고 모바일 메뉴(햄버거)와
+  모바일 전용 값(헤더 여백, 로고 높이, 모바일 로고, 검색창 모바일 값, 모바일 플레이스홀더)을 쓴다.
+- desktopHamburger (false) : true 이면 PC 폭에서도 햄버거 메뉴를 쓴다. 아래 [PC에서도 햄버거 메뉴] 참고.
 - hideNotionTopbar (true) : 노션 기본 상단바를 화면 밖으로 보낼지.
 - useHeaderShadow (true) : 스크롤했을 때 헤더 아래 그림자를 보여줄지.
 - scrollEffect (true) / scrollThreshold (10) : 스크롤 시 그림자 효과 사용 여부 / 몇 px 내려가면 켤지.
 - offsetBody (true) : 본문 위쪽에 헤더 높이만큼 여백을 자동으로 넣을지.
 - logo : 로고 설정.
     url ("")        PC 로고 이미지 주소. 모바일에서도 기본으로 같은 로고를 쓴다.
-    mobileUrl ("")  모바일 전용 로고 주소. 비우면 PC 로고를 그대로 쓴다.
+    mobileUrl ("")  모바일 전용 로고 주소. 비우면 PC 로고를 그대로 쓴다. 실제 모바일 폭에서만 쓰인다.
     alt ("브랜드 로고")  이미지 대체 텍스트.
     link ("/")      로고를 눌렀을 때 이동할 주소.
 - showArrowDefault (true) : 하위메뉴가 있는 대메뉴에 화살표를 보여줄지. 메뉴별 showArrow 가 있으면 그쪽이 우선.
@@ -403,17 +414,18 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     oopyPlan ("standard")   standard 는 .search-button 을, pro 는 .xi-search 를 먼저 찾고 없으면 반대쪽도 찾는다.
     searchPosition ("right") 검색 버튼 배치. right: PC 는 CTA 오른쪽 / 모바일 상단바 아이콘은 CTA 와 햄버거 사이 /
                             패널 검색 버튼은 CTA 아래. left: 각각 CTA 왼쪽 / CTA 왼쪽 / CTA 위.
-    showMobileSearchBtn (true)  모바일 패널 하단에 검색 버튼을 보여줄지.
-    showMobileSearchBar (false) 모바일 상단바(CTA 와 햄버거 사이)에 검색 아이콘을 보여줄지.
+    showMobileSearchBtn (true)  모바일(또는 PC 햄버거) 패널 하단에 검색 버튼을 보여줄지.
+    showMobileSearchBar (false) 상단바(CTA 와 햄버거 사이)에 검색 아이콘을 보여줄지. PC 햄버거 모드에서는
+                            PC 검색 버튼이 숨겨지므로 검색 버튼이 필요하면 이 스위치를 켠다.
     searchPlaceholder ("")  열린 검색창 입력칸 문구(PC). 비우면 우피 기본 문구.
-    searchPlaceholderMobile ("") 모바일 폭에서 쓸 문구. 비우면 PC 문구를 쓴다.
+    searchPlaceholderMobile ("") 실제 모바일 폭에서 쓸 문구. 비우면 PC 문구를 쓴다.
     searchPanelCustom (false)  true 이면 --searchPanelTop_s1 등 검색창 위치/크기 변수를 적용한다.
     searchRadiusCustom (false) true 이면 --searchPanelRadius_s5 를 적용한다.
     searchResultCustom (false) true 이면 --searchResult... 변수(글자 크기, 굵기, 색, 설명 줄 수)를 적용한다.
     searchResultShow { icon, location, desc, type, footer } (모두 true)  검색 결과의 아이콘, 위치(경로), 설명,
                             타입 배지, 하단 "검색 결과 n개" 문구를 보일지. 제목은 항상 보인다.
-- showMobileDesc (true) : 모바일 하위메뉴에서도 설명글을 보여줄지.
-- mobileAccordion (false) : true 이면 모바일에서 대메뉴를 펼칠 때 다른 대메뉴는 자동으로 접힌다.
+- showMobileDesc (true) : 모바일(또는 PC 햄버거) 하위메뉴에서도 설명글을 보여줄지.
+- mobileAccordion (false) : true 이면 모바일(또는 PC 햄버거)에서 대메뉴를 펼칠 때 다른 대메뉴는 자동으로 접힌다.
   false 이면 여러 개를 동시에 펼쳐 둘 수 있다.
 - mobileCtaLayout ("horizontal") : 모바일 패널 안 CTA 버튼 배열. horizontal(가로 그리드) / vertical(세로).
 - mobileCtaGridCols (2) : 가로 배열일 때 열 개수(1~10).
@@ -434,13 +446,28 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     label           버튼 글자.
     url, target     이동 주소 / 열기 방식. (전화는 "tel:번호" 형식)
     variant         solid(채우기) / outline(테두리).
-    showOnMobileBar true 이면 모바일 상단바(햄버거 옆)에도 버튼을 보여준다.
+    showOnMobileBar true 이면 실제 모바일 폭의 상단바(햄버거 옆)에도 버튼을 보여준다.
+
+[PC에서도 햄버거 메뉴 (desktopHamburger)]
+- desktopHamburger 를 true 로 하면 PC 폭에서도 햄버거 메뉴가 된다. 대메뉴의 마우스 올리기 하위메뉴는
+  없어지고, 모바일과 같은 펼침 패널(아코디언)이 쓰인다.
+- 헤더 로고 높이, 헤더 좌우 여백, 검색창 설정, 플레이스홀더는 PC 값을 그대로 쓴다. 화면이 실제로
+  mobileBreakpoint 이하로 좁아졌을 때만 모바일 전용 값으로 바뀐다.
+- CTA : PC CTA 버튼을 모두 헤더에 보여준다. 모바일 상단바용 CTA 묶음(showOnMobileBar)과 패널 안 CTA 는
+  숨겨 중복되지 않게 한다.
+- 검색 : PC 검색 버튼은 숨겨진다. 상단바 검색 아이콘(showMobileSearchBar)을 켜면 CTA 와 햄버거 사이(또는
+  searchPosition 이 left 이면 CTA 왼쪽)에 검색 아이콘이 나타난다.
+- 패널 모양 : 햄버거를 누르면 헤더 안에서 아래로 펼쳐지고, 내용이 헤더 콘텐츠와 같은 선에 정렬된다.
+  --pcPanelWidth_k1 (폭 비율, 100% 보다 작으면 가운데 정렬), --pcPanelCols_k2 (열 수),
+  --pcPanelPadY_k3 (위아래 여백), --pcPanelColGap_k4 (열 사이 간격)로 조절한다. 구분선과 그림자는 없다.
+- 닫기 : 헤더 바깥을 클릭하거나 ESC 를 누르면 닫힌다 (모바일에서도 동일).
 
 [사용법]
-1) 대시보드(menubar-2.0-dashboard-20261004.js)에서 모양과 내용을 조정하고 '코드 출력하기'를 누른다.
+1) 대시보드(menubar-2.0-dashboard-20261005.js)에서 모양과 내용을 조정하고 '코드 출력하기'를 누른다.
 2) 나온 코드(style 블록 + script 블록)로 이 파일 내용을 통째로 교체한다.
 3) Oopy 코드 삽입에서 이 파일을 엔진(CSS, JS)보다 앞에 둔다.
 4) 이전에 출력한 코드를 다시 불러와 수정하려면 대시보드의 '가져오기'에 붙여 넣는다.
+5) PC에서도 햄버거 메뉴를 쓰려면 대시보드 '모바일' 구역에서 'PC에서도 햄버거 메뉴 사용'을 켠다.
 
 [알려진 제한]
 - 설정 이름은 window.efcMenubarConfig 하나만 인식한다. 이름이 다르면 메뉴가 비어 보인다.
@@ -449,11 +476,16 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
 - 키를 생략하면 엔진 내부 기본값이 쓰여 대시보드 기본값과 다를 수 있다. 대시보드가 출력한 코드를 그대로 쓴다.
 - 변수 단위를 빼먹으면 해당 값이 무시된다.
 - 검색창 커스텀은 노션 검색창 구조에 의존한다. 노션 쪽 구조가 바뀌면 우피 기본 모양으로 보일 수 있다.
+- PC 햄버거 모드에서는 PC 검색 버튼이 보이지 않으므로 상단바 검색 아이콘을 켜야 검색 버튼이 생긴다.
+- PC 햄버거 패널은 헤더 안에서 펼쳐지므로 메뉴가 매우 길면 패널 안에서 스크롤된다.
+- PC 햄버거 모드는 엔진이 20261005 버전 이상이어야 동작한다. 이전 버전 엔진에서는 이 설정이 무시된다.
 
 [검증 상태]
 - 확인함 : 대시보드 출력 코드를 이 파일에 적용해 엔진이 읽는 동작(변수 반영, 메뉴/하위메뉴/CTA 표시,
            모바일 옵션, 로고 분리, 검색 옵션 전체), 새 이름(efcMenubarConfig) 적용, 내보낸 코드를
            대시보드 가져오기로 다시 읽는 왕복
+- 미확인 : PC에서도 햄버거 메뉴(desktopHamburger)와 PC 햄버거 패널 변수 4개
+           (코드 문법과 가상 환경에서의 동작만 검증했고, 실제 우피 화면에서의 모양은 확인 전)
 =====================================================================================
 -->
 
@@ -462,19 +494,19 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
 
 <style>
   :root {
-    /* ── 1. 헤더 기본 레이아웃 ── */
+    /* ── 2. 헤더 ── */
     --headerBg_a1: #ffffff; /* 헤더 배경색 */
     --headerBorderColor_a2: transparent; /* 헤더 하단 테두리색 */
     --headerHeight_a3: 72px; /* 헤더 전체 높이 */
     --headerMaxWidth_a4: 1280px; /* 콘텐츠 최대 너비 */
     --headerPaddingX_a5: 59px; /* 좌우 내부 여백 */
-    --mobileHeaderPaddingX_a9: 16px; /* 모바일 헤더 좌우 여백 */
     --headerZIndex_a6: 9999; /* Z-Index (우선순위) */
     --headerTransitionSpeed_a7: 0.3s; /* 배경 전환 애니메이션 속도 */
     --headerRowGap_a8: 0px; /* 로고-메뉴-버튼 간격 */
+    /* ── 3. 로고 (크기) ── */
     --logoHeight_b1: 36px; /* 로고 이미지 높이 */
     --logoHeightMobile_b2: 32px; /* 모바일 로고 높이 */
-    /* ── 2. 데스크톱 대메뉴 ── */
+    /* ── 4. 대메뉴 (PC) ── */
     --navAlign_c9: flex-end; /* 메뉴 정렬 위치 */
     --navGap_c1: 32px; /* 메뉴 사이 간격 */
     --navMarginLeft_c10: 0px; /* 대메뉴 좌측(로고) 여백 */
@@ -486,7 +518,7 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --navArrowDisplay_c6: inline-block; /* 화살표 노출 */
     --navArrowSize_c7: 12px; /* 화살표 크기 */
     --navArrowColor_c8: currentColor; /* 화살표 색상 */
-    /* ── 3. 하위메뉴 공통/상세/심플 ── */
+    /* ── 5. 하위메뉴 ── */
     --dropdownSimpleBg_d1: #ffffff; /* 배경색 (심플/공통) */
     --dropdownSimpleRadius_d2: 12px; /* 테두리 둥글기 (심플/공통) */
     --dropdownSimplePad_d5: 8px 8px; /* 내부 여백 (심플/공통) */
@@ -502,7 +534,6 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --dropdownItemRadius_e6: 10px; /* 항목 호버 둥글기 */
     --dropdownItemHoverBg_e7: rgba(0, 176, 236, 0.06); /* 항목 호버 배경색 */
     --dropdownGap_e21: 4px; /* 항목 사이 상하 간격 */
-    /* ── 4. 하위메뉴 아이콘/텍스트 ── */
     --dropdownIconColor_e11: rgba(51, 51, 51, 1.00); /* 글로벌 아이콘 기본색 */
     --dropdownIconHoverColor_e11h: #00b0ec; /* 글로벌 아이콘 호버색 */
     --dropdownIconBoxSize_e8: 30px; /* 아이콘 박스 크기 */
@@ -519,7 +550,7 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --dropdownDescWeight_e18: 400; /* 설명 굵기 */
     --dropdownTitleDescGap_e19: 3px; /* 제목-설명 상하 간격 */
     --dropdownNoIconAlign_e20: left; /* 아이콘 없을 때 텍스트 정렬 */
-    /* ── 5. CTA 버튼 ── */
+    /* ── 6. CTA 버튼 (PC) ── */
     --ctaGap_f1: 10px; /* 버튼 간격 */
     --ctaRadius_f2: 100px; /* 버튼 둥글기 */
     --ctaFontSize_f3: 16px; /* 글자 크기 */
@@ -532,20 +563,20 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --ctaOutlineText_z4: #00b0ec; /* Outline 글자색 */
     --ctaOutlineBorder_z5: #00b0ec; /* Outline 선 색상 */
     --ctaBorderWidth_z6: 1.5px; /* 테두리 선 두께 */
-    /* ── 6. PC/모바일 검색버튼 ── */
+    /* ── 7. 검색 ── */
     --searchBtnBg_j1: transparent; /* (PC) 기본 배경색 */
     --searchBtnText_j2: #333333; /* (PC) 기본 아이콘색 */
     --searchBtnHoverBg_j3: transparent; /* (PC) 호버 배경색 */
     --searchBtnHoverText_j4: #00a6ab; /* (PC) 호버 아이콘색 */
     --searchBtnSize_j5: 18px; /* (PC) 아이콘 크기 */
     --searchBtnPadding_j6: 4px 20px; /* (PC) 내부 여백 */
-    --searchBtnPaddingMobile_j8: 4px 0px; /* (모바일) 상단바 검색 아이콘 내부 여백 */
     --searchBtnRadius_j7: 4px; /* (PC) 둥글기 */
-    --mobileSearchBg_m1: #f4f4f5; /* (모바일) 배경색 */
-    --mobileSearchText_m2: #333333; /* (모바일) 글자/아이콘색 */
-    --mobileSearchHoverBg_m3: #e4e4e7; /* (모바일) 호버 배경색 */
-    --mobileSearchHoverText_m4: #00a6ab; /* (모바일) 호버 글자색 */
-    --mobileSearchRadius_m5: 8px; /* (모바일) 둥글기 */
+    --mobileSearchBg_m1: #f4f4f5; /* (모바일 패널 버튼) 배경색 */
+    --mobileSearchText_m2: #333333; /* (모바일 패널 버튼) 글자/아이콘색 */
+    --mobileSearchHoverBg_m3: #e4e4e7; /* (모바일 패널 버튼) 호버 배경색 */
+    --mobileSearchHoverText_m4: #00a6ab; /* (모바일 패널 버튼) 호버 글자색 */
+    --mobileSearchRadius_m5: 8px; /* (모바일 패널 버튼) 둥글기 */
+    --searchBtnPaddingMobile_j8: 4px 0px; /* (모바일) 상단바 검색 아이콘 내부 여백 */
     --searchPanelTop_s1: 240px; /* 검색창 위쪽 여백 */
     --searchPanelWidth_s2: 656px; /* 검색창 너비 (PC) */
     --searchPanelWidthMobile_s4: 82%; /* 검색창 너비 (모바일) */
@@ -567,7 +598,12 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --searchResultFooterSize_s20: 12px; /* 검색 결과 하단 문구 크기 */
     --searchResultFooterWeight_s21: 400; /* 검색 결과 하단 문구 굵기 */
     --searchResultFooterColor_s22: rgba(55, 53, 47, 0.4); /* 검색 결과 하단 문구 색 */
-    /* ── 7. 모바일 패널/상단바 CTA ── */
+    /* ── 8. 모바일 ── */
+    --pcPanelWidth_k1: 100%; /* PC 햄버거 패널 폭 (헤더 콘텐츠 폭 대비) */
+    --pcPanelCols_k2: 1; /* PC 햄버거 패널 열 수 */
+    --pcPanelPadY_k3: 20px; /* PC 햄버거 패널 위아래 여백 */
+    --pcPanelColGap_k4: 32px; /* PC 햄버거 패널 열 사이 간격 */
+    --mobileHeaderPaddingX_a9: 16px; /* 모바일 헤더 좌우 여백 */
     --mobilePanelBg_h1: #ffffff; /* 모바일 패널 배경색 */
     --mobilePanelPaddingX_h5: 0px; /* 모바일 패널 좌우 추가 여백 */
     --mobileActionGap_o2: 12px; /* 상단 햄버거-버튼 간격 */
@@ -575,11 +611,11 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --mobileItemFontSize_h2: 16px; /* 모바일 대메뉴 크기 */
     --mobileItemColor_h3: #333333; /* 모바일 메뉴 글자색 */
     --mobileCaretColor_h4: #9aa0a6; /* 모바일 화살표 색상 */
-    --mobileBarCtaGap_i1: 8px; /* 상단 CTA 간격 */
-    --mobileBarCtaFontSize_i2: 12px; /* 상단 CTA 글자크기 */
-    --mobileBarCtaPaddingY_i4: 7px; /* 상단 CTA 상하 여백 */
-    --mobileBarCtaPaddingX_i3: 12px; /* 상단 CTA 좌우 여백 */
-    --mobileBarCtaRadius_i5: 999px; /* 상단 CTA 둥글기 */
+    --mobileBarCtaGap_i1: 8px; /* 상단바 CTA 간격 */
+    --mobileBarCtaFontSize_i2: 12px; /* 상단바 CTA 글자크기 */
+    --mobileBarCtaPaddingY_i4: 7px; /* 상단바 CTA 상하 여백 */
+    --mobileBarCtaPaddingX_i3: 12px; /* 상단바 CTA 좌우 여백 */
+    --mobileBarCtaRadius_i5: 999px; /* 상단바 CTA 둥글기 */
   }
 </style>
 
@@ -612,6 +648,7 @@ menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     "searchPlaceholderMobile": "",
     "searchRadiusCustom": true,
     "searchResultCustom": false,
+    "desktopHamburger": false,
     "searchResultShow": {
         "icon": false,
         "location": false,
