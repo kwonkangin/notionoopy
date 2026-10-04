@@ -1,37 +1,38 @@
-<!-- 갤러리 오버레이 디자인
+<!-- 메뉴바 2.0 디자인 20261004 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-2.0/menubar-2.0-20261002.css">
 <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-master/menubar-2.0/menubar-2.0-20261002.js" defer></script>
 -->
 
-
-
 <!--
 =====================================================================================
-menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메뉴 내용 설정)
-한 줄 설명 : 메뉴바의 모양(CSS 변수)과 내용(메뉴, 버튼, 모바일 옵션)을 정하는 파일. 대시보드가 만든 코드를
-             붙여 넣는 자리다.
-짝 파일    : menubar-2.0-20261002.css, menubar-2.0-20261002.js (엔진),
-             menubar-2.0-dashboard-20261002.js (대시보드)
+menubar-2.0-option-20261004.html   |   메뉴바 옵션 2.0 (모양 변수 + 메뉴 내용 설정)
+한 줄 설명 : 메뉴바의 모양(CSS 변수)과 내용(메뉴, 버튼, 검색, 모바일 옵션)을 정하는 파일. 대시보드가
+             만든 코드를 붙여 넣는 자리다.
+짝 파일    : menubar-2.0-20261004.css, menubar-2.0-20261004.js (엔진),
+             menubar-2.0-dashboard-20261004.js (대시보드)
 의존성     : 엔진보다 먼저 실행되어야 한다. 직접 고치기보다 대시보드로 출력해 통째로 교체하는 것을 권장한다.
 =====================================================================================
 
 [이 파일의 구성]  한 파일 안에 두 가지가 들어 있고, 대시보드가 둘을 한 번에 출력한다.
-1) style 블록 : :root 안의 CSS 변수. 색, 크기, 간격 같은 "모양"을 정한다. (변수 총 89개)
-2) script 블록 : window.efcMenubarConfig. 메뉴 이름, 링크, 하위메뉴, 버튼 같은 "내용"과 동작 옵션을 정한다.
+1) style 블록 : :root 안의 CSS 변수. 색, 크기, 간격 같은 "모양"을 정한다. (변수 총 112개)
+2) script 블록 : window.efcMenubarConfig. 메뉴 이름, 링크, 하위메뉴, 버튼, 검색 같은 "내용"과 동작 옵션을 정한다.
 
 [변수 이름 규칙]
 - 이름 끝의 _a1, _c4 같은 접미사는 영역(알파벳)과 순번을 나타내는 식별 코드다. 값에는 영향이 없다.
 - 엔진과 대시보드가 이름으로 변수를 찾으므로 이름을 바꾸거나 지우지 않는다.
 - 색상은 #HEX, rgba(), transparent 로 쓴다. 길이 값은 px, 시간은 s 처럼 단위를 반드시 붙인다
-  (단위가 빠지면 그 값은 무시된다). 굵기와 z-index 는 숫자만 쓴다.
-- '선택' 변수(모바일 헤더 좌우 여백, 모바일 로고 높이)는 줄을 지우면 PC 값을 따른다. 값을 비워 두면
+  (단위가 빠지면 그 값은 무시된다). 굵기, z-index, 줄 수는 숫자만 쓴다.
+- '선택' 변수(모바일 헤더 좌우 여백, 모바일 로고 높이, 모바일 상단바 검색 아이콘 내부 여백,
+  모바일 검색창 위쪽 여백/너비)는 줄을 지우면 PC 값(또는 우피 기본)을 따른다. 값을 비워 두면
   (예: --mobileHeaderPaddingX_a9: ;) 안 되고, 쓰지 않을 때는 줄 자체를 지운다.
+- 검색창 관련 변수(--searchPanel..., --searchResult...)는 해당 스위치(searchPanelCustom,
+  searchRadiusCustom, searchResultCustom)가 true 일 때만 화면에 적용된다.
 
 [CSS 변수 목록]  (의미 / 기본값 / 설정값 / 적용 범위)
   기본값은 대시보드가 처음 보여주는 값이다. '적용' 항목이 'PC 상세형만' 인 변수는 모바일과 심플형에는
-  반영되지 않는다.
+  반영되지 않는다. 구역 이름은 대시보드의 구역과 같다.
 
-  ■ 1. 헤더 기본 레이아웃
+  ■ 2. 헤더
     --headerBg_a1
       의미 : 헤더 배경색   |   기본값 : #ffffff   |   설정값 : 색상
       적용 : PC/모바일 공통
@@ -46,10 +47,7 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       적용 : 공통
     --headerPaddingX_a5
       의미 : 헤더 좌우 여백   |   기본값 : 24px   |   설정값 : 0~100px
-      적용 : PC (모바일은 a9가 있으면 a9를 따름)
-    --mobileHeaderPaddingX_a9
-      의미 : 모바일 헤더 좌우 여백   |   기본값 : 16px   |   설정값 : 0~100px
-      적용 : 모바일 전용 · 선택(줄을 지우면 a5 값을 따름)
+      적용 : PC (모바일은 --mobileHeaderPaddingX_a9 가 있으면 그 값을 따름)
     --headerZIndex_a6
       의미 : 겹침 순서(z-index)   |   기본값 : 9999   |   설정값 : 10~9999
       적용 : 공통 · 다른 요소에 가려지면 값을 올린다 (엔진 내부 폴백은 50)
@@ -59,14 +57,16 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --headerRowGap_a8
       의미 : 로고-메뉴-버튼 사이 간격   |   기본값 : 24px   |   설정값 : 0~100px
       적용 : PC (버튼 영역 내부 간격에도 사용)
+
+  ■ 3. 로고
     --logoHeight_b1
       의미 : 로고 높이   |   기본값 : 28px   |   설정값 : 10~100px
-      적용 : PC (모바일은 b2가 있으면 b2를 따름)
+      적용 : PC (모바일은 --logoHeightMobile_b2 가 있으면 그 값을 따름)
     --logoHeightMobile_b2
       의미 : 모바일 로고 높이   |   기본값 : 24px   |   설정값 : 10~100px
       적용 : 모바일 전용 · 선택(줄을 지우면 b1 값을 따름)
 
-  ■ 2. 데스크톱 대메뉴
+  ■ 4. 대메뉴 (PC)
     --navAlign_c9
       의미 : 대메뉴 정렬   |   기본값 : center   |   설정값 : flex-start / center / flex-end
       적용 : PC
@@ -101,7 +101,7 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       의미 : 화살표 색   |   기본값 : currentColor   |   설정값 : currentColor(글자색 따라감) / 색상
       적용 : PC 대메뉴 화살표
 
-  ■ 3. 하위메뉴 박스 (심플형 d / 상세형 e)
+  ■ 5. 하위메뉴
     --dropdownSimpleBg_d1
       의미 : 심플형 배경색   |   기본값 : #ffffff   |   설정값 : 색상
       적용 : PC 심플형 (대시보드 '공통' 모드면 상세형도 같이 바뀜)
@@ -147,8 +147,6 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --dropdownGap_e21
       의미 : 항목 사이 상하 간격   |   기본값 : 4px   |   설정값 : 0~20px
       적용 : PC 상세형
-
-  ■ 4. 하위메뉴 아이콘/텍스트
     --dropdownIconColor_e11
       의미 : 글로벌 아이콘 기본색   |   기본값 : rgba(51,51,51,1)   |   설정값 : 색상
       적용 : PC 상세형 · 모바일 (항목별 '개별 지정' 색이 있으면 그쪽이 우선)
@@ -198,7 +196,7 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       의미 : 아이콘 없을 때 텍스트 정렬   |   기본값 : left   |   설정값 : left / center / right
       적용 : PC 상세형만
 
-  ■ 5. CTA 버튼
+  ■ 6. CTA 버튼 (PC)
     --ctaGap_f1
       의미 : 버튼 사이 간격   |   기본값 : 10px   |   설정값 : 0~40px
       적용 : PC
@@ -236,45 +234,117 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       의미 : 테두리 선 두께   |   기본값 : 1.5px   |   설정값 : 0~10px
       적용 : PC · 모바일
 
-  ■ 6. 검색 버튼 (PC: useSearch 가 true 일 때 / 모바일: useSearch 와 showMobileSearchBtn 이 모두 true 일 때)
+  ■ 7. 검색 (버튼 / 열린 검색창)
     --searchBtnBg_j1
-      의미 : (PC) 배경색   |   기본값 : transparent   |   설정값 : 색상
-      적용 : PC 검색 버튼
+      의미 : (PC) 검색 버튼 배경색   |   기본값 : transparent   |   설정값 : 색상
+      적용 : PC 검색 버튼 · 모바일 상단바 검색 아이콘
     --searchBtnText_j2
-      의미 : (PC) 아이콘색   |   기본값 : #333333   |   설정값 : 색상
-      적용 : PC 검색 버튼
+      의미 : (PC) 검색 버튼 아이콘색   |   기본값 : #333333   |   설정값 : 색상
+      적용 : PC 검색 버튼 · 모바일 상단바 검색 아이콘
     --searchBtnHoverBg_j3
-      의미 : (PC) 호버 배경색   |   기본값 : transparent   |   설정값 : 색상
-      적용 : PC 검색 버튼
+      의미 : (PC) 검색 버튼 호버 배경색   |   기본값 : transparent   |   설정값 : 색상
+      적용 : PC 검색 버튼 · 모바일 상단바 검색 아이콘
     --searchBtnHoverText_j4
-      의미 : (PC) 호버 아이콘색   |   기본값 : #00a6ab   |   설정값 : 색상
-      적용 : PC 검색 버튼
+      의미 : (PC) 검색 버튼 호버 아이콘색   |   기본값 : #00a6ab   |   설정값 : 색상
+      적용 : PC 검색 버튼 · 모바일 상단바 검색 아이콘
     --searchBtnSize_j5
-      의미 : (PC) 아이콘 크기   |   기본값 : 18px   |   설정값 : 10~40px
-      적용 : PC 검색 버튼
+      의미 : (PC) 검색 아이콘 크기   |   기본값 : 18px   |   설정값 : 10~40px
+      적용 : PC 검색 버튼 · 모바일 상단바 검색 아이콘
     --searchBtnPadding_j6
-      의미 : (PC) 내부 여백(상하 좌우)   |   기본값 : 4px 4px   |   설정값 : 0~100px
-      적용 : PC 검색 버튼
+      의미 : (PC) 검색 버튼 내부 여백(상하 좌우)   |   기본값 : 4px 4px   |   설정값 : 0~100px
+      적용 : PC 검색 버튼 (모바일 상단바 아이콘은 j8 이 있으면 j8)
+    --searchBtnPaddingMobile_j8
+      의미 : (모바일) 상단바 검색 아이콘 내부 여백   |   기본값 : 4px 4px   |   설정값 : 0~100px
+      적용 : 모바일 상단바 검색 아이콘만 · 선택(줄을 지우면 j6 값을 따름)
     --searchBtnRadius_j7
-      의미 : (PC) 모서리 둥글기   |   기본값 : 4px   |   설정값 : 0~30px
-      적용 : PC 검색 버튼
+      의미 : (PC) 검색 버튼 모서리   |   기본값 : 4px   |   설정값 : 0~30px
+      적용 : PC 검색 버튼 · 모바일 상단바 검색 아이콘
     --mobileSearchBg_m1
-      의미 : (모바일) 배경색   |   기본값 : #f4f4f5   |   설정값 : 색상
-      적용 : 모바일 패널 검색 버튼
+      의미 : (모바일 패널 버튼) 배경색   |   기본값 : #f4f4f5   |   설정값 : 색상
+      적용 : 모바일 패널 하단 검색 버튼
     --mobileSearchText_m2
-      의미 : (모바일) 글자/아이콘색   |   기본값 : #333333   |   설정값 : 색상
-      적용 : 모바일 패널 검색 버튼
+      의미 : (모바일 패널 버튼) 글자/아이콘색   |   기본값 : #333333   |   설정값 : 색상
+      적용 : 모바일 패널 하단 검색 버튼
     --mobileSearchHoverBg_m3
-      의미 : (모바일) 호버 배경색   |   기본값 : #e4e4e7   |   설정값 : 색상
-      적용 : 모바일 패널 검색 버튼
+      의미 : (모바일 패널 버튼) 호버 배경색   |   기본값 : #e4e4e7   |   설정값 : 색상
+      적용 : 모바일 패널 하단 검색 버튼
     --mobileSearchHoverText_m4
-      의미 : (모바일) 호버 글자색   |   기본값 : #00a6ab   |   설정값 : 색상
-      적용 : 모바일 패널 검색 버튼
+      의미 : (모바일 패널 버튼) 호버 글자색   |   기본값 : #00a6ab   |   설정값 : 색상
+      적용 : 모바일 패널 하단 검색 버튼
     --mobileSearchRadius_m5
-      의미 : (모바일) 모서리 둥글기   |   기본값 : 8px   |   설정값 : 0~50px
-      적용 : 모바일 패널 검색 버튼
+      의미 : (모바일 패널 버튼) 모서리   |   기본값 : 8px   |   설정값 : 0~50px
+      적용 : 모바일 패널 하단 검색 버튼
+    --searchPanelTop_s1
+      의미 : 검색창 위쪽 여백   |   기본값 : 90px   |   설정값 : 0~400px
+      적용 : 열린 검색창 · searchPanelCustom 이 true 일 때 (모바일은 s3 가 있으면 s3)
+    --searchPanelWidth_s2
+      의미 : 검색창 너비 (PC)   |   기본값 : 600px   |   설정값 : 280~1000px
+      적용 : 열린 검색창 · searchPanelCustom 이 true 일 때
+    --searchPanelTopMobile_s3
+      의미 : 검색창 위쪽 여백 (모바일)   |   기본값 : 90px   |   설정값 : 0~400px
+      적용 : 모바일 폭 · 선택(줄을 지우면 s1 값을 따름)
+    --searchPanelWidthMobile_s4
+      의미 : 검색창 너비 (모바일)   |   기본값 : 100%   |   설정값 : 50~100%
+      적용 : 모바일 폭 · 선택(줄을 지우면 100%)
+    --searchPanelRadius_s5
+      의미 : 검색창 모서리 둥글기   |   기본값 : 3px   |   설정값 : 0~30px
+      적용 : 열린 검색창 · searchRadiusCustom 이 true 일 때 (입력줄·결과·하단 문구가 함께 둥글게 잘림)
+    --searchResultTitleSize_s6
+      의미 : 검색 결과 제목 크기   |   기본값 : 14px   |   설정값 : 10~28px
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultTitleWeight_s7
+      의미 : 검색 결과 제목 굵기   |   기본값 : 500   |   설정값 : 100~900
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultTitleColor_s8
+      의미 : 검색 결과 제목 색   |   기본값 : rgb(55,53,47)   |   설정값 : 색상
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultPathSize_s9
+      의미 : 검색 결과 위치(경로) 크기   |   기본값 : 12px   |   설정값 : 8~24px
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultPathWeight_s10
+      의미 : 검색 결과 위치(경로) 굵기   |   기본값 : 400   |   설정값 : 100~900
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultPathColor_s11
+      의미 : 검색 결과 위치(경로) 색   |   기본값 : rgba(55,53,47,0.4)   |   설정값 : 색상
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultDescSize_s12
+      의미 : 검색 결과 설명 크기   |   기본값 : 12px   |   설정값 : 8~24px
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultDescWeight_s13
+      의미 : 검색 결과 설명 굵기   |   기본값 : 400   |   설정값 : 100~900
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultDescColor_s14
+      의미 : 검색 결과 설명 색   |   기본값 : rgba(55,53,47,0.6)   |   설정값 : 색상
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultDescLines_s15
+      의미 : 검색 결과 설명 최대 줄 수   |   기본값 : 2   |   설정값 : 1~10
+      적용 : searchResultCustom 이 true 일 때 (노션이 돌려주는 글자 수보다 길게는 표시되지 않음)
+    --searchResultTypeSize_s16
+      의미 : 검색 결과 타입 배지 크기   |   기본값 : 11px   |   설정값 : 8~20px
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultTypeWeight_s17
+      의미 : 검색 결과 타입 배지 굵기   |   기본값 : 400   |   설정값 : 100~900
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultTypeColor_s18
+      의미 : 검색 결과 타입 배지 글자색   |   기본값 : rgba(55,53,47,0.55)   |   설정값 : 색상
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultTypeBg_s19
+      의미 : 검색 결과 타입 배지 배경색   |   기본값 : rgba(55,53,47,0.06)   |   설정값 : 색상
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultFooterSize_s20
+      의미 : 검색 결과 하단 문구 크기   |   기본값 : 12px   |   설정값 : 8~24px
+      적용 : searchResultCustom 이 true 일 때
+    --searchResultFooterWeight_s21
+      의미 : 검색 결과 하단 문구 굵기   |   기본값 : 400   |   설정값 : 100~900
+      적용 : searchResultCustom 이 true 일 때 (바깥 문구만, 숫자는 우피 기본 굵기)
+    --searchResultFooterColor_s22
+      의미 : 검색 결과 하단 문구 색   |   기본값 : rgba(55,53,47,0.4)   |   설정값 : 색상
+      적용 : searchResultCustom 이 true 일 때
 
-  ■ 7. 모바일 패널 / 상단바 CTA
+  ■ 8. 모바일
+    --mobileHeaderPaddingX_a9
+      의미 : 모바일 헤더 좌우 여백   |   기본값 : 16px   |   설정값 : 0~100px
+      적용 : 모바일 전용 · 선택(줄을 지우면 a5 값을 따름)
     --mobilePanelBg_h1
       의미 : 모바일 패널 배경색   |   기본값 : #ffffff   |   설정값 : 색상
       적용 : 모바일
@@ -283,7 +353,7 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
       적용 : 모바일 (헤더 여백 위에 더해짐)
     --mobileActionGap_o2
       의미 : 모바일 헤더 오른쪽 영역 간격   |   기본값 : 12px   |   설정값 : 0~40px
-      적용 : 모바일
+      적용 : 모바일 (CTA · 검색 아이콘 · 햄버거 사이)
     --toggleColor_g1
       의미 : 햄버거 아이콘 색   |   기본값 : #1f2937   |   설정값 : 색상
       적용 : 모바일
@@ -314,12 +384,7 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
 
 [설정 객체 window.efcMenubarConfig]  (괄호 안은 대시보드 기본값)
 - mobileBreakpoint (1024) : 이 너비(px) 이하이면 모바일 메뉴(햄버거)로 바뀐다.
-- useSearch (false) : true 이면 PC 헤더에 검색 버튼을 보여준다. 모바일 패널 검색 버튼의 전제 조건이기도 하다.
-- showMobileSearchBtn (true) : useSearch 가 true 일 때 모바일 패널에도 검색 버튼을 보여줄지.
-- searchPosition ("right") : PC 검색 버튼 위치. CTA 버튼 기준 right(오른쪽) / left(왼쪽). 모바일 패널에서는
-  right 면 CTA 아래, left 면 CTA 위.
-- oopyPlan ("standard") : 사용 중인 Oopy 플랜. standard 는 .search-button, pro 는 .xi-search 를 검색에 쓴다.
-- hideNotionTopbar (true) : 노션 기본 상단바를 숨길지.
+- hideNotionTopbar (true) : 노션 기본 상단바를 화면 밖으로 보낼지.
 - useHeaderShadow (true) : 스크롤했을 때 헤더 아래 그림자를 보여줄지.
 - scrollEffect (true) / scrollThreshold (10) : 스크롤 시 그림자 효과 사용 여부 / 몇 px 내려가면 켤지.
 - offsetBody (true) : 본문 위쪽에 헤더 높이만큼 여백을 자동으로 넣을지.
@@ -333,6 +398,20 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
 - detailedWidthMode ("fixed") : 상세형 하위메뉴 너비 방식. fixed 는 --dropdownDetailedWidth_e4 고정,
   auto 는 글자 길이에 맞춰 --dropdownDetailedMinWidth_e22 ~ --dropdownDetailedMaxWidth_e23 사이에서 늘어난다.
 - arrowAnimation (true) : 하위메뉴를 열고 닫을 때 화살표 회전 애니메이션을 쓸지(PC와 모바일 모두).
+- 검색 관련
+    useSearch (false)       true 이면 PC 헤더에 검색 버튼을 보여준다. 아래 모든 검색 옵션의 전제 조건.
+    oopyPlan ("standard")   standard 는 .search-button 을, pro 는 .xi-search 를 먼저 찾고 없으면 반대쪽도 찾는다.
+    searchPosition ("right") 검색 버튼 배치. right: PC 는 CTA 오른쪽 / 모바일 상단바 아이콘은 CTA 와 햄버거 사이 /
+                            패널 검색 버튼은 CTA 아래. left: 각각 CTA 왼쪽 / CTA 왼쪽 / CTA 위.
+    showMobileSearchBtn (true)  모바일 패널 하단에 검색 버튼을 보여줄지.
+    showMobileSearchBar (false) 모바일 상단바(CTA 와 햄버거 사이)에 검색 아이콘을 보여줄지.
+    searchPlaceholder ("")  열린 검색창 입력칸 문구(PC). 비우면 우피 기본 문구.
+    searchPlaceholderMobile ("") 모바일 폭에서 쓸 문구. 비우면 PC 문구를 쓴다.
+    searchPanelCustom (false)  true 이면 --searchPanelTop_s1 등 검색창 위치/크기 변수를 적용한다.
+    searchRadiusCustom (false) true 이면 --searchPanelRadius_s5 를 적용한다.
+    searchResultCustom (false) true 이면 --searchResult... 변수(글자 크기, 굵기, 색, 설명 줄 수)를 적용한다.
+    searchResultShow { icon, location, desc, type, footer } (모두 true)  검색 결과의 아이콘, 위치(경로), 설명,
+                            타입 배지, 하단 "검색 결과 n개" 문구를 보일지. 제목은 항상 보인다.
 - showMobileDesc (true) : 모바일 하위메뉴에서도 설명글을 보여줄지.
 - mobileAccordion (false) : true 이면 모바일에서 대메뉴를 펼칠 때 다른 대메뉴는 자동으로 접힌다.
   false 이면 여러 개를 동시에 펼쳐 둘 수 있다.
@@ -358,9 +437,10 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     showOnMobileBar true 이면 모바일 상단바(햄버거 옆)에도 버튼을 보여준다.
 
 [사용법]
-1) 대시보드(menubar-2.0-dashboard-20261002.js)에서 모양과 내용을 조정하고 '코드 출력하기'를 누른다.
+1) 대시보드(menubar-2.0-dashboard-20261004.js)에서 모양과 내용을 조정하고 '코드 출력하기'를 누른다.
 2) 나온 코드(style 블록 + script 블록)로 이 파일 내용을 통째로 교체한다.
 3) Oopy 코드 삽입에서 이 파일을 엔진(CSS, JS)보다 앞에 둔다.
+4) 이전에 출력한 코드를 다시 불러와 수정하려면 대시보드의 '가져오기'에 붙여 넣는다.
 
 [알려진 제한]
 - 설정 이름은 window.efcMenubarConfig 하나만 인식한다. 이름이 다르면 메뉴가 비어 보인다.
@@ -368,13 +448,15 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
   변화가 없을 수 있다.
 - 키를 생략하면 엔진 내부 기본값이 쓰여 대시보드 기본값과 다를 수 있다. 대시보드가 출력한 코드를 그대로 쓴다.
 - 변수 단위를 빼먹으면 해당 값이 무시된다.
+- 검색창 커스텀은 노션 검색창 구조에 의존한다. 노션 쪽 구조가 바뀌면 우피 기본 모양으로 보일 수 있다.
 
 [검증 상태]
 - 확인함 : 대시보드 출력 코드를 이 파일에 적용해 엔진이 읽는 동작(변수 반영, 메뉴/하위메뉴/CTA 표시,
-           모바일 옵션, 로고 분리), 새 이름(efcMenubarConfig) 적용
-- 미확인 : 직접 손으로 편집한 설정(대시보드를 거치지 않은 값), 검색 관련 옵션(useSearch true)
+           모바일 옵션, 로고 분리, 검색 옵션 전체), 새 이름(efcMenubarConfig) 적용, 내보낸 코드를
+           대시보드 가져오기로 다시 읽는 왕복
 =====================================================================================
 -->
+
 
 
 
@@ -457,12 +539,34 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     --searchBtnHoverText_j4: #00a6ab; /* (PC) 호버 아이콘색 */
     --searchBtnSize_j5: 18px; /* (PC) 아이콘 크기 */
     --searchBtnPadding_j6: 4px 20px; /* (PC) 내부 여백 */
+    --searchBtnPaddingMobile_j8: 4px 0px; /* (모바일) 상단바 검색 아이콘 내부 여백 */
     --searchBtnRadius_j7: 4px; /* (PC) 둥글기 */
     --mobileSearchBg_m1: #f4f4f5; /* (모바일) 배경색 */
     --mobileSearchText_m2: #333333; /* (모바일) 글자/아이콘색 */
     --mobileSearchHoverBg_m3: #e4e4e7; /* (모바일) 호버 배경색 */
     --mobileSearchHoverText_m4: #00a6ab; /* (모바일) 호버 글자색 */
     --mobileSearchRadius_m5: 8px; /* (모바일) 둥글기 */
+    --searchPanelTop_s1: 240px; /* 검색창 위쪽 여백 */
+    --searchPanelWidth_s2: 656px; /* 검색창 너비 (PC) */
+    --searchPanelWidthMobile_s4: 82%; /* 검색창 너비 (모바일) */
+    --searchPanelRadius_s5: 30px; /* 검색창 모서리 둥글기 */
+    --searchResultTitleSize_s6: 14px; /* 검색 결과 제목 크기 */
+    --searchResultTitleWeight_s7: 500; /* 검색 결과 제목 굵기 */
+    --searchResultTitleColor_s8: rgb(55, 53, 47); /* 검색 결과 제목 색 */
+    --searchResultPathSize_s9: 12px; /* 검색 결과 위치(경로) 크기 */
+    --searchResultPathWeight_s10: 400; /* 검색 결과 위치(경로) 굵기 */
+    --searchResultPathColor_s11: rgba(55, 53, 47, 0.4); /* 검색 결과 위치(경로) 색 */
+    --searchResultDescSize_s12: 12px; /* 검색 결과 설명 크기 */
+    --searchResultDescWeight_s13: 400; /* 검색 결과 설명 굵기 */
+    --searchResultDescColor_s14: rgba(55, 53, 47, 0.6); /* 검색 결과 설명 색 */
+    --searchResultDescLines_s15: 2; /* 검색 결과 설명 최대 줄 수 */
+    --searchResultTypeSize_s16: 11px; /* 검색 결과 타입 배지 크기 */
+    --searchResultTypeWeight_s17: 400; /* 검색 결과 타입 배지 굵기 */
+    --searchResultTypeColor_s18: rgba(55, 53, 47, 0.55); /* 검색 결과 타입 배지 글자색 */
+    --searchResultTypeBg_s19: rgba(55, 53, 47, 0.06); /* 검색 결과 타입 배지 배경색 */
+    --searchResultFooterSize_s20: 12px; /* 검색 결과 하단 문구 크기 */
+    --searchResultFooterWeight_s21: 400; /* 검색 결과 하단 문구 굵기 */
+    --searchResultFooterColor_s22: rgba(55, 53, 47, 0.4); /* 검색 결과 하단 문구 색 */
     /* ── 7. 모바일 패널/상단바 CTA ── */
     --mobilePanelBg_h1: #ffffff; /* 모바일 패널 배경색 */
     --mobilePanelPaddingX_h5: 0px; /* 모바일 패널 좌우 추가 여백 */
@@ -502,6 +606,19 @@ menubar-2.0-option-20261002.html   |   메뉴바 옵션 2.0 (모양 변수 + 메
     "mobileAccordion": true,
     "arrowAnimation": false,
     "detailedWidthMode": "auto",
+    "showMobileSearchBar": true,
+    "searchPanelCustom": true,
+    "searchPlaceholder": "궁금한 내용을 검색해보세요.",
+    "searchPlaceholderMobile": "",
+    "searchRadiusCustom": true,
+    "searchResultCustom": false,
+    "searchResultShow": {
+        "icon": false,
+        "location": false,
+        "desc": true,
+        "type": false,
+        "footer": true
+    },
     "menuItems": [
         {
             "label": "멤버십 안내",

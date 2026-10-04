@@ -1,19 +1,21 @@
 // =====================================================================================
-// menubar-2.0-20261002.js   |   메뉴바 엔진 2.0 (JS)
+// menubar-2.0-20261004.js   |   메뉴바 엔진 2.0 (JS)
 // 한 줄 설명 : Oopy/Notion 페이지 맨 위에 고정 메뉴바(로고, 대메뉴, 하위메뉴, CTA 버튼, 검색,
 //              모바일 햄버거)를 만든다.
-// 짝 파일    : menubar-2.0-20261002.css (스타일)
-//              menubar-2.0-option-20261002.html (모양 변수 + 메뉴 내용 설정)
+// 짝 파일    : menubar-2.0-20261004.css (스타일)
+//              menubar-2.0-option-20261004.html (모양 변수 + 메뉴 내용 설정)
+//              menubar-2.0-dashboard-20261004.js (설정을 눈으로 보며 조정하는 대시보드)
 // 접미사     : 모든 클래스 이름은 efc_ 접두사 또는 난수 접미사(_h7k 등)를 붙여 Oopy/Notion 기본
 //              스타일과 겹치지 않게 했다.
 // 의존성     :
-//   - menubar-2.0-20261002.css : 필수. 없으면 메뉴바 모양이 깨진다.
-//   - menubar-2.0-option-20261002.html : 필수. 이 엔진보다 먼저 실행되어
+//   - menubar-2.0-20261004.css : 필수. 없으면 메뉴바 모양이 깨진다.
+//   - menubar-2.0-option-20261004.html : 필수. 이 엔진보다 먼저 실행되어
 //     window.efcMenubarConfig (메뉴 내용 설정)를 만들어 두어야 한다.
 //   - Font Awesome 6.5.2 (cdnjs) : 하위메뉴에 폰트어썸 아이콘이 있는데 페이지에 Font Awesome 이
 //     없으면 엔진이 자동으로 불러온다. 이미 있으면 다시 불러오지 않는다.
-//   - Oopy 검색 버튼 : 검색 기능(useSearch)을 켜면 Oopy 기본 검색 버튼(일반 플랜 .search-button,
-//     프로 플랜 .xi-search)을 대신 눌러 준다.
+//     (검색 아이콘과 화살표는 직접 그리므로 폰트어썸이 필요 없다.)
+//   - Oopy 검색 버튼 : 검색 기능(useSearch)을 켜면 Oopy 기본 검색 버튼(.search-button 또는
+//     .xi-search)을 대신 눌러 준다. 검색창 자체는 노션이 그리는 것(notion-quick-find-menu)이다.
 //   - core.js 등 다른 엔진 : 의존하지 않는다.
 // =====================================================================================
 //
@@ -23,15 +25,20 @@
 // - PC : 로고 | 대메뉴 | CTA 버튼(+검색 버튼) 3칸 구조. 대메뉴에 마우스를 올리면 하위메뉴가 열린다.
 // - 모바일 : 화면 너비가 mobileBreakpoint 이하이면 대메뉴가 사라지고 햄버거 버튼이 나타난다.
 //   햄버거를 누르면 패널이 열리고, 상단바에는 showOnMobileBar 가 true 인 CTA 버튼만 남는다.
+//   상단바에는 검색 아이콘(showMobileSearchBar)도 둘 수 있다.
 // - 하위메뉴는 두 종류다. 상세형(아이콘 + 제목 + 설명), 심플형(제목만).
+// - 검색 버튼을 누르면 노션 검색창이 열리고, 위치/크기, 모서리, 플레이스홀더, 검색 결과 표시 항목과
+//   글자 스타일을 설정으로 바꿀 수 있다 (기본은 모두 우피 그대로).
 //
 // [설정 내용 요약]  (키마다 자세한 설명, 기본값, 값 규칙은 option 파일 상단 주석 참고)
-// - 화면/동작 : mobileBreakpoint, useSearch, showMobileSearchBtn, searchPosition, oopyPlan,
-//               hideNotionTopbar, useHeaderShadow, scrollEffect, scrollThreshold, offsetBody
+// - 화면/동작 : mobileBreakpoint, hideNotionTopbar, useHeaderShadow, scrollEffect, scrollThreshold, offsetBody
 // - 로고      : logo { url, mobileUrl, alt, link }
 // - 메뉴      : menuItems [ { label, url, target, showArrow, dropdownStyle,
 //                             children [ { title, url, target, desc, icon { type, value, color, hoverColor } } ] } ]
 // - 버튼      : ctaButtons [ { label, url, target, variant, showOnMobileBar } ]
+// - 검색      : useSearch, oopyPlan, searchPosition, showMobileSearchBtn, showMobileSearchBar,
+//               searchPlaceholder, searchPlaceholderMobile, searchPanelCustom, searchRadiusCustom,
+//               searchResultCustom, searchResultShow { icon, location, desc, type, footer }
 // - 모바일    : showMobileDesc, mobileCtaLayout, mobileCtaGridCols, mobileAccordion
 // - 하위메뉴  : showArrowDefault, defaultDropdownStyle, detailedWidthMode, arrowAnimation
 //
@@ -50,8 +57,21 @@
 // - 로고 : 로고 이미지가 다 불러와진 뒤 대메뉴 중앙 정렬 폭을 다시 계산한다.
 // - 스크롤 : scrollEffect 가 true 이면 scrollThreshold(px) 이상 내려갔을 때 그림자를 보여준다.
 //   (useHeaderShadow 가 false 이면 그림자는 항상 없다.)
-// - 노션 상단바 : hideNotionTopbar 가 true 이면 노션 기본 상단바(.notion-topbar)를 숨긴다.
+// - 노션 상단바 : hideNotionTopbar 가 true 이면 노션 기본 상단바(.notion-topbar)를 화면 밖으로 보낸다.
+//   (투명하게 만들지 않는다. 상단바 안에 들어 있는 검색창이 함께 안 보이는 문제를 피하기 위해서다.)
 // - 본문 여백 : offsetBody 가 true 이면 본문 위쪽에 헤더 높이만큼 여백을 넣어 가려지지 않게 한다.
+// - 검색 버튼 찾기 : oopyPlan 이 standard 이면 .search-button 을, pro 이면 .xi-search 를 먼저 찾고
+//   없으면 반대쪽도 찾는다. 둘 다 없으면 안내 창을 띄운다.
+// - 검색 버튼 배치 : searchPosition 이 right 이면 PC 는 CTA 오른쪽, 모바일 상단바 아이콘은 CTA 와
+//   햄버거 사이, 패널 검색 버튼은 CTA 아래에 놓인다. left 이면 각각 반대쪽(CTA 왼쪽 / CTA 위)이다.
+// - 검색창 커스텀 : 해당 스위치(searchPanelCustom, searchRadiusCustom, searchResultCustom)가 켜진 경우에만
+//   body 에 표시용 클래스를 붙이고, CSS 가 그 클래스가 있을 때만 값을 적용한다. 스위치를 끄면 우피 기본이다.
+//   모서리 둥글기는 바깥 패널에만 주고 안쪽(입력줄, 결과, 하단 문구)은 패널에 맞춰 잘리게 해서 통일한다.
+// - 검색 결과 표시 항목 : searchResultShow 에서 false 인 항목(아이콘, 위치, 설명, 타입 배지, 하단 문구)을
+//   숨긴다. 아이콘은 자리를 그대로 두고 그림만 숨기며, 제목은 항상 보인다.
+// - 플레이스홀더 : 검색창이 열릴 때마다 입력칸 문구를 바꾼다. PC/모바일 문구를 따로 줄 수 있고,
+//   모바일 문구가 비어 있으면 PC 문구를 쓴다. 둘 다 비어 있으면 우피 기본 문구를 그대로 둔다.
+// - 모바일 상단바 : showOnMobileBar 인 CTA 가 하나도 없으면 빈 묶음이 차지하던 간격을 없앤다.
 //
 // [값 규칙]
 // - 주소(url) : # 는 이동 없음. target 은 _self(현재 창) 또는 _blank(새 창). 새 창이면 보안 속성이 붙는다.
@@ -74,11 +94,15 @@
 // - 화살표 : navArrowIcon_a2y
 // - 하위메뉴 : dropdownSimple_d3z(심플 박스), dropdownDetailed_e4a(상세 박스), dropdownItem_f5b(상세 항목)
 // - CTA : ctaGroup_m3i, ctaBtn_n4j(is-solid / is-outline), mobileBarCtaGroup_m1a(모바일 상단바)
-// - 검색 : efc_desktopSearchBtn_s5l(PC), efc_mobileSearchBtn_k6m(모바일)
+// - 검색 : efc_desktopSearchBtn_s5l(PC), efc_mobileBarSearchBtn_s8m(모바일 상단바), efc_mobileSearchBtn_k6m(모바일 패널)
 // - 모바일 : efc_toggleBtn_o5k(햄버거), mobilePanel_q7m(패널), efc_mobileGroup_r8n(대메뉴 한 묶음,
 //            펼치면 is-expanded), mobileSubmenuPanel_w4s / mobileSubmenuInner_w5t(하위메뉴 영역),
 //            efc_mobileCaret_v3r(펼침 화살표)
-// - 본문 여백 : body 에 efc_headerOffset_c9y
+// - body 에 붙는 클래스 : efc_headerOffset_c9y(본문 여백), efc_mobileMode_b3m(모바일 폭),
+//            efc_searchCustom_c1(검색창 위치/크기), efc_searchRadius_c2(검색창 모서리),
+//            efc_searchResult_c3(검색 결과 글자 스타일),
+//            efc_srHideIcon_c4 / efc_srHideLocation_c5 / efc_srHideDesc_c6 / efc_srHideType_c7 / efc_srHideFooter_c8
+//            (검색 결과 아이콘, 위치, 설명, 타입 배지, 하단 문구 숨김)
 //
 // [공개 함수 / 변수]
 // - window.efcMenubarConfig : 메뉴 내용 설정 객체. option 파일이 만든다. 엔진보다 먼저 있어야 한다.
@@ -89,10 +113,10 @@
 // [사용법]
 // 1) Oopy 코드 삽입에 아래 순서로 넣는다.
 //    (1) option 파일 내용 : 대시보드가 만든 style 블록 + script 블록
-//    (2) 스타일 연결 : link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/(저장 폴더)/menubar-2.0-20261002.css"
-//    (3) 엔진 연결 : script 태그에 src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/(저장 폴더)/menubar-2.0-20261002.js" 와 defer 를 붙인다
-//    (저장 폴더는 실제 GitHub 경로로 바꾼다. option 파일이 엔진보다 앞에 있어야 한다.)
-// 2) 모양이나 메뉴를 바꾸려면 menubar-2.0-dashboard-20261002.js 를 쓴다. 결과로 나온 코드로
+//    (2) 스타일 연결 : link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-2.0-20261002/menubar-2.0-20261004.css"
+//    (3) 엔진 연결 : script 태그에 src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/menubar-2.0-20261002/menubar-2.0-20261004.js" 와 defer 를 붙인다
+//    (option 파일이 엔진보다 앞에 있어야 한다.)
+// 2) 모양이나 메뉴를 바꾸려면 menubar-2.0-dashboard-20261004.js 를 쓴다. 결과로 나온 코드로
 //    option 파일 내용을 통째로 교체한다.
 // 3) 엔진과 option 은 같은 버전(2.0) 끼리 쓴다. 이전 버전 설정 이름(옛 전역 변수)은 인식하지 않는다.
 //
@@ -105,18 +129,26 @@
 // - 일부 변수는 PC 상세형에만 적용된다(모바일/심플형에는 반영되지 않음). 목록은 option 파일의 '적용' 항목 참고.
 // - PC 화면 폭(mobileBreakpoint 초과)의 터치 기기에서는 마우스 올리기가 없다. 주소가 # 인 대메뉴만 탭으로 열린다.
 // - 이미지 아이콘에는 개별 색을 줄 수 없다.
-// - 검색은 Oopy 검색 버튼을 대신 누르는 방식이다. Oopy 설정에서 검색이 꺼져 있으면 안내 창만 뜬다.
+// - 검색은 Oopy 검색 버튼을 대신 누르는 방식이다. Oopy 설정(검색 버튼 표시)이 꺼져 있으면 안내 창만 뜬다.
+// - 검색창 위치/크기, 모서리, 검색 결과 숨김/스타일은 노션 검색창의 구조와 CSS 의 :has() 선택자에 의존한다.
+//   :has() 는 크롬 105+, 사파리 15.4+, 파이어폭스 121+ 에서 동작한다. 노션 검색창 구조가 바뀌면 해당
+//   커스텀이 적용되지 않고 우피 기본 모양으로 보일 뿐 오류는 나지 않는다.
+// - 검색 결과의 설명 최대 줄 수는 노션이 돌려주는 글자 수를 넘겨서 늘어나지 않는다.
+// - 검색어 강조(굵은 글자) 부분은 우피 기본 스타일을 그대로 쓴다.
 //
 // [검증 상태]
 // - 확인함 : PC 대메뉴 호버 색, 하위메뉴 표시/전환 시 겹침 해소, 화살표 표시와 애니메이션 켜기/끄기,
 //            폰트어썸 아이콘 자동 불러오기, 상세형 하위메뉴 내용 맞춤 너비, 모바일 좌우 여백,
-//            PC/모바일 로고 분리와 모바일 로고 높이, 모바일 아코디언 켜기/끄기와 펼침 애니메이션
-// - 미확인 : 검색 버튼(useSearch true), 모바일 CTA 배열(세로/가로, 열 수), scrollThreshold 변경,
-//            노션 상단바 숨김이 늦게 그려지는 환경, 태블릿 등 터치 기기
+//            PC/모바일 로고 분리와 모바일 로고 높이, 모바일 아코디언 켜기/끄기와 펼침 애니메이션,
+//            검색 버튼 동작, 모바일 상단바 검색 아이콘과 배치, 검색창 위치/크기/모서리/플레이스홀더,
+//            검색 결과 표시 항목 숨김과 글자 스타일, 설명 최대 줄 수, 헤더 범위 box-sizing
 // =====================================================================================
 
 
-  (function () {
+
+
+
+ (function () {
     "use strict";
 
     function mergeConfig_c2x(userConfig) {
@@ -134,6 +166,15 @@ cfg.mobileAccordion = cfg.mobileAccordion === true || cfg.mobileAccordion === "t
 cfg.arrowAnimation = !(cfg.arrowAnimation === false || cfg.arrowAnimation === "false");
 cfg.detailedWidthMode = cfg.detailedWidthMode === "auto" ? "auto" : "fixed";
 cfg.logo.mobileUrl = cfg.logo.mobileUrl || "";
+cfg.showMobileSearchBar = cfg.showMobileSearchBar === true || cfg.showMobileSearchBar === "true";
+cfg.searchPanelCustom = cfg.searchPanelCustom === true || cfg.searchPanelCustom === "true";
+cfg.searchPlaceholder = typeof cfg.searchPlaceholder === "string" ? cfg.searchPlaceholder.trim() : "";
+cfg.searchPlaceholderMobile = typeof cfg.searchPlaceholderMobile === "string" ? cfg.searchPlaceholderMobile.trim() : "";
+cfg.searchRadiusCustom = cfg.searchRadiusCustom === true || cfg.searchRadiusCustom === "true";
+cfg.searchResultCustom = cfg.searchResultCustom === true || cfg.searchResultCustom === "true";
+var srs = (cfg.searchResultShow && typeof cfg.searchResultShow === "object") ? cfg.searchResultShow : {};
+cfg.searchResultShow = {};
+["icon", "location", "desc", "type", "footer"].forEach(function (k) { cfg.searchResultShow[k] = !(srs[k] === false || srs[k] === "false"); });
 return cfg;
     }
 
@@ -296,6 +337,33 @@ group.appendChild(submenu);
       return a;
     }
 
+var efcSearchIconSvg_i1 = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>';
+
+var efcPlaceholder_p1 = { pc: "", mobile: "", bp: 1024 };
+var efcPlaceholderObserver_p2 = null;
+function efc_applySearchPlaceholder_p3() {
+  var p = efcPlaceholder_p1;
+  var text = (window.innerWidth <= p.bp && p.mobile) ? p.mobile : p.pc;
+  if (!text) return;
+  var inp = document.querySelector(".notion-quick-find-menu input");
+  if (inp && inp.getAttribute("placeholder") !== text) inp.setAttribute("placeholder", text);
+}
+function efc_watchSearchPlaceholder_p4(cfg) {
+  efcPlaceholder_p1.pc = cfg.searchPlaceholder || "";
+  efcPlaceholder_p1.mobile = cfg.searchPlaceholderMobile || "";
+  efcPlaceholder_p1.bp = cfg.mobileBreakpoint;
+  if (efcPlaceholderObserver_p2 || !window.MutationObserver) return;
+  if (!efcPlaceholder_p1.pc && !efcPlaceholder_p1.mobile) return;
+  var pending = false;
+  efcPlaceholderObserver_p2 = new MutationObserver(function () {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function () { pending = false; efc_applySearchPlaceholder_p3(); });
+  });
+  efcPlaceholderObserver_p2.observe(document.body, { childList: true, subtree: true });
+}
+
+
     function efc_triggerOopySearch_m4k(planMode) {
   var order = planMode === 'standard' ? ['.search-button', '.xi-search'] : ['.xi-search', '.search-button'];
   var btn = null;
@@ -322,6 +390,12 @@ group.appendChild(submenu);
   }
 
   ensureFontAwesome_f1a(cfg);
+efc_watchSearchPlaceholder_p4(cfg);
+document.body.classList.toggle("efc_searchCustom_c1", !!cfg.searchPanelCustom);
+document.body.classList.toggle("efc_searchRadius_c2", !!cfg.searchRadiusCustom);
+document.body.classList.toggle("efc_searchResult_c3", !!cfg.searchResultCustom);
+var srHideClass = { icon: "efc_srHideIcon_c4", location: "efc_srHideLocation_c5", desc: "efc_srHideDesc_c6", type: "efc_srHideType_c7", footer: "efc_srHideFooter_c8" };
+Object.keys(srHideClass).forEach(function (k) { document.body.classList.toggle(srHideClass[k], !cfg.searchResultShow[k]); });
 
   var oldHeader = document.querySelector(".efc_header_h7k");
       if (oldHeader) {
@@ -366,18 +440,27 @@ logoLink.appendChild(logoPicture);
       var searchDesktop = null;
       if (cfg.useSearch) {
         searchDesktop = createEl_d3y("button", "efc_desktopSearchBtn_s5l", { "aria-label": "검색 창 열기" });
-        searchDesktop.innerHTML = '<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>';
-        searchDesktop.addEventListener("click", function() { efc_triggerOopySearch_m4k(cfg.oopyPlan); });
-      }
+        searchDesktop.innerHTML = efcSearchIconSvg_i1;
+searchDesktop.addEventListener("click", function() { efc_triggerOopySearch_m4k(cfg.oopyPlan); });
+}
+
+var searchBar = null;
+if (cfg.useSearch && cfg.showMobileSearchBar) {
+  searchBar = createEl_d3y("button", "efc_mobileBarSearchBtn_s8m", { type: "button", "aria-label": "검색 창 열기" });
+  searchBar.innerHTML = efcSearchIconSvg_i1;
+  searchBar.addEventListener("click", function() { efc_triggerOopySearch_m4k(cfg.oopyPlan); });
+}
 
       var toggle = createEl_d3y("button", "efc_toggleBtn_o5k", { type: "button", "aria-label": "모바일 메뉴 열기" });
       for (var i = 0; i < 3; i++) toggle.appendChild(createEl_d3y("span", "toggleBar_p6l"));
 
+      if (searchBar && cfg.searchPosition === "left") actions.appendChild(searchBar);
       actions.appendChild(mobileBarCta); 
       if (cfg.useSearch && cfg.searchPosition === "left") { actions.appendChild(searchDesktop); actions.appendChild(ctaGroup); } 
       else if (cfg.useSearch && cfg.searchPosition === "right") { actions.appendChild(ctaGroup); actions.appendChild(searchDesktop); } 
       else { actions.appendChild(ctaGroup); }
-      actions.appendChild(toggle);
+      if (searchBar && cfg.searchPosition !== "left") actions.appendChild(searchBar);
+actions.appendChild(toggle);
 
       row.appendChild(logoLink); row.appendChild(nav); row.appendChild(actions); inner.appendChild(row);
 
@@ -396,7 +479,7 @@ logoLink.appendChild(logoPicture);
       var searchMobile = null;
       if (cfg.useSearch && cfg.showMobileSearchBtn) {
         searchMobile = createEl_d3y("button", "efc_mobileSearchBtn_k6m", { "aria-label": "검색 창 열기" });
-        searchMobile.innerHTML = '<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> 검색';
+        searchMobile.innerHTML = efcSearchIconSvg_i1 + " 검색";
         searchMobile.addEventListener("click", function() { efc_triggerOopySearch_m4k(cfg.oopyPlan); });
       }
 
@@ -419,6 +502,7 @@ logoLink.appendChild(logoPicture);
 }
 
 globalResizeHandler_m3h = function() {
+  document.body.classList.toggle("efc_mobileMode_b3m", window.innerWidth <= cfg.mobileBreakpoint);
   if (window.innerWidth <= cfg.mobileBreakpoint) { header.classList.add("efc_mobileView_m8v"); } 
   else { header.classList.remove("efc_mobileView_m8v"); header.classList.remove("is-open"); }
   applyActionsMinWidth_x1k();

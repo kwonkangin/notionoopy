@@ -1,19 +1,15 @@
 /* =====================================================================================
-   menubar-2.0-20261002.css   |   메뉴바 엔진 2.0 (CSS)
-   짝 파일 : menubar-2.0-20261002.js (엔진) / menubar-2.0-option-20261002.html (모양 변수)
-   전체 설명, 설정 방법, 클래스 목록은 menubar-2.0-20261002.js 상단 주석을 본다.
+   menubar-2.0-20261004.css   |   메뉴바 엔진 2.0 (CSS)
+   짝 파일 : menubar-2.0-20261004.js (엔진) / menubar-2.0-option-20261004.html (모양 변수)
+   전체 설명, 설정 방법, 클래스 목록은 menubar-2.0-20261004.js 상단 주석을 본다.
    색상, 크기, 간격 같은 값은 이 파일이 아니라 option 파일의 :root 변수가 정한다.
    ===================================================================================== */
- 
-
-<!-- 
-  ====================================================================
-  [영역 2: 고정 코어 엔진] 깃허브 보관용 CSS 및 JS 구조
-  ==================================================================== 
--->
 
 
-  * { box-sizing: border-box; }
+
+
+
+.efc_header_h7k, .efc_header_h7k * { box-sizing: border-box; }
   body { margin: 0; }
 
   .efc_header_h7k {
@@ -237,3 +233,48 @@
 .efc_header_h7k .mobileSubmenuPanel_w4s { display: grid; grid-template-rows: 0fr; max-height: none; overflow: hidden; transition: grid-template-rows .25s ease; }
 .efc_header_h7k .efc_mobileGroup_r8n.is-expanded .mobileSubmenuPanel_w4s { grid-template-rows: 1fr; max-height: none; }
 .mobileSubmenuInner_w5t { min-height: 0; overflow: hidden; }
+
+.efc_desktopSearchBtn_s5l svg, .efc_mobileBarSearchBtn_s8m svg, .efc_mobileSearchBtn_k6m svg { width: 1em; height: 1em; display: block; }
+.efc_mobileBarSearchBtn_s8m { display: none; align-items: center; justify-content: center; background: var(--searchBtnBg_j1, transparent); border: none; cursor: pointer; padding: var(--searchBtnPaddingMobile_j8, var(--searchBtnPadding_j6, 4px)); border-radius: var(--searchBtnRadius_j7, 4px); font-size: var(--searchBtnSize_j5, 18px); color: var(--searchBtnText_j2, #333); transition: color .2s ease, background .2s ease; }
+.efc_mobileBarSearchBtn_s8m:hover { color: var(--searchBtnHoverText_j4, #00a6ab); background: var(--searchBtnHoverBg_j3, transparent); }
+.efc_header_h7k.efc_mobileView_m8v .efc_mobileBarSearchBtn_s8m { display: flex; }
+body.efc_searchCustom_c1 div:has(> .notion-quick-find-menu) { top: var(--searchPanelTop_s1, 90px) !important; width: var(--searchPanelWidth_s2, 600px) !important; max-width: 100% !important; }
+body.efc_searchCustom_c1.efc_mobileMode_b3m div:has(> .notion-quick-find-menu) { top: var(--searchPanelTopMobile_s3, var(--searchPanelTop_s1, 90px)) !important; width: var(--searchPanelWidthMobile_s4, 100%) !important; }
+
+/* ── 2026-10-04 추가 ── */
+.efc_header_h7k .mobileBarCtaGroup_m1a:empty { display: none !important; }
+
+/* 검색창 모서리 (바깥 패널에만 적용, 안쪽은 패널 모양에 맞춰 잘림) */
+body.efc_searchRadius_c2 div:has(> .notion-quick-find-menu) { border-radius: var(--searchPanelRadius_s5, 3px) !important; }
+
+/* 검색 결과 노출/비노출 */
+body.efc_srHideIcon_c4 .notion-quick-find-menu [role="button"] .notion-record-icon { visibility: hidden !important; }
+body.efc_srHideLocation_c5 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div > div:has(> div) { display: none !important; }
+body.efc_srHideDesc_c6 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div > div:not(:first-child):not(:has(> div)) { display: none !important; }
+body.efc_srHideType_c7 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div + div > span { display: none !important; }
+body.efc_srHideFooter_c8 .notion-quick-find-menu footer { display: none !important; }
+
+/* 검색 결과 글자 스타일 (검색 결과 디자인 직접 지정을 켰을 때) */
+body.efc_searchResult_c3 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div > div:first-child {
+  font-size: var(--searchResultTitleSize_s6, 14px) !important; font-weight: var(--searchResultTitleWeight_s7, 500) !important;
+  color: var(--searchResultTitleColor_s8, rgb(55, 53, 47)) !important; line-height: 1.45 !important;
+}
+body.efc_searchResult_c3 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div > div:has(> div),
+body.efc_searchResult_c3 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div > div:has(> div) > div {
+  font-size: var(--searchResultPathSize_s9, 12px) !important; font-weight: var(--searchResultPathWeight_s10, 400) !important;
+  color: var(--searchResultPathColor_s11, rgba(55, 53, 47, 0.4)) !important; line-height: 1.4 !important;
+}
+body.efc_searchResult_c3 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div > div:not(:first-child):not(:has(> div)) {
+  font-size: var(--searchResultDescSize_s12, 12px) !important; font-weight: var(--searchResultDescWeight_s13, 400) !important;
+  color: var(--searchResultDescColor_s14, rgba(55, 53, 47, 0.6)) !important; line-height: 1.5 !important;
+  -webkit-line-clamp: var(--searchResultDescLines_s15, 2) !important;
+}
+body.efc_searchResult_c3 .notion-quick-find-menu [role="button"] div:has(> .notion-record-icon) + div + div > span {
+  font-size: var(--searchResultTypeSize_s16, 11px) !important; font-weight: var(--searchResultTypeWeight_s17, 400) !important;
+  color: var(--searchResultTypeColor_s18, rgba(55, 53, 47, 0.55)) !important; background: var(--searchResultTypeBg_s19, rgba(55, 53, 47, 0.06)) !important;
+}
+body.efc_searchResult_c3 .notion-quick-find-menu footer,
+body.efc_searchResult_c3 .notion-quick-find-menu footer span {
+  font-size: var(--searchResultFooterSize_s20, 12px) !important; color: var(--searchResultFooterColor_s22, rgba(55, 53, 47, 0.4)) !important;
+}
+body.efc_searchResult_c3 .notion-quick-find-menu footer > span { font-weight: var(--searchResultFooterWeight_s21, 400) !important; }
