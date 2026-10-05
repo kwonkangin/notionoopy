@@ -121,9 +121,11 @@
   --pcPanelCols_k2: 1;
   --pcPanelPadY_k3: 20px;
   --pcPanelColGap_k4: 32px;
-  --mobileRowGap_a10: 8px;
---mobileCtaMaxWidth_i6: 42vw;
---mobileIconBtnSize_i7: 36px;
+  
+
+  --mobileHeaderPaddingX_a9: 16px;
+  --mobileHeaderGap_a10: 8px;
+  --searchBtnPaddingMobile_j8: 4px 8px;
 }
 
 
@@ -580,22 +582,37 @@ body.efc_searchResult_c3 .notion-quick-find-menu footer > span { font-weight: va
 
 
 
-/* ── 모바일 헤더 충돌 방지 (v2): 값은 전부 변수에서 읽음 ── */
-.efc_header_h7k.efc_deviceMobile_d1v .headerRow_r3n {
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: var(--mobileRowGap_a10, 8px);
+/* ══════════════════════════════════════════════════════════
+   [엔진 CSS 수정 2] 이전에 추가했던 "모바일 헤더 충돌 방지 엔진 패치" 전체를
+   삭제하고, 아래 블록으로 교체하세요. CSS 파일 맨 끝에 둡니다.
+   - @media 없음: JS의 mobileBreakpoint(1024)를 그대로 따릅니다.
+   - 요소에 변수를 다시 선언하지 않습니다: :root / 대시보드 값이 먹습니다.
+   - 검색창 위치/폭은 건드리지 않습니다: s3, s4 변수가 그대로 동작합니다.
+   - 패널 좌우 여백은 건드리지 않습니다: h5 변수가 그대로 동작합니다.
+   ══════════════════════════════════════════════════════════ */
+.efc_header_h7k.efc_mobileView_m8v .headerRow_r3n {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: var(--mobileHeaderGap_a10, 8px);
 }
-.efc_header_h7k.efc_deviceMobile_d1v .logoLink_l4p,
-.efc_header_h7k.efc_deviceMobile_d1v .logoPicture_p1c { min-width: 0; max-width: 100%; overflow: hidden; }
-.efc_header_h7k.efc_deviceMobile_d1v .logoImg_g5q { max-width: 100%; object-fit: contain; object-position: left center; }
-.efc_header_h7k.efc_deviceMobile_d1v .headerActions_o1a { grid-column: 2; min-width: 0; max-width: 100%; }
-.efc_header_h7k.efc_deviceMobile_d1v .mobileBarCtaGroup_m1a { min-width: 0; max-width: var(--mobileCtaMaxWidth_i6, 42vw); overflow: hidden; }
-.efc_header_h7k.efc_deviceMobile_d1v .mobileBarCtaBtn_n2b { flex: 0 1 auto; max-width: var(--mobileCtaMaxWidth_i6, 42vw); line-height: 1.2; }
-.efc_header_h7k.efc_deviceMobile_d1v .efc_mobileBarSearchBtn_s8m,
-.efc_header_h7k.efc_deviceMobile_d1v .efc_toggleBtn_o5k {
-  flex: 0 0 auto; min-width: var(--mobileIconBtnSize_i7, 36px); min-height: var(--mobileIconBtnSize_i7, 36px);
-  align-items: center; justify-content: center;
+.efc_header_h7k.efc_mobileView_m8v .logoLink_l4p,
+.efc_header_h7k.efc_mobileView_m8v .logoPicture_p1c {
+  min-width: 0; max-width: 100%; overflow: hidden;
+}
+.efc_header_h7k.efc_mobileView_m8v .logoImg_g5q {
+  max-width: 100%; object-fit: contain; object-position: left center;
+}
+.efc_header_h7k.efc_mobileView_m8v .headerActions_o1a {
+  grid-column: 2 / 4; margin-left: auto; max-width: 100%;
+}
+.efc_header_h7k.efc_mobileView_m8v .mobileBarCtaGroup_m1a { max-width: 42vw; overflow: hidden; }
+.efc_header_h7k.efc_mobileView_m8v .mobileBarCtaBtn_n2b { flex: 0 1 auto; max-width: 42vw; }
+.efc_header_h7k.efc_mobileView_m8v .efc_mobileBarSearchBtn_s8m,
+.efc_header_h7k.efc_mobileView_m8v .efc_toggleBtn_o5k {
+  flex: 0 0 auto; min-width: 36px; min-height: 36px; align-items: center; justify-content: center;
+}
+.efc_header_h7k.efc_mobileView_m8v .mobilePanel_q7m {
+  max-height: calc(100dvh - var(--headerHeight_a3, 72px));
 }
 @media (max-width: 359px) {
-  .efc_header_h7k.efc_deviceMobile_d1v .mobileBarCtaGroup_m1a { display: none !important; }
+  .efc_header_h7k.efc_mobileView_m8v .mobileBarCtaGroup_m1a { display: none !important; }
 }
