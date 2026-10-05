@@ -151,31 +151,84 @@
  (function () {
     "use strict";
 
-    function mergeConfig_c2x(userConfig) {
-      var defaults = {
-        mobileBreakpoint: 1024, useSearch: true, showMobileSearchBtn: true, searchPosition: "right", oopyPlan: "standard",
-        hideNotionTopbar: true, useHeaderShadow: true, showMobileDesc: true, mobileCtaLayout: "vertical", mobileCtaGridCols: 2,
-        logo: { url: "", alt: "로고", link: "/" }, showArrowDefault: true, defaultDropdownStyle: "simple",
-        menuItems: [], ctaButtons: [], scrollEffect: false, scrollThreshold: 10, offsetBody: true
+    var EFC_DEFAULT_CONFIG_q1 = {
+      mobileBreakpoint: 1024, desktopHamburger: false,
+      useSearch: true, showMobileSearchBtn: false, showMobileSearchBar: true, searchPosition: "right", oopyPlan: "standard",
+      hideNotionTopbar: true, useHeaderShadow: true, showMobileDesc: true, mobileCtaLayout: "vertical", mobileCtaGridCols: 1,
+      scrollEffect: true, scrollThreshold: 10, offsetBody: true,
+      logo: { url: "", mobileUrl: "", alt: "로고", link: "/" },
+      showArrowDefault: true, defaultDropdownStyle: "detailed", mobileAccordion: true, arrowAnimation: false, detailedWidthMode: "auto",
+      searchPanelCustom: true, searchPlaceholder: "궁금한 내용을 검색해보세요.", searchPlaceholderMobile: "",
+      searchRadiusCustom: true, searchResultCustom: false,
+      searchResultShow: { icon: false, location: false, desc: true, type: false, footer: true },
+      menuItems: [], ctaButtons: []
+    };
+
+    function mergeDeep_q2(base, extra) {
+      var out = Object.assign({}, base);
+      if (!extra || typeof extra !== "object" || Array.isArray(extra)) return out;
+      Object.keys(extra).forEach(function (k) {
+        var a = base[k], b = extra[k];
+        if (a && typeof a === "object" && !Array.isArray(a) && b && typeof b === "object" && !Array.isArray(b)) out[k] = mergeDeep_q2(a, b);
+        else out[k] = b;
+      });
+      return out;
+    }
+
+    function resolveUrl_q3(url, base) {
+      if (typeof url !== "string" || !url || !base || url.charAt(0) !== "/" || url.indexOf("//") === 0) return url;
+      return String(base).replace(/\/+$/, "") + "/" + url.replace(/^\/+/, "");
+    }
+
+    function normalizeIcon_q4(icon) {
+      if (!icon || typeof icon !== "object" || icon.type === "none" || !icon.value) return { type: "none", value: "" };
+      var out = { type: icon.type === "img" ? "image" : icon.type, value: icon.value };
+      if (icon.color) out.color = icon.color;
+      if (icon.hoverColor) out.hoverColor = icon.hoverColor;
+      return out;
+    }
+
+    function normalizeChild_q5(child, cfg) {
+      child = (child && typeof child === "object") ? child : {};
+      return {
+        title: child.title || child.label || "",
+        url: resolveUrl_q3(child.url || "#", cfg.base),
+        target: child.target || "_self",
+        desc: child.desc || "",
+        icon: normalizeIcon_q4(child.icon)
       };
-      var cfg = Object.assign({}, defaults, userConfig || {});
-      cfg.logo = Object.assign({}, defaults.logo, (userConfig && userConfig.logo) || {});
-      if (!Array.isArray(cfg.menuItems)) cfg.menuItems = [];
-      if (!Array.isArray(cfg.ctaButtons)) cfg.ctaButtons = [];
-cfg.mobileAccordion = cfg.mobileAccordion === true || cfg.mobileAccordion === "true";
-cfg.arrowAnimation = !(cfg.arrowAnimation === false || cfg.arrowAnimation === "false");
-cfg.detailedWidthMode = cfg.detailedWidthMode === "auto" ? "auto" : "fixed";
-cfg.logo.mobileUrl = cfg.logo.mobileUrl || "";
-cfg.showMobileSearchBar = cfg.showMobileSearchBar === true || cfg.showMobileSearchBar === "true";
-cfg.searchPanelCustom = cfg.searchPanelCustom === true || cfg.searchPanelCustom === "true";
-cfg.searchPlaceholder = typeof cfg.searchPlaceholder === "string" ? cfg.searchPlaceholder.trim() : "";
-cfg.searchPlaceholderMobile = typeof cfg.searchPlaceholderMobile === "string" ? cfg.searchPlaceholderMobile.trim() : "";
-cfg.searchRadiusCustom = cfg.searchRadiusCustom === true || cfg.searchRadiusCustom === "true";
-cfg.searchResultCustom = cfg.searchResultCustom === true || cfg.searchResultCustom === "true";
-var srs = (cfg.searchResultShow && typeof cfg.searchResultShow === "object") ? cfg.searchResultShow : {};
-cfg.searchResultShow = {};
-["icon", "location", "desc", "type", "footer"].forEach(function (k) { cfg.searchResultShow[k] = !(srs[k] === false || srs[k] === "false"); });
-return cfg;
+    }
+
+    function normalizeMenu_q6(item, cfg) {
+      item = (item && typeof item === "object") ? item : {};
+      var hasShowArrow = typeof item.showArrow === "boolean";
+      return {
+        label: item.label || "",
+        url: resolveUrl_q3(item.url || "#", cfg.base),
+        target: item.target || "_self",
+        showArrow: hasShowArrow ? item.showArrow : cfg.showArrowDefault,
+        dropdownStyle: item.dropdownStyle || cfg.defaultDropdownStyle,
+        children: Array.isArray(item.children) ? item.children.filter(function (c) { return c && typeof c === "object"; }).map(function (c) { return normalizeChild_q5(c, cfg); }) : []
+      };
+    }
+
+    function normalizeCta_q7(cta, cfg) {
+      cta = (cta && typeof cta === "object") ? cta : {};
+      return {
+        label: cta.label || "",
+        url: resolveUrl_q3(cta.url || "#", cfg.base),
+        target: cta.target || "_self",
+        variant: cta.variant || "solid",
+        showOnMobileBar: cta.showOnMobileBar === true
+      };
+    }
+
+    function mergeConfig_c2x(userConfig) {
+      var cfg = mergeDeep_q2(EFC_DEFAULT_CONFIG_q1, userConfig || {});
+      cfg.base = typeof cfg.base === "string" ? cfg.base.trim() : "";
+      cfg.menuItems = Array.isArray(cfg.menuItems) ? cfg.menuItems.filter(function (i) { return i && typeof i === "object"; }).map(function (i) { return normalizeMenu_q6(i, cfg); }) : [];
+      cfg.ctaButtons = Array.isArray(cfg.ctaButtons) ? cfg.ctaButtons.filter(function (i) { return i && typeof i === "object"; }).map(function (i) { return normalizeCta_q7(i, cfg); }) : [];
+      return cfg;
     }
 
     function createEl_d3y(tag, className, attrs) {
@@ -502,14 +555,18 @@ actions.appendChild(toggle);
 }
 
 globalResizeHandler_m3h = function() {
-  document.body.classList.toggle("efc_mobileMode_b3m", window.innerWidth <= cfg.mobileBreakpoint);
-  if (window.innerWidth <= cfg.mobileBreakpoint) { header.classList.add("efc_mobileView_m8v"); } 
+  var isDeviceMobile = window.innerWidth <= cfg.mobileBreakpoint;
+  var isHamburger = isDeviceMobile || cfg.desktopHamburger;
+  document.body.classList.toggle("efc_mobileMode_b3m", isDeviceMobile);
+  header.classList.toggle("efc_deviceMobile_d1v", isDeviceMobile);
+  header.classList.toggle("efc_hamburgerPc_p1h", !!cfg.desktopHamburger && !isDeviceMobile);
+  if (isHamburger) { header.classList.add("efc_mobileView_m8v"); } 
   else { header.classList.remove("efc_mobileView_m8v"); header.classList.remove("is-open"); }
   applyActionsMinWidth_x1k();
 };
 window.addEventListener("resize", globalResizeHandler_m3h); globalResizeHandler_m3h();
 
-      document.addEventListener("click", function (e) { if (header.contains(e.target)) return; header.querySelectorAll(".efc_navItem_v7s.is-open").forEach(function (item) { item.classList.remove("is-open"); }); });
+      document.addEventListener("click", function (e) { if (header.contains(e.target)) return; if (header.classList.contains("is-open")) { header.classList.remove("is-open"); toggle.setAttribute("aria-expanded", "false"); } header.querySelectorAll(".efc_navItem_v7s.is-open").forEach(function (item) { item.classList.remove("is-open"); }); });
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") { header.classList.remove("is-open"); header.querySelectorAll(".efc_navItem_v7s.is-open").forEach(function (item) { item.classList.remove("is-open"); }); } });
 
       if (cfg.scrollEffect) {
@@ -530,4 +587,3 @@ window.addEventListener("resize", globalResizeHandler_m3h); globalResizeHandler_
     if (document.readyState !== "loading") window.efc_rebuildNav_v2a();
     else document.addEventListener("DOMContentLoaded", function() { window.efc_rebuildNav_v2a(); });
   })(); 
- 
