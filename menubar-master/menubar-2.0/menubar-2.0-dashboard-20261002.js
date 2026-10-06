@@ -127,6 +127,7 @@
 
 
 
+
 !function efc_launchMasterDashboard() {
   'use strict';
   var popup = window.open('', 'NavDashboardMasterFinal', 'width=800,height=960,scrollbars=yes,resizable=yes');
@@ -316,10 +317,10 @@
       C('--headerBorderColor_a2', '헤더 하단 테두리색', 'transparent'),
       R('--headerHeight_a3', '헤더 전체 높이', 40, 120, 'px', '72px'),
       { v: '--headerMaxWidth_a4', label: '콘텐츠 최대 너비', type: 'width', def: '1280px' },
-      R('--headerPaddingX_a5', '좌우 내부 여백', 0, 100, 'px', '24px'),
+      R('--headerPaddingX_a5', '좌우 내부 여백', 0, 100, 'px', '59px'),
       R('--headerZIndex_a6', 'Z-Index (우선순위)', 10, 9999, '', '9999'),
       R('--headerTransitionSpeed_a7', '배경 전환 애니메이션 속도', 0, 2, 's', '0.3s', 0.1),
-      R('--headerRowGap_a8', '로고-메뉴-버튼 간격', 0, 100, 'px', '24px'),
+      R('--headerRowGap_a8', '로고-메뉴-버튼 간격', 0, 100, 'px', '0px'),
       HEAD('스크롤 · 노션 상단바'),
       SET('스크롤 그림자 효과 임계값 본문 여백 보정 노션 상단바 숨김 useHeaderShadow scrollEffect offsetBody hideNotionTopbar', function () {
         var d = state.nav;
@@ -333,25 +334,25 @@
       })
     ] },
     { id: 'sec-logo', toc: '로고', title: '3. 로고 (크기)', blocks: [
-      R('--logoHeight_b1', '로고 이미지 높이', 10, 100, 'px', '28px'),
+      R('--logoHeight_b1', '로고 이미지 높이', 10, 100, 'px', '36px'),
       O(R('--logoHeightMobile_b2', '모바일 로고 높이', 10, 100, 'px', '24px'))
     ] },
     { id: 'sec-nav', toc: '대메뉴', title: '4. 대메뉴 (PC)', blocks: [
       S('--navAlign_c9', '메뉴 정렬 위치', { 'flex-start': '좌측 (로고 옆)', 'center': '중앙', 'flex-end': '우측 (버튼 옆)' }, 'center', { left: 'flex-start', right: 'flex-end' }),
-      R('--navGap_c1', '메뉴 사이 간격', 10, 200, 'px', '28px'),
+      R('--navGap_c1', '메뉴 사이 간격', 10, 200, 'px', '32px'),
       R('--navMarginLeft_c10', '대메뉴 좌측(로고) 여백', 0, 200, 'px', '0px'),
       R('--navMarginRight_c11', '대메뉴 우측(CTA) 여백', 0, 200, 'px', '0px'),
-      R('--navFontSize_c2', '글자 크기', 10, 24, 'px', '15px'),
+      R('--navFontSize_c2', '글자 크기', 10, 24, 'px', '16px'),
       W('--navFontWeight_c3', '글자 굵기', '500'),
-      C('--navColor_c4', '기본 글자색', '#333333'),
-      C('--navHoverColor_c5', '호버 글자색', 'rgba(49, 130, 246, 1.00)'),
+      C('--navColor_c4', '기본 글자색', 'rgba(51, 51, 51, 1.00)'),
+      C('--navHoverColor_c5', '호버 글자색', '#00b0ec'),
       HEAD('화살표'),
       SET('화살표 기본 노출 회전 애니메이션 showArrowDefault arrowAnimation', function () {
         var d = state.nav;
         return [toggle('화살표 기본 노출 (showArrowDefault)', d, 'showArrowDefault'), toggle('화살표 회전 애니메이션 (arrowAnimation)', d, 'arrowAnimation')];
       }),
       S('--navArrowDisplay_c6', '화살표 노출', { 'inline-block': '노출', 'none': '숨김' }, 'inline-block'),
-      R('--navArrowSize_c7', '화살표 크기', 5, 30, 'px', '10px'),
+      R('--navArrowSize_c7', '화살표 크기', 5, 30, 'px', '12px'),
       { v: '--navArrowColor_c8', label: '화살표 색상', type: 'arrow', def: 'currentColor' }
     ] },
     { id: 'sec-dropdown', toc: '하위메뉴', title: '5. 하위메뉴', blocks: [
@@ -366,9 +367,9 @@
       SH('--dropdownSimpleShadow_d3', '박스 그림자 (심플/공통)', '0 10px 30px rgba(0, 0, 0, 0.08)'),
       R('--dropdownSimpleMinWidth_d4', '심플형 최소 너비', 100, 400, 'px', '200px'),
       D(C('--dropdownDetailedBg_e1', '상세형 배경색 (개별)', '#ffffff')),
-      D(R('--dropdownDetailedRadius_e2', '상세형 둥글기 (개별)', 0, 40, 'px', '16px')),
-      D(P('--dropdownDetailedPad_e5', '상세형 내부 여백 (개별)', '10px 10px')),
-      D(SH('--dropdownDetailedShadow_e3', '상세형 박스 그림자 (개별)', '0 20px 40px rgba(0, 0, 0, 0.12)')),
+      D(R('--dropdownDetailedRadius_e2', '상세형 둥글기 (개별)', 0, 40, 'px', '12px')),
+      D(P('--dropdownDetailedPad_e5', '상세형 내부 여백 (개별)', '8px 8px')),
+      D(SH('--dropdownDetailedShadow_e3', '상세형 박스 그림자 (개별)', '0 10px 30px rgba(0, 0, 0, 0.08)')),
       SET('상세형 하위메뉴 너비 방식 detailedWidthMode', function () {
         return [fld('상세형 하위메뉴 너비 방식 (detailedWidthMode)', sel(state.nav, 'detailedWidthMode', { fixed: '고정 너비', auto: '내용(텍스트 길이)에 맞춤' }))];
       }),
@@ -377,13 +378,13 @@
       M('auto', R('--dropdownDetailedMaxWidth_e23', '상세형 최대 너비 (내용에 맞춤 모드)', 200, 800, 'px', '320px')),
       HEAD('항목'),
       R('--dropdownItemRadius_e6', '항목 호버 둥글기', 0, 30, 'px', '10px'),
-      C('--dropdownItemHoverBg_e7', '항목 호버 배경색', 'rgba(49, 130, 246, 0.06)'),
+      C('--dropdownItemHoverBg_e7', '항목 호버 배경색', 'rgba(0, 176, 236, 0.06)'),
       R('--dropdownGap_e21', '항목 사이 상하 간격', 0, 20, 'px', '4px'),
       HEAD('아이콘 / 텍스트'),
       C('--dropdownIconColor_e11', '글로벌 아이콘 기본색', 'rgba(51, 51, 51, 1.00)'),
-      C('--dropdownIconHoverColor_e11h', '글로벌 아이콘 호버색', 'rgba(49, 130, 246, 1.00)'),
+      C('--dropdownIconHoverColor_e11h', '글로벌 아이콘 호버색', '#00b0ec'),
       R('--dropdownIconBoxSize_e8', '아이콘 박스 크기', 0, 80, 'px', '30px'),
-      C('--dropdownIconBoxBg_e9', '아이콘 박스 배경색', 'transparent'),
+      C('--dropdownIconBoxBg_e9', '아이콘 박스 배경색', 'rgba(0, 176, 236, 0.1)'),
       R('--dropdownIconBoxRadius_e10', '아이콘 박스 둥글기', 0, 40, 'px', '8px'),
       R('--dropdownIconImgScale_e11b', '이미지 비율 (박스 대비)', 0.1, 1.5, '', '0.8', 0.1),
       R('--dropdownIconFaSize_e11c', '폰트어썸 아이콘 크기', 10, 50, 'px', '17px'),
@@ -399,16 +400,16 @@
     ] },
     { id: 'sec-cta', toc: 'CTA', title: '6. CTA 버튼 (PC)', blocks: [
       R('--ctaGap_f1', '버튼 간격', 0, 40, 'px', '10px'),
-      R('--ctaRadius_f2', '버튼 둥글기', 0, 100, 'px', '999px', 1, PILL),
-      R('--ctaFontSize_f3', '글자 크기', 10, 24, 'px', '14px'),
+      R('--ctaRadius_f2', '버튼 둥글기', 0, 100, 'px', '100px', 1, PILL),
+      R('--ctaFontSize_f3', '글자 크기', 10, 24, 'px', '16px'),
       W('--ctaFontWeight_z7', '글자 굵기', '700'),
-      R('--ctaPaddingY_f5', '상하 여백', 0, 30, 'px', '10px'),
+      R('--ctaPaddingY_f5', '상하 여백', 0, 30, 'px', '8px'),
       R('--ctaPaddingX_f4', '좌우 여백', 0, 50, 'px', '18px'),
-      C('--ctaSolidBg_z1', 'Solid 배경색', 'rgba(49, 130, 246, 1.00)'),
+      C('--ctaSolidBg_z1', 'Solid 배경색', '#00b0ec'),
       C('--ctaSolidText_z2', 'Solid 글자색', '#ffffff'),
       C('--ctaOutlineBg_z3', 'Outline 배경색', '#ffffff'),
-      C('--ctaOutlineText_z4', 'Outline 글자색', 'rgba(49, 130, 246, 1.00)'),
-      C('--ctaOutlineBorder_z5', 'Outline 선 색상', 'rgba(49, 130, 246, 1.00)'),
+      C('--ctaOutlineText_z4', 'Outline 글자색', '#00b0ec'),
+      C('--ctaOutlineBorder_z5', 'Outline 선 색상', '#00b0ec'),
       R('--ctaBorderWidth_z6', '테두리 선 두께', 0, 10, 'px', '1.5px', 0.5)
     ] },
     { id: 'sec-search', toc: '검색', title: '7. 검색', blocks: [
@@ -426,7 +427,7 @@
       NS(C('--searchBtnHoverBg_j3', '(PC) 호버 배경색', 'transparent')),
       NS(C('--searchBtnHoverText_j4', '(PC) 호버 아이콘색', '#00a6ab')),
       NS(R('--searchBtnSize_j5', '(PC) 아이콘 크기', 10, 40, 'px', '18px')),
-      NS(P('--searchBtnPadding_j6', '(PC) 내부 여백', '4px 4px')),
+      NS(P('--searchBtnPadding_j6', '(PC) 내부 여백', '4px 20px')),
       NS(R('--searchBtnRadius_j7', '(PC) 둥글기', 0, 30, 'px', '4px')),
       HEAD('모바일 검색', true),
       SET('모바일 패널 내 검색 버튼 노출 showMobileSearchBtn', function () { return [toggle('모바일 패널 하단에 검색 버튼 노출 (showMobileSearchBtn)', state.nav, 'showMobileSearchBtn')]; }, true),
@@ -436,7 +437,7 @@
       NS(C('--mobileSearchHoverText_m4', '(모바일 패널 버튼) 호버 글자색', '#00a6ab')),
       NS(R('--mobileSearchRadius_m5', '(모바일 패널 버튼) 둥글기', 0, 50, 'px', '8px')),
       SET('모바일 상단바 검색 아이콘 showMobileSearchBar', function () { return [toggle('모바일: 상단바에 검색 아이콘 (CTA와 햄버거 사이, showMobileSearchBar)', state.nav, 'showMobileSearchBar')]; }, true),
-      NS(O(P('--searchBtnPaddingMobile_j8', '(모바일) 상단바 검색 아이콘 내부 여백', '4px 4px'))),
+      NS(P('--searchBtnPaddingMobile_j8', '(모바일) 상단바 검색 아이콘 내부 여백', '4px 8px')),
       HEAD('열린 검색창', true),
       SET('검색창 플레이스홀더 searchPlaceholder', function () {
         var d = state.nav;
@@ -446,12 +447,12 @@
         ];
       }, true),
       SET('검색창 위치 크기 직접 지정 searchPanelCustom', function () { return [toggle('검색창 위치/크기 직접 지정 (searchPanelCustom)', state.nav, 'searchPanelCustom')]; }, true),
-      NS(PN(R('--searchPanelTop_s1', '검색창 위쪽 여백', 0, 400, 'px', '90px'))),
-      NS(PN(R('--searchPanelWidth_s2', '검색창 너비 (PC)', 280, 1000, 'px', '600px'))),
+      NS(PN(R('--searchPanelTop_s1', '검색창 위쪽 여백', 0, 400, 'px', '240px'))),
+      NS(PN(R('--searchPanelWidth_s2', '검색창 너비 (PC)', 280, 1000, 'px', '656px'))),
       NS(PN(O(R('--searchPanelTopMobile_s3', '검색창 위쪽 여백 (모바일)', 0, 400, 'px', '90px')))),
-      NS(PN(O(R('--searchPanelWidthMobile_s4', '검색창 너비 (모바일)', 50, 100, '%', '100%')))),
+      NS(PN(O(R('--searchPanelWidthMobile_s4', '검색창 너비 (모바일)', 50, 100, '%', '82%')))),
       SET('검색창 모서리 직접 지정 searchRadiusCustom', function () { return [toggle('검색창 모서리 직접 지정 (searchRadiusCustom)', state.nav, 'searchRadiusCustom')]; }, true),
-      NS(RD(R('--searchPanelRadius_s5', '검색창 모서리 둥글기', 0, 30, 'px', '3px'))),
+      NS(RD(R('--searchPanelRadius_s5', '검색창 모서리 둥글기', 0, 30, 'px', '30px'))),
       SET('검색 결과 표시 항목 아이콘 위치 설명 타입 배지 하단 문구', function () {
         var d = state.nav;
         return [fld('검색 결과 표시 항목 (제목은 항상 표시)', h('div', { style: 'display:flex;flex-direction:column;gap:8px' }, [
@@ -485,14 +486,15 @@
       PH(R('--pcPanelPadY_k3', 'PC 햄버거 패널 위아래 여백', 0, 80, 'px', '20px')),
       PH(R('--pcPanelColGap_k4', 'PC 햄버거 패널 열 사이 간격', 0, 80, 'px', '32px')),
       SET('모바일 햄버거 전환 시점 mobileBreakpoint', function () { return [numRange('모바일 햄버거 전환 시점 (px, mobileBreakpoint)', state.nav, 'mobileBreakpoint', 480, 1600, 1)]; }),
-      O(R('--mobileHeaderPaddingX_a9', '모바일 헤더 좌우 여백', 0, 100, 'px', '16px')),
+      R('--mobileHeaderPaddingX_a9', '모바일 헤더 좌우 여백', 0, 100, 'px', '16px'),
+      R('--mobileHeaderGap_a10', '모바일 헤더 로고-버튼 간격', 0, 40, 'px', '8px'),
       HEAD('펼침 패널'),
       C('--mobilePanelBg_h1', '모바일 패널 배경색', '#ffffff'),
       R('--mobilePanelPaddingX_h5', '모바일 패널 좌우 추가 여백', 0, 60, 'px', '0px'),
       R('--mobileActionGap_o2', '상단 햄버거-버튼 간격', 0, 40, 'px', '12px'),
       C('--toggleColor_g1', '햄버거 아이콘 색상', '#1f2937'),
       HEAD('메뉴 항목'),
-      R('--mobileItemFontSize_h2', '모바일 대메뉴 크기', 10, 24, 'px', '15px'),
+      R('--mobileItemFontSize_h2', '모바일 대메뉴 크기', 10, 24, 'px', '16px'),
       C('--mobileItemColor_h3', '모바일 메뉴 글자색', '#333333'),
       C('--mobileCaretColor_h4', '모바일 화살표 색상', '#9aa0a6'),
       SET('모바일 하위메뉴 설명글 노출 아코디언 showMobileDesc mobileAccordion', function () {
@@ -517,6 +519,8 @@
   var VAR_ITEMS = [], VAR_BY_NAME = {};
   SECTIONS.forEach(function (s) { (s.blocks || []).forEach(function (b) { if (b.v) { VAR_ITEMS.push(b); VAR_BY_NAME[b.v] = b; } }); });
   var VAR_GROUPS = SECTIONS.map(function (s) { return { title: s.title, items: (s.blocks || []).filter(function (b) { return b.v; }) }; }).filter(function (g) { return g.items.length; });
+  ['--searchPanelTop_s1', '--searchPanelWidth_s2', '--searchPanelTopMobile_s3', '--searchPanelWidthMobile_s4'].forEach(function (n) { if (VAR_BY_NAME[n]) VAR_BY_NAME[n].free = true; });
+  VAR_ITEMS.forEach(function (it) { if (/obile/.test(it.v) && it.label.indexOf('📱') < 0) it.label = it.label + ' 📱'; });
   var SYNC = {
     '--dropdownSimpleBg_d1': '--dropdownDetailedBg_e1',
     '--dropdownSimpleRadius_d2': '--dropdownDetailedRadius_e2',
@@ -526,15 +530,19 @@
   var TARGETS = { _self: '현재창', _blank: '새창' };
 
   var NAV_DEFAULT = {
-    mobileBreakpoint: 1024, useSearch: false, showMobileSearchBtn: true, searchPosition: 'right', oopyPlan: 'standard',
-    hideNotionTopbar: true, showMobileDesc: true, mobileCtaLayout: 'horizontal', mobileCtaGridCols: 2, useHeaderShadow: true,
-    logo: { url: '', mobileUrl: '', alt: '브랜드 로고', link: '/' }, showArrowDefault: true, defaultDropdownStyle: 'detailed',
-    mobileAccordion: false, arrowAnimation: true, detailedWidthMode: 'fixed',
-    showMobileSearchBar: false, searchPanelCustom: false, searchPlaceholder: '', searchPlaceholderMobile: '',
-       searchRadiusCustom: false, searchResultCustom: false, desktopHamburger: false,
-    searchResultShow: { icon: true, location: true, desc: true, type: true, footer: true },
-    menuItems: [], ctaButtons: [], scrollEffect: true, scrollThreshold: 10, offsetBody: true
+    mobileBreakpoint: 1024, desktopHamburger: false,
+    useSearch: true, showMobileSearchBtn: false, showMobileSearchBar: true, searchPosition: 'right', oopyPlan: 'standard',
+    hideNotionTopbar: true, useHeaderShadow: true, showMobileDesc: true, mobileCtaLayout: 'vertical', mobileCtaGridCols: 1,
+    scrollEffect: true, scrollThreshold: 10, offsetBody: true,
+    logo: { url: '', mobileUrl: '', alt: '로고', link: '/' },
+    showArrowDefault: true, defaultDropdownStyle: 'detailed', mobileAccordion: true, arrowAnimation: false, detailedWidthMode: 'auto',
+    searchPanelCustom: true, searchPlaceholder: '궁금한 내용을 검색해보세요.', searchPlaceholderMobile: '',
+    searchRadiusCustom: true, searchResultCustom: false,
+    searchResultShow: { icon: false, location: false, desc: true, type: false, footer: true },
+    menuItems: [], ctaButtons: [], base: ''
   };
+  var EMBEDDED_CSS_DEFAULTS = {"--headerBg_a1": "#ffffff", "--headerBorderColor_a2": "transparent", "--headerHeight_a3": "72px", "--headerMaxWidth_a4": "1280px", "--headerPaddingX_a5": "59px", "--headerZIndex_a6": "9999", "--headerTransitionSpeed_a7": "0.3s", "--headerRowGap_a8": "0px", "--logoHeight_b1": "36px", "--navAlign_c9": "flex-end", "--navGap_c1": "32px", "--navMarginLeft_c10": "0px", "--navMarginRight_c11": "0px", "--navFontSize_c2": "16px", "--navFontWeight_c3": "500", "--navColor_c4": "rgba(51, 51, 51, 1.00)", "--navHoverColor_c5": "#00b0ec", "--navArrowDisplay_c6": "inline-block", "--navArrowSize_c7": "12px", "--navArrowColor_c8": "currentColor", "--dropdownSimpleBg_d1": "#ffffff", "--dropdownSimpleRadius_d2": "12px", "--dropdownSimplePad_d5": "8px 8px", "--dropdownSimpleShadow_d3": "0 10px 30px rgba(0, 0, 0, 0.08)", "--dropdownSimpleMinWidth_d4": "200px", "--dropdownDetailedBg_e1": "#ffffff", "--dropdownDetailedRadius_e2": "12px", "--dropdownDetailedPad_e5": "8px 8px", "--dropdownDetailedShadow_e3": "0 10px 30px rgba(0, 0, 0, 0.08)", "--dropdownDetailedWidth_e4": "320px", "--dropdownDetailedMinWidth_e22": "200px", "--dropdownDetailedMaxWidth_e23": "320px", "--dropdownItemRadius_e6": "10px", "--dropdownItemHoverBg_e7": "rgba(0, 176, 236, 0.06)", "--dropdownGap_e21": "4px", "--dropdownIconColor_e11": "rgba(51, 51, 51, 1.00)", "--dropdownIconHoverColor_e11h": "#00b0ec", "--dropdownIconBoxSize_e8": "30px", "--dropdownIconBoxBg_e9": "rgba(0, 176, 236, 0.1)", "--dropdownIconBoxRadius_e10": "8px", "--dropdownIconImgScale_e11b": "0.8", "--dropdownIconFaSize_e11c": "17px", "--dropdownIconGap_e12": "10px", "--dropdownTitleColor_e13": "#1f2937", "--dropdownTitleSize_e14": "14px", "--dropdownTitleWeight_e15": "600", "--dropdownDescColor_e16": "#8a8f98", "--dropdownDescSize_e17": "12px", "--dropdownDescWeight_e18": "400", "--dropdownTitleDescGap_e19": "3px", "--dropdownNoIconAlign_e20": "left", "--ctaGap_f1": "10px", "--ctaRadius_f2": "100px", "--ctaFontSize_f3": "16px", "--ctaFontWeight_z7": "700", "--ctaPaddingY_f5": "8px", "--ctaPaddingX_f4": "18px", "--ctaSolidBg_z1": "#00b0ec", "--ctaSolidText_z2": "#ffffff", "--ctaOutlineBg_z3": "#ffffff", "--ctaOutlineText_z4": "#00b0ec", "--ctaOutlineBorder_z5": "#00b0ec", "--ctaBorderWidth_z6": "1.5px", "--searchBtnBg_j1": "transparent", "--searchBtnText_j2": "#333333", "--searchBtnHoverBg_j3": "transparent", "--searchBtnHoverText_j4": "#00a6ab", "--searchBtnSize_j5": "18px", "--searchBtnPadding_j6": "4px 20px", "--searchBtnRadius_j7": "4px", "--mobileSearchBg_m1": "#f4f4f5", "--mobileSearchText_m2": "#333333", "--mobileSearchHoverBg_m3": "#e4e4e7", "--mobileSearchHoverText_m4": "#00a6ab", "--mobileSearchRadius_m5": "8px", "--searchPanelTop_s1": "240px", "--searchPanelWidth_s2": "656px", "--searchPanelWidthMobile_s4": "82%", "--searchPanelRadius_s5": "30px", "--searchResultTitleSize_s6": "14px", "--searchResultTitleWeight_s7": "500", "--searchResultTitleColor_s8": "rgb(55, 53, 47)", "--searchResultPathSize_s9": "12px", "--searchResultPathWeight_s10": "400", "--searchResultPathColor_s11": "rgba(55, 53, 47, 0.4)", "--searchResultDescSize_s12": "12px", "--searchResultDescWeight_s13": "400", "--searchResultDescColor_s14": "rgba(55, 53, 47, 0.6)", "--searchResultDescLines_s15": "2", "--searchResultTypeSize_s16": "11px", "--searchResultTypeWeight_s17": "400", "--searchResultTypeColor_s18": "rgba(55, 53, 47, 0.55)", "--searchResultTypeBg_s19": "rgba(55, 53, 47, 0.06)", "--searchResultFooterSize_s20": "12px", "--searchResultFooterWeight_s21": "400", "--searchResultFooterColor_s22": "rgba(55, 53, 47, 0.4)", "--mobilePanelBg_h1": "#ffffff", "--mobilePanelPaddingX_h5": "0px", "--mobileActionGap_o2": "12px", "--toggleColor_g1": "#1f2937", "--mobileItemFontSize_h2": "16px", "--mobileItemColor_h3": "#333333", "--mobileCaretColor_h4": "#9aa0a6", "--mobileBarCtaGap_i1": "8px", "--mobileBarCtaFontSize_i2": "12px", "--mobileBarCtaPaddingY_i4": "7px", "--mobileBarCtaPaddingX_i3": "12px", "--mobileBarCtaRadius_i5": "999px", "--pcPanelWidth_k1": "100%", "--pcPanelCols_k2": "1", "--pcPanelPadY_k3": "20px", "--pcPanelColGap_k4": "32px", "--mobileHeaderPaddingX_a9": "16px", "--mobileHeaderGap_a10": "8px", "--searchBtnPaddingMobile_j8": "4px 8px"};
+
 
   /* ───────── 상태 초기화 ───────── */
   var state = { styles: {}, snap: {}, nav: null, navSnap: null, commonMode: true };
@@ -567,7 +575,7 @@
   }
   function normCta(b) {
     b = isObj(b) ? b : {};
-    return { label: str(b.label), url: b.url || '#', target: b.target === '_blank' ? '_blank' : '_self', variant: b.variant === 'solid' ? 'solid' : 'outline', showOnMobileBar: toBool(b.showOnMobileBar, false) };
+    return { label: str(b.label), url: b.url || '#', target: b.target === '_blank' ? '_blank' : '_self', variant: b.variant === 'outline' ? 'outline' : 'solid', showOnMobileBar: toBool(b.showOnMobileBar, false) };
   }
   var BOOL_KEYS = ['useSearch', 'showMobileSearchBtn', 'hideNotionTopbar', 'showMobileDesc', 'useHeaderShadow', 'showArrowDefault', 'scrollEffect', 'offsetBody', 'mobileAccordion', 'arrowAnimation', 'showMobileSearchBar', 'searchPanelCustom', 'searchRadiusCustom', 'searchResultCustom', 'desktopHamburger'];
   function normalizeNav(src, base) {
@@ -627,10 +635,12 @@
       scrollEffect: !!d.scrollEffect, scrollThreshold: Math.max(0, toInt(d.scrollThreshold, 10)), offsetBody: !!d.offsetBody
     };
     Object.keys(d).forEach(function (k) { if (!(k in out)) out[k] = clone(d[k]); });
+    if (!out.base) delete out.base;
     return out;
   }
 
   /* ───────── 미리보기 반영 ───────── */
+  var mobilePreview = false, previewOpen = false;
   var statusEl, engineWarn = '', peeking = false, suspendAuto = false, userEdited = false, undoState = null;
   function setStatus(msg, bad) { if (!statusEl) return; statusEl.textContent = msg; statusEl.className = 'status' + (bad ? ' bad' : ''); }
   function applyCss(stylesObj) {
@@ -644,7 +654,11 @@
   }
   function rebuildNow(cfgObj) {
     if (typeof window.efc_rebuildNav_v2a !== 'function') { setStatus('엔진(efc_rebuildNav_v2a)을 찾을 수 없습니다. 메뉴바 코드가 이 페이지에 로드되어 있는지 확인하세요.', true); return; }
-    try { window.efc_rebuildNav_v2a(cfgObj || cleanNav()); setStatus('미리보기 연결됨 · 메뉴 ' + state.nav.menuItems.length + '개 / CTA ' + state.nav.ctaButtons.length + '개' + engineWarn, !!engineWarn); }
+    try {
+      var cfgUse = cfgObj || cleanNav();
+      if (mobilePreview && !cfgObj) { cfgUse = clone(cfgUse); cfgUse.mobileBreakpoint = 99999; }
+      window.efc_rebuildNav_v2a(cfgUse);
+      if (mobilePreview && previewOpen) { var hd0 = oDoc.querySelector('.efc_header_h7k'); if (hd0) hd0.classList.add('is-open'); } setStatus('미리보기 연결됨 · 메뉴 ' + state.nav.menuItems.length + '개 / CTA ' + state.nav.ctaButtons.length + '개' + engineWarn, !!engineWarn); }
     catch (e) { console.error('[NavDash] 메뉴바 재빌드 오류', e); setStatus('재빌드 오류: ' + e.message, true); }
   }
   var rebuildDebounced = debounce(function () { if (peeking) return; rebuildNow(); }, 120);
@@ -670,13 +684,29 @@
     var unit = it.unit || '';
     var r = h('input', { type: 'range', className: 'rng' }); r.min = it.min; r.max = it.max; r.step = it.step || 1;
     var n = h('input', { type: 'number', className: 'inp num' }); n.step = it.step || 1;
-    r.oninput = function () { n.value = r.value; ctx.commit(r.value + unit); };
-    n.oninput = function () { if (n.value === '' || isNaN(+n.value)) return; r.value = n.value; ctx.commit(n.value + unit); };
+    var ft = null;
+    if (it.free) ft = h('input', { type: 'text', className: 'inp code', spellcheck: false, style: 'width:100%;margin-top:6px', placeholder: '직접 입력 (예: calc(100vw - 32px), 90vw, 320px)' });
+    r.oninput = function () { n.value = r.value; if (ft) ft.value = ''; ctx.commit(r.value + unit); };
+    n.oninput = function () { if (n.value === '' || isNaN(+n.value)) return; r.value = n.value; if (ft) ft.value = ''; ctx.commit(n.value + unit); };
+    if (ft) ft.onchange = function () {
+      var v = ft.value.trim(); if (!v) return;
+      if (/^-?[\d.]+$/.test(v)) { r.value = v; n.value = v; ft.value = ''; ctx.commit(v + unit); return; }
+      if (/^-?[\d.]+px$/.test(v) && unit === 'px') { var x0 = parseFloat(v); r.value = x0; n.value = x0; ft.value = ''; ctx.commit(v); return; }
+      ctx.commit(v);
+    };
     var kids = [r, n];
     (it.quick || []).forEach(function (q) {
-      kids.push(h('button', { type: 'button', className: 'btn sm', text: q.label, onclick: function () { r.value = q.value; n.value = q.value; ctx.commit(q.value + unit); } }));
+      kids.push(h('button', { type: 'button', className: 'btn sm', text: q.label, onclick: function () { r.value = q.value; n.value = q.value; if (ft) ft.value = ''; ctx.commit(q.value + unit); } }));
     });
-    return { el: h('div', { className: 'row' }, kids), set: function (v) { var x = parseFloat(v); if (isNaN(x)) x = parseFloat(it.def); r.value = x; n.value = x; } };
+    var row = h('div', { className: 'row' }, kids);
+    return {
+      el: ft ? h('div', {}, [row, ft]) : row,
+      set: function (v) {
+        var s = String(v == null ? '' : v).trim(), plain = /^-?[\d.]+(px|%)?$/.test(s), x = parseFloat(s);
+        if (!plain || isNaN(x)) { if (ft) ft.value = s; x = parseFloat(it.def); } else if (ft) ft.value = '';
+        r.value = x; n.value = x;
+      }
+    };
   };
   mk.color = function (it, ctx) {
     var chip = h('input', { type: 'color', className: 'chip' });
@@ -942,15 +972,70 @@
   var btnCloseAll = btn('전체 접기', function () { setAllOpen(false); });
   var btnQuickSave = btn('현재 상태 저장', function () { saveNewSlot(''); });
   var btnSiteDefault = btn('사이트 기본으로', function () { resetToSite(); });
+  /* ───────── 모바일 미리보기 / 적용 진단 ───────── */
+  var DIAG = [
+    ['--mobileHeaderPaddingX_a9', '.headerInner_i2m', 'padding-left', '37px', '37px'],
+    ['--mobileHeaderGap_a10', '.headerRow_r3n', 'column-gap', '23px', '23px'],
+    ['--mobileActionGap_o2', '.headerActions_o1a', 'column-gap', '21px', '21px'],
+    ['--mobileBarCtaGap_i1', '.mobileBarCtaGroup_m1a', 'column-gap', '19px', '19px'],
+    ['--mobileBarCtaFontSize_i2', '.mobileBarCtaBtn_n2b', 'font-size', '17px', '17px'],
+    ['--mobilePanelPaddingX_h5', '.mobilePanel_q7m', 'padding-left', '27px', '27px'],
+    ['--searchBtnPaddingMobile_j8', '.efc_mobileBarSearchBtn_s8m', 'padding-left', '7px 7px', '7px'],
+    ['--logoHeightMobile_b2', '.logoImg_g5q', 'height', '31px', '31px'],
+    ['--searchPanelTopMobile_s3', '@panel', 'top', '133px', '133px'],
+    ['--searchPanelWidthMobile_s4', '@panel', 'width', '301px', '301px']
+  ];
+  function runDiagnose() {
+    var L = [], hd = oDoc.querySelector('.efc_header_h7k');
+    if (!hd) return '헤더가 없습니다. 메뉴바 엔진이 로드되었는지 확인하세요.';
+    var win = oDoc.defaultView, mobile = hd.classList.contains('efc_mobileView_m8v');
+    L.push('창 폭 ' + win.innerWidth + 'px · 모바일 기준 ' + state.nav.mobileBreakpoint + 'px · 헤더 모바일 모드: ' + (mobile ? '예' : '아니오') + (mobilePreview ? ' (모바일 미리보기 켜짐)' : ''));
+    if (!mobile) L.push('→ 모바일 전용 변수는 모바일 모드에서만 화면에 나타납니다. "모바일 미리보기"를 켜세요.');
+    if (engineCssState === 'ok') {
+      L.push('엔진 CSS: :where 기본값 블록 확인됨');
+      if (!/var\(\s*--mobileHeaderGap_a10/.test(engineCssText)) L.push('✗ 엔진 CSS에 --mobileHeaderGap_a10을 쓰는 규칙이 없습니다 → 엔진 CSS 수정안 미반영이거나, 우피의 엔진 주소(커밋 해시)가 옛 버전입니다.');
+      if (/\.efc_header_h7k\s*\{[^}]*--mobileActionGap_o2\s*:/.test(engineCssText)) L.push('✗ 엔진 CSS에 예전 모바일 패치(헤더 요소에서 변수를 다시 선언)가 남아 있습니다 → 삭제하세요.');
+    } else if (engineCssState === 'notfound') {
+      L.push('✗ 엔진 CSS(:where 기본값 블록 포함)를 찾지 못했습니다 → 엔진 CSS가 구버전이거나 주소가 틀렸을 수 있습니다.');
+    } else { L.push('엔진 CSS 확인 중…'); }
+    var tmp = oDoc.createElement('style'); oDoc.head.appendChild(tmp);
+    var root = oDoc.documentElement, ok = 0, bad = 0;
+    DIAG.forEach(function (d) {
+      var el = d[1] === '@panel' ? (function () { var q = oDoc.querySelector('.notion-quick-find-menu'); return q ? q.parentElement : null; })() : oDoc.querySelector(d[1]);
+      if (!el) { L.push('· ' + d[0] + ': 대상 요소 없음' + (d[1] === '@panel' ? ' (검색창을 연 상태에서 다시 진단하세요)' : '')); return; }
+      var before = win.getComputedStyle(el).getPropertyValue(d[2]).trim();
+      tmp.textContent = ':root{' + d[0] + ':' + d[3] + ' !important}';
+      var after = win.getComputedStyle(el).getPropertyValue(d[2]).trim();
+      var hv = win.getComputedStyle(hd).getPropertyValue(d[0]).trim(), rv = win.getComputedStyle(root).getPropertyValue(d[0]).trim();
+      if (after === d[4]) { ok++; L.push('✓ ' + d[0] + ' : 적용됨'); }
+      else if (hv !== rv) { bad++; L.push('✗ ' + d[0] + ' : 헤더 요소가 이 변수를 따로 선언해 덮어씁니다 (예전 모바일 패치 잔존)'); }
+      else if (!mobile) { L.push('· ' + d[0] + ' : 모바일 모드가 아니라 확인 불가'); }
+      else { bad++; L.push('✗ ' + d[0] + ' : 모바일 모드인데 반영되지 않음 (' + d[1] + ' ' + d[2] + ': ' + before + ' → ' + after + '). 이 변수를 쓰는 규칙이 없거나 다른 규칙이 덮어씁니다'); }
+    });
+    tmp.remove();
+    L.push('결과: 적용 ' + ok + '개 / 문제 ' + bad + '개');
+    return L.join('\n');
+  }
+  var diagBox = h('pre', { style: 'display:none;white-space:pre-wrap;font:11px/1.5 monospace;background:var(--input);border:1px solid var(--bd);border-radius:6px;padding:8px;margin:8px 0 0;max-height:220px;overflow:auto' });
+  var btnMobPrev = btn('📱 모바일 미리보기: 꺼짐', function () {
+    mobilePreview = !mobilePreview; btnMobPrev.textContent = '📱 모바일 미리보기: ' + (mobilePreview ? '켜짐' : '꺼짐'); rebuildNow();
+  });
+  var btnMobOpen = btn('☰ 햄버거 열기: 꺼짐', function () {
+    previewOpen = !previewOpen; btnMobOpen.textContent = '☰ 햄버거 열기: ' + (previewOpen ? '켜짐' : '꺼짐');
+    var hd = oDoc.querySelector('.efc_header_h7k'); if (hd) hd.classList.toggle('is-open', previewOpen && hd.classList.contains('efc_mobileView_m8v'));
+  });
+  var btnDiag = btn('🔍 적용 진단', function () { diagBox.style.display = 'block'; diagBox.textContent = runDiagnose(); });
+
   var tocEl = h('div', { className: 'toc' });
   var topEl = h('header', { className: 'top' }, [
     h('div', { className: 'trow' }, [h('h3', { text: '메뉴바 대시보드 2.0' }), h('div', { className: 'row', style: 'width:auto' }, [filterIn, themeSel])]),
     statusEl,
-    h('div', { className: 'tbar' }, [btnOpenAll, btnCloseAll, eyeBtn, btnQuickSave, btnSiteDefault]),
-    tocEl
+    h('div', { className: 'tbar' }, [btnOpenAll, btnCloseAll, eyeBtn, btnQuickSave, btnSiteDefault, btnMobPrev, btnMobOpen, btnDiag]),
+    diagBox, tocEl
   ]);
   app.appendChild(topEl);
   var main = h('main', { className: 'main' }); app.appendChild(main);
+  main.appendChild(h('div', { className: 'mut', style: 'margin-bottom:8px', text: '📱 표시 항목은 헤더가 모바일 모드일 때만 보입니다. 상단의 "모바일 미리보기"를 켜거나 창 폭을 mobileBreakpoint 이하로 줄이세요. 맞지 않으면 "적용 진단"을 누르세요.' }));
 
   function section(id, title, bodyKids, extraClass) {
     var body = h('div', { className: 'sbody' }, bodyKids);
@@ -1222,6 +1307,20 @@
       return p.t.replace(/,(\s*[}\]])/g, '$1').replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3');
     }).join('');
   }
+  function stripMedia(css) {
+    var out = '', i = 0, skipped = 0;
+    while (i < css.length) {
+      var k = css.indexOf('@media', i);
+      if (k < 0) { out += css.slice(i); break; }
+      out += css.slice(i, k);
+      var b = css.indexOf('{', k); if (b < 0) break;
+      var depth = 0, j = b;
+      for (; j < css.length; j++) { var c = css.charAt(j); if (c === '{') depth++; else if (c === '}') { depth--; if (depth === 0) { j++; break; } } }
+      skipped += (css.slice(b, j).match(/--[A-Za-z0-9_]+\s*:/g) || []).length;
+      i = j;
+    }
+    return { css: out, skipped: skipped };
+  }
   function parseImport(text) {
     var res = { vars: {}, unknown: [], cfg: null, unknownKeys: [], error: null };
     var info = extractConfigText(text), cssText = text;
@@ -1233,6 +1332,8 @@
       Object.keys(res.cfg).forEach(function (k) { if (!(k in NAV_DEFAULT)) res.unknownKeys.push(k); });
     }
     cssText = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+    var sm = stripMedia(cssText); cssText = sm.css;
+    if (sm.skipped) res.unknown.push('(@media 블록 안의 변수 ' + sm.skipped + '개는 PC 값이 아니므로 읽지 않았습니다)');
     var re = /(--[A-Za-z0-9_]+)\s*:\s*([^;{}]+?)\s*(?:!important)?\s*(?:;|(?=\}))/g, m;
     while ((m = re.exec(cssText))) {
       var name = m[1], val = m[2].trim();
@@ -1333,39 +1434,133 @@
   /* ───────── 내보내기 ───────── */
   var exportBox = h('textarea', { spellcheck: false });
   var warnBox = h('div');
+  var sizeInfo = h('div', { className: 'mut', style: 'margin-top:6px;line-height:1.6' });
+  var baseIn = h('input', { type: 'text', className: 'inp', placeholder: '예: https://example.com (비우면 주소를 줄이지 않음)', value: (state.nav && state.nav.base) || '' });
+  var OOPY_LIMIT = 10425;
+  function updateSizeInfo() {
+    var slim = buildExport(true), full = buildExport(false);
+    var src = engineCssDefaults ? '엔진 CSS 실시간' : '내장 기본값(엔진 CSS를 읽지 못함)';
+    sizeInfo.textContent = '우피용(최소) ' + slim.length.toLocaleString() + '자' + (slim.length > OOPY_LIMIT ? ' ⚠ 한도 초과' : ' · 한도 ' + OOPY_LIMIT.toLocaleString() + '자 이내') + ' / 전체(백업용) ' + full.length.toLocaleString() + '자 · 기본값 기준: ' + src;
+  }
+  function showExport(min) {
+    exportBox.value = buildExport(min);
+    updateSizeInfo();
+  }
   var exportArea = h('section', { className: 'xa' }, [
-    h('div', { className: 'lbl', text: '최종 통합 코드', style: 'margin-bottom:8px' }), warnBox, exportBox,
+    h('div', { className: 'lbl', text: '우피에 붙여넣을 코드 (엔진 기본값과 같은 값은 빠져 있습니다)', style: 'margin-bottom:8px' }), warnBox, exportBox, sizeInfo,
+    h('div', { className: 'row2', style: 'margin-top:10px' }, [h('span', { className: 'mut', text: '공통 주소(base)' }), baseIn]),
     h('div', { className: 'row', style: 'margin-top:10px' }, [
-      h('button', { type: 'button', className: 'btn pri', text: '기본 복사', onclick: function () { exportBox.value = buildExport(false); copyText(exportBox.value, '복사되었습니다.'); } }),
-      h('button', { type: 'button', className: 'btn sec2', text: '압축 복사', onclick: function () { exportBox.value = buildExport(true); copyText(exportBox.value, '압축 코드가 복사되었습니다.'); } })
+      h('button', { type: 'button', className: 'btn pri', text: '우피용 복사 (최소)', onclick: function () { showExport(true); copyText(exportBox.value, '우피용 코드가 복사되었습니다.'); } }),
+      h('button', { type: 'button', className: 'btn sec2', text: '전체 복사 (백업용)', onclick: function () { showExport(false); copyText(exportBox.value, '전체 코드가 복사되었습니다.'); } })
     ])
   ]);
-  var footer = h('footer', { className: 'foot' }, [h('button', { type: 'button', className: 'btn exp', text: '코드 출력하기', onclick: function () {
-    exportBox.value = buildExport(false);
+  var footer = h('footer', { className: 'foot' }, [h('button', { type: 'button', className: 'btn exp', text: '코드 출력하기 (우피용)', onclick: function () {
+    showExport(true);
     var w = validate(); warnBox.textContent = '';
     if (w.length) warnBox.appendChild(h('div', { className: 'warn', text: '확인 필요: ' + w.join(' / ') }));
     exportArea.style.display = 'block'; exportArea.scrollIntoView({ behavior: 'smooth' });
   } })]);
   app.appendChild(exportArea); app.appendChild(footer);
 
+  function eqVal(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  var _cc = null;
+  function canonColor(v) {
+    try {
+      if (!(popup.CSS || window.CSS).supports('color', v)) return null;
+      if (!_cc) { _cc = oDoc.createElement('span'); _cc.style.display = 'none'; oDoc.body.appendChild(_cc); }
+      _cc.style.color = ''; _cc.style.color = v;
+      return oDoc.defaultView.getComputedStyle(_cc).color;
+    } catch (e) { return null; }
+  }
+  function normCss(s) {
+    var v = String(s).trim(), c = canonColor(v);
+    if (c) return 'c:' + c;
+    return v.replace(/\s+/g, '').toLowerCase().replace(/(\d)\.0+(?=\D|$)/g, '$1');
+  }
+  var engineCssDefaults = null, engineCssText = '', engineCssState = 'loading';
+  function loadEngineCssDefaults() {
+    var hrefs = [].slice.call(oDoc.querySelectorAll('link[rel="stylesheet"]')).map(function (l) { return l.href; }).filter(Boolean);
+    (function next(i) {
+      if (i >= hrefs.length) { if (!engineCssDefaults) engineCssState = 'notfound'; return; }
+      fetch(hrefs[i]).then(function (r) { return r.text(); }).then(function (txt) {
+        var m = txt.match(/:where\(\s*:root\s*\)\s*\{([^}]*)\}/);
+        if (!m) return next(i + 1);
+        var map = {}, re = /(--[\w-]+)\s*:\s*([^;]+);/g, x;
+        while ((x = re.exec(m[1]))) map[x[1]] = x[2].trim();
+        engineCssDefaults = map; engineCssText = txt; engineCssState = 'ok';
+      }).catch(function () { next(i + 1); });
+    })(0);
+  }
+  loadEngineCssDefaults();
+  function activeDefaults() { return engineCssDefaults || EMBEDDED_CSS_DEFAULTS; }
+
+  function slimNav(n, base) {
+    var D = NAV_DEFAULT, o = {};
+    Object.keys(n).forEach(function (k) {
+      if (k === 'menuItems' || k === 'ctaButtons' || k === 'base') return;
+      if ((k === 'logo' || k === 'searchResultShow') && n[k] && typeof n[k] === 'object') {
+        var sub = {};
+        Object.keys(n[k]).forEach(function (q) { if (!eqVal(n[k][q], D[k][q])) sub[q] = n[k][q]; });
+        if (Object.keys(sub).length) o[k] = sub;
+        return;
+      }
+      if (!(k in D) || !eqVal(n[k], D[k])) o[k] = n[k];
+    });
+    if (base) o.base = base;
+    function rel(u) { return (base && typeof u === 'string' && u.indexOf(base + '/') === 0) ? u.slice(base.length) : u; }
+    function put(r, u) { if (u && u !== '#') r.url = rel(u); }
+    o.menuItems = (n.menuItems || []).map(function (m) {
+      var r = { label: m.label }; put(r, m.url);
+      if (m.target && m.target !== '_self') r.target = m.target;
+      if (typeof m.showArrow === 'boolean') r.showArrow = m.showArrow;
+      if (m.children && m.children.length) {
+        if (m.dropdownStyle && m.dropdownStyle !== n.defaultDropdownStyle) r.dropdownStyle = m.dropdownStyle;
+        r.children = m.children.map(function (c) {
+          var x = { title: c.title }; put(x, c.url);
+          if (c.target && c.target !== '_self') x.target = c.target;
+          if (c.desc) x.desc = c.desc;
+          if (c.icon && c.icon.type && c.icon.type !== 'none' && c.icon.value) x.icon = c.icon;
+          return x;
+        });
+      }
+      return r;
+    });
+    o.ctaButtons = (n.ctaButtons || []).map(function (b) {
+      var r = { label: b.label }; put(r, b.url);
+      if (b.target && b.target !== '_self') r.target = b.target;
+      if (b.variant && b.variant !== 'solid') r.variant = b.variant;
+      if (b.showOnMobileBar) r.showOnMobileBar = true;
+      return r;
+    });
+    return o;
+  }
+
   function buildExport(min) {
+    var bv = baseIn.value.trim().replace(/\/+$/, '');
+    if (!bv && state.nav && state.nav.base) { bv = String(state.nav.base).replace(/\/+$/, ''); baseIn.value = bv; }
+    if (state.nav) state.nav.base = bv;
     var css;
     if (min) {
-      css = '<style>:root{' + Object.keys(state.styles).filter(function (k) { return state.styles[k] !== ''; }).map(function (k) { return k + ':' + state.styles[k] + ';'; }).join('') + '}</style>';
-    } else {
-      var out = ['<style>', '  :root {'];
-      VAR_GROUPS.forEach(function (g) {
-        out.push('    /* ── ' + g.title + ' ── */');
-        g.items.forEach(function (it) {
-          if (state.styles[it.v] === '') return;
-          out.push('    ' + it.v + ': ' + state.styles[it.v] + '; /* ' + it.label + ' */');
-        });
+      var defs = activeDefaults();
+      var keys = Object.keys(state.styles).filter(function (k) {
+        if (state.styles[k] === '') return false;
+        return !((k in defs) && normCss(defs[k]) === normCss(state.styles[k]));
       });
-      out.push('  }', '</style>'); css = out.join('\n');
+      css = '<style>:root{' + keys.map(function (k) { return k + ':' + state.styles[k] + ';'; }).join('') + '}</style>';
+      var sj = JSON.stringify(slimNav(cleanNav(), bv)).replace(/<\//g, '<\\/');
+      return css + '<script>window.efcMenubarConfig=' + sj + ';</scr' + 'ipt>';
     }
-    var json = JSON.stringify(cleanNav(), null, min ? 0 : 4).replace(/<\//g, '<\\/');
-    var js = min ? '<script>window.efcMenubarConfig=' + json + ';</scr' + 'ipt>' : '<script>\n  window.efcMenubarConfig = ' + json + ';\n</scr' + 'ipt>';
-    return css + (min ? '' : '\n\n') + js;
+    var out = ['<style>', '  :root {'];
+    VAR_GROUPS.forEach(function (g) {
+      out.push('    /* ── ' + g.title + ' ── */');
+      g.items.forEach(function (it) {
+        if (state.styles[it.v] === '') return;
+        out.push('    ' + it.v + ': ' + state.styles[it.v] + '; /* ' + it.label + ' */');
+      });
+    });
+    out.push('  }', '</style>'); css = out.join('\n');
+    var json = JSON.stringify(cleanNav(), null, 4).replace(/<\//g, '<\\/');
+    return css + '\n\n<script>\n  window.efcMenubarConfig = ' + json + ';\n</scr' + 'ipt>';
   }
   function validate() {
     var w = [], n = cleanNav();
