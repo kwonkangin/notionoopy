@@ -1,0 +1,142 @@
+/* ============================================================================
+ * hero-search.css · 검색 히어로 엔진 스타일
+ * 접미사 _hR7 = 이 프로젝트 전용 (다른 코드와의 이름 충돌 방지)
+ * ----------------------------------------------------------------------------
+ * [사용법]
+ *  Notion 메인 페이지 설정 블록의 <style>:root{ ... }</style> 안에서 아래 변수를 선언합니다.
+ *  선언하지 않은 변수는 이 파일에 적힌 기본값이 적용됩니다.
+ *  변수 값을 비워 두지 말고(빈 값 금지), 쓰지 않을 변수는 선언 자체를 지우세요.
+ * [표기]
+ *  기본 = 미선언 시 적용값 / 값 = 허용 값 · 형식 / 예 = 사용 예시
+ *  [모바일] = 모바일 전용 변수 (미선언 시 PC 값을 따름)
+ *  [미사용] = 미선언 시 해당 효과를 아예 쓰지 않음
+ * [조정]
+ *  대시보드(heroDash_hR7)에서 모든 변수를 슬라이더·색상 선택으로 조정하고
+ *  :root 코드로 내보낼 수 있습니다.
+ * ----------------------------------------------------------------------------
+ * 1. 레이아웃
+ * --heroH_hR7       히어로 높이 (heightMode가 fixed일 때 최소 높이)
+ *    기본 40vh | 값: 10~100vh, 100~1200px, 그 밖의 CSS 길이(calc 등)
+ *    예 --heroH_hR7:50vh;  비고: 실제 최소 높이는 max(--heroH, --heroMinH). 내용이 더 크면 늘어남. auto 모드에서는 무시
+ * --heroHm_hR7      [모바일] 히어로 높이
+ *    기본 --heroH_hR7 값 | 값: --heroH_hR7과 동일 | 예 --heroHm_hR7:36vh;
+ * --heroMinH_hR7    최소 높이 하한
+ *    기본 260px | 값: 0~800px | 예 --heroMinH_hR7:220px;
+ * --heroMaxW_hR7    내용(제목·검색창·키워드) 최대 폭
+ *    기본 800px | 값: 300~1600px | 예 --heroMaxW_hR7:960px;
+ * --heroPadX_hR7    좌우 여백
+ *    기본 20px | 값: 0~120px | 예 --heroPadX_hR7:32px;
+ * --heroPadY_hR7    상하 여백
+ *    기본 32px | 값: 0~200px | 예 --heroPadY_hR7:48px;
+ * --heroGap_hR7     블록 사이 기본 간격 (블록의 mb 값이 있으면 그 블록은 mb가 우선)
+ *    기본 24px | 값: 0~120px | 예 --heroGap_hR7:16px;
+ * ----------------------------------------------------------------------------
+ * 2. 배경
+ * --heroBg_hR7      배경색
+ *    기본 #00b0ec | 값: CSS 색상(#hex, rgb(), rgba(), transparent) | 예 --heroBg_hR7:#0a7ea4;
+ * --heroGrad_hR7    [미사용] 배경 그라데이션 (배경 이미지 위, 덮개 아래에 겹침)
+ *    기본 없음 | 값: linear-gradient(각도deg, 시작색 0%, [중간색 50%,] 끝색 100%)
+ *    예 --heroGrad_hR7:linear-gradient(180deg, #00b0ec 0%, #0086c3 100%);
+ * --heroImg_hR7     [미사용] 배경 이미지 (cover, 가운데 정렬)
+ *    기본 없음 | 값: url("이미지 주소") | 예 --heroImg_hR7:url("https://example.com/bg.jpg");
+ * --heroOvl_hR7     배경 이미지·그라데이션 위에 덮는 색 (글자 가독성 확보용)
+ *    기본 transparent | 값: CSS 색상 | 예 --heroOvl_hR7:rgba(0, 0, 0, 0.25);
+ * ----------------------------------------------------------------------------
+ * 3. 캐릭터 (설정 객체의 charShow가 true일 때만 보임)
+ * --charSize_hR7    캐릭터 이미지 크기 (정사각 기준 폭)
+ *    기본 80px | 값: 20~300px | 예 --charSize_hR7:96px;
+ * --charSizem_hR7   [모바일] 캐릭터 이미지 크기
+ *    기본 --charSize_hR7 값, 둘 다 미선언이면 60px | 값: 동일 | 예 --charSizem_hR7:60px;
+ * --charGap_hR7     캐릭터와 제목 사이 간격
+ *    기본 14px | 값: 0~80px | 예 --charGap_hR7:12px;
+ * ----------------------------------------------------------------------------
+ * 4. 검색창 (검색창 슬롯 위에 Oopy 검색 모달이 겹쳐 표시됨)
+ * --srchW_hR7       검색창 최대 폭 (키워드 영역 폭도 이 값을 따름)
+ *    기본 600px | 값: 280~1000px | 예 --srchW_hR7:640px;
+ * --srchWm_hR7      [모바일] 검색창 폭
+ *    기본 90% | 값: 50~100% | 예 --srchWm_hR7:94%;
+ * --srchR_hR7       [미사용] 검색창 모서리 둥글기
+ *    기본 Oopy 기본값 | 값: 0~40px | 예 --srchR_hR7:12px;
+ * --srchShadow_hR7  [미사용] 검색창 그림자
+ *    기본 Oopy 기본값 | 값: CSS box-shadow 또는 none | 예 --srchShadow_hR7:0px 4px 12px 0px rgba(0, 0, 0, 0.28);
+ * --srchBorder_hR7  [미사용] 검색창 테두리
+ *    기본 Oopy 기본값 | 값: "두께 선종류 색" (선종류: solid·dashed·dotted) | 예 --srchBorder_hR7:1px solid #e5e8eb;
+ *    비고: 테두리 두께만큼 모달이 커져 슬롯과 어긋날 수 있음
+ * --srchBg_hR7      [미사용] 검색창 배경색
+ *    기본 Oopy 기본값(흰색) | 값: CSS 색상 | 예 --srchBg_hR7:#ffffff;
+ * ----------------------------------------------------------------------------
+ * 5. 키워드 (칩)
+ * --kwTop_hR7       검색창과 키워드 줄 사이 간격
+ *    기본 14px | 값: 0~60px | 예 --kwTop_hR7:12px;
+ * --kwBg_hR7        칩 배경색
+ *    기본 rgba(255, 255, 255, 0.2) | 값: CSS 색상 | 예 --kwBg_hR7:#f2f4f6;
+ * --kwHoverBg_hR7   칩에 마우스를 올렸을 때 배경색
+ *    기본 --kwBg_hR7 값 | 값: CSS 색상 | 예 --kwHoverBg_hR7:#e5e8eb;
+ * --kwColor_hR7     칩 글자색
+ *    기본 #ffffff | 값: CSS 색상 | 예 --kwColor_hR7:#333d4b;
+ * --kwSize_hR7      칩 글자 크기
+ *    기본 13px | 값: 8~24px | 예 --kwSize_hR7:14px;
+ * --kwWt_hR7        칩 글자 굵기
+ *    기본 500 | 값: 100~900 (100 단위) | 예 --kwWt_hR7:600;
+ * --kwR_hR7         칩 모서리 둥글기
+ *    기본 999px(알약 모양) | 값: 0~999px | 예 --kwR_hR7:8px;
+ * --kwGap_hR7       칩 사이 간격
+ *    기본 10px | 값: 0~40px | 예 --kwGap_hR7:8px;
+ * --kwPadX_hR7      칩 안쪽 좌우 여백
+ *    기본 12px | 값: 0~40px | 예 --kwPadX_hR7:14px;
+ * --kwPadY_hR7      칩 안쪽 상하 여백
+ *    기본 6px | 값: 0~30px | 예 --kwPadY_hR7:7px;
+ * ----------------------------------------------------------------------------
+ * 6. 메뉴바 연동 (설정 객체의 barLink가 true일 때만 적용)
+ * --barGap_hR7      메뉴바 아래와 히어로 위 사이의 추가 간격
+ *    기본 0px | 값: -100~200px (음수면 메뉴바 쪽으로 겹침) | 예 --barGap_hR7:8px;
+ * ----------------------------------------------------------------------------
+ * 7. 내부용 변수 (엔진이 자동으로 넣음 · 직접 선언하지 마세요)
+ *  --ax_hR7(내용 정렬) --bSz_hR7(글자 크기) --bSzM_hR7(모바일 글자 크기)
+ *  --bWt_hR7(굵기) --bCl_hR7(글자색)
+ * ----------------------------------------------------------------------------
+ * [변수를 추가·변경할 때 체크리스트]
+ *  1) 이 파일에 기본값(var(--변수, 기본값))으로 사용  2) 대시보드 SECTIONS에 항목 추가
+ *  3) 이 주석에 설명 추가  4) 대시보드의 "🧪 전수 대조"가 실패 0인지 확인
+ * ========================================================================== */
+
+
+
+
+ .heroRoot_hR7{width:100%;display:flex;flex-direction:column;height:auto;min-height:max(var(--heroH_hR7,40vh),var(--heroMinH_hR7,260px));visibility:hidden;opacity:0;animation:heroShow_hR7 0s linear 1.5s forwards}
+.heroRoot_hR7.heroM_hR7{min-height:max(var(--heroHm_hR7,var(--heroH_hR7,40vh)),var(--heroMinH_hR7,260px))}
+.heroRoot_hR7.heroAuto_hR7,.heroRoot_hR7.heroAuto_hR7.heroM_hR7{min-height:0}
+.heroRoot_hR7.heroReady_hR7{visibility:visible;opacity:1;animation:none}
+.heroRoot_hR7.heroFade_hR7.heroReady_hR7{transition:opacity .3s ease}
+@keyframes heroShow_hR7{to{visibility:visible;opacity:1}}
+
+.heroBgL_hR7{position:absolute;left:0;right:0;z-index:0;height:var(--heroH_hR7,40vh);min-height:var(--heroMinH_hR7,260px);background-color:var(--heroBg_hR7,#00b0ec);background-image:var(--heroGrad_hR7,none),var(--heroImg_hR7,none);background-size:cover;background-position:center;background-repeat:no-repeat}
+.heroBgL_hR7::after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;background:var(--heroOvl_hR7,transparent)}
+
+.heroMain_hR7{position:relative;z-index:1;flex:1 1 auto;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:var(--heroPadY_hR7,32px) var(--heroPadX_hR7,20px)}
+.heroRoot_hR7[data-ay="top"] .heroMain_hR7{justify-content:flex-start}
+.heroRoot_hR7[data-ay="center"] .heroMain_hR7{justify-content:center}
+.heroRoot_hR7[data-ay="bottom"] .heroMain_hR7{justify-content:flex-end}
+.heroInner_hR7{width:100%;max-width:var(--heroMaxW_hR7,800px);display:flex;flex-direction:column;align-items:var(--ax_hR7,center)}
+
+.heroBlk_hR7{margin:0 0 var(--heroGap_hR7,24px);max-width:100%}
+.heroBlk_hR7:last-child{margin-bottom:0!important}
+
+.heroTxt_hR7{margin:0;font-size:var(--bSz_hR7);font-weight:var(--bWt_hR7);color:var(--bCl_hR7);line-height:1.3;white-space:pre-line}
+.heroM_hR7 .heroTxt_hR7{font-size:var(--bSzM_hR7,var(--bSz_hR7))}
+
+.heroTtl_hR7{display:flex;flex-direction:row;align-items:center;justify-content:var(--ax_hR7,center);gap:var(--charGap_hR7,14px)}
+.heroTtl_hR7[data-cp="left"] .heroChar_hR7,.heroTtl_hR7[data-cp="top"] .heroChar_hR7{order:-1}
+.heroTtl_hR7[data-cp="top"]{flex-direction:column;align-items:var(--ax_hR7,center);justify-content:flex-start}
+.heroChar_hR7{width:var(--charSize_hR7,80px);height:auto;flex:none}
+.heroM_hR7 .heroChar_hR7{width:var(--charSizem_hR7,var(--charSize_hR7,60px))}
+
+.heroSlot_hR7{width:100%;max-width:var(--srchW_hR7,600px);height:52px;flex:none}
+.heroM_hR7 .heroSlot_hR7{width:var(--srchWm_hR7,90%)}
+
+.heroKw_hR7{width:100%;max-width:var(--srchW_hR7,600px);display:flex;flex-wrap:wrap;gap:var(--kwGap_hR7,10px)}
+.heroM_hR7 .heroKw_hR7{width:var(--srchWm_hR7,90%)}
+.heroKw_hR7.heroKwScroll_hR7{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.heroKw_hR7.heroKwScroll_hR7::-webkit-scrollbar{display:none}
+.heroChip_hR7{appearance:none;-webkit-appearance:none;border:0;cursor:pointer;font:inherit;display:inline-block;flex:none;white-space:nowrap;background:var(--kwBg_hR7,rgba(255,255,255,.2));color:var(--kwColor_hR7,#fff);font-size:var(--kwSize_hR7,13px);font-weight:var(--kwWt_hR7,500);border-radius:var(--kwR_hR7,999px);padding:var(--kwPadY_hR7,6px) var(--kwPadX_hR7,12px)}
+.heroChip_hR7:hover{background:var(--kwHoverBg_hR7,var(--kwBg_hR7,rgba(255,255,255,.32)))}

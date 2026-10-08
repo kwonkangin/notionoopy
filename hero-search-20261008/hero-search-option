@@ -1,0 +1,123 @@
+/*
+<!--검색형 히어로 섹션 디자인 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/hero-search-20261008/hero-search.css">
+<script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/hero-search-20261008/hero-search.js" defer></script>
+*/
+
+<!-- ===========================================================================
+  settings.template.html · 검색 히어로 설정 템플릿 (엔진 기본값 기준, 모든 항목 포함)
+  사용: 이 전체를 Notion 메인 페이지의 설정 코드 블록에 붙여 넣고 필요한 값만 고치세요.
+  엔진(hero-search.css, hero-search.js)과 별도로, 이 블록이 사이트의 실제 디자인을 결정합니다.
+  각 항목의 자세한 설명(허용 범위·예시)은 hero-search.css 와 hero-search.js 상단 주석을 보세요.
+  조정은 대시보드(heroDash_hR7)에서 하고, "코드 내보내기 → 전체 복사"로 새 값을 받아 교체하세요.
+============================================================================ -->
+
+<div id="heroMount_hR7"></div>
+
+<style>
+:root{
+  /* ── 1. 레이아웃 ───────────────────────────────────────────── */
+  --heroH_hR7: 40vh;            /* 히어로 높이(최소 높이) 10~100vh 또는 100~1200px */
+  /* --heroHm_hR7: 40vh; */     /* [모바일] 높이. 주석 상태면 PC 값을 따름 */
+  --heroMinH_hR7: 260px;        /* 최소 높이 하한 0~800px */
+  --heroMaxW_hR7: 800px;        /* 내용 최대 폭 300~1600px */
+  --heroPadX_hR7: 20px;         /* 좌우 여백 0~120px */
+  --heroPadY_hR7: 32px;         /* 상하 여백 0~200px */
+  --heroGap_hR7: 24px;          /* 블록 사이 기본 간격 0~120px */
+
+  /* ── 2. 배경 ───────────────────────────────────────────────── */
+  --heroBg_hR7: #00b0ec;        /* 배경색 */
+  /* --heroGrad_hR7: linear-gradient(180deg, #00b0ec 0%, #0086c3 100%); */  /* 그라데이션(미사용 시 주석) */
+  /* --heroImg_hR7: url("https://example.com/bg.jpg"); */                   /* 배경 이미지(미사용 시 주석) */
+  --heroOvl_hR7: transparent;   /* 배경 위 덮개 색. 예: rgba(0, 0, 0, 0.25) */
+
+  /* ── 3. 캐릭터 (charShow:true 일 때) ──────────────────────── */
+  --charSize_hR7: 80px;         /* 캐릭터 크기 20~300px */
+  --charSizem_hR7: 60px;        /* [모바일] 캐릭터 크기. 주석 처리하면 PC 크기를 따름 */
+  --charGap_hR7: 14px;          /* 캐릭터와 제목 간격 0~80px */
+
+  /* ── 4. 검색창 ─────────────────────────────────────────────── */
+  --srchW_hR7: 600px;           /* 검색창 최대 폭 280~1000px */
+  /* --srchWm_hR7: 90%; */      /* [모바일] 검색창 폭 50~100%. 주석 상태면 기본 90% */
+  /* --srchR_hR7: 12px; */      /* 모서리 둥글기 0~40px (미사용 시 Oopy 기본) */
+  /* --srchShadow_hR7: 0px 4px 12px 0px rgba(0, 0, 0, 0.28); */  /* 그림자 (미사용 시 Oopy 기본) */
+  /* --srchBorder_hR7: 1px solid #e5e8eb; */                      /* 테두리 (미사용 시 Oopy 기본) */
+  /* --srchBg_hR7: #ffffff; */  /* 배경색 (미사용 시 Oopy 기본) */
+
+  /* ── 5. 키워드(칩) ────────────────────────────────────────── */
+  --kwTop_hR7: 14px;                          /* 검색창과 키워드 사이 간격 0~60px */
+  --kwBg_hR7: rgba(255, 255, 255, 0.2);       /* 칩 배경색 */
+  --kwHoverBg_hR7: rgba(255, 255, 255, 0.32); /* 칩 호버 배경색 */
+  --kwColor_hR7: #ffffff;                     /* 칩 글자색 */
+  --kwSize_hR7: 13px;                         /* 칩 글자 크기 8~24px */
+  --kwWt_hR7: 500;                            /* 칩 글자 굵기 100~900 */
+  --kwR_hR7: 999px;                           /* 칩 둥글기 0~999px (999=알약) */
+  --kwGap_hR7: 10px;                          /* 칩 사이 간격 0~40px */
+  --kwPadX_hR7: 12px;                         /* 칩 안쪽 좌우 0~40px */
+  --kwPadY_hR7: 6px;                          /* 칩 안쪽 상하 0~30px */
+
+  /* ── 6. 메뉴바 연동 (barLink:true 일 때) ─────────────────── */
+  --barGap_hR7: 0px;            /* 메뉴바와 히어로 사이 추가 간격 -100~200px (음수=겹침) */
+}
+</style>
+
+<script>
+window.heroCfg_hR7 = {
+  /* ── 1. 기본 · 레이아웃 ── */
+  on: true,                     // 히어로 사용 (false면 만들지 않음)
+  bp: 767,                      // 모바일 기준 폭(px) 320~1600
+  alignX: 'center',             // 내용 가로 정렬: 'left' | 'center' | 'right'
+  alignY: 'center',             // 내용 세로 정렬: 'top' | 'center' | 'bottom'
+  heightMode: 'fixed',          // 'fixed'(최소 높이 유지) | 'auto'(내용에 맞춤)
+
+  /* ── 4. 블록 구성 (위→아래 = 화면 순서) ──
+     t: 'title' | 'search' | 'keywords' | 'text'
+     txt 문구 / size·sizeM 글자 크기(PC·모바일) / w 굵기 / color 글자색 / align 정렬 / mb 아래 간격(px)
+     검색창 블록은 반드시 1개, 키워드 블록은 최대 1개 */
+  blocks: [
+    { t: 'title', txt: '도움이 필요하신가요?', size: 'clamp(16px,2vw,36px)', sizeM: '25px', w: 900, color: '#fff' },
+    { t: 'search' },
+    { t: 'text', txt: '궁금하신 내용을 간편하게 검색해보세요', size: '20px', sizeM: '16px', w: 400, color: '#fff' }
+  ],
+
+  /* ── 5. 캐릭터 ── */
+  charShow: true,               // 캐릭터 노출
+  charUrl: 'https://kwonkangin.notion.site/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2Ffc373513-2112-4343-b8a3-6be95eb24991%2Fa58acec6-d5c1-4d82-a743-d0c2fa5eed09%2Ffinal_%25EB%25B8%2594%25EB%25A3%25A8%25EC%2597%2585%25ED%2594%25BC%25ED%258A%25B8%25EB%258B%2588%25EC%258A%25A4_%25EC%25BA%2590%25EB%25A6%25AD%25ED%2584%25B0variation-18.png?table=block&id=17602e5d-5030-80c9-83b3-d09261941c7d&width=160',
+  charPos: 'right',             // 제목 기준 위치: 'right' | 'left' | 'top'
+
+  /* ── 6. 검색창 ── */
+  iconPos: 'left',              // 돋보기: 'left' | 'right' | 'hide'
+  phAlign: 'left',              // 플레이스홀더 정렬: 'left' | 'center' | 'right'
+  phText: '',                   // 플레이스홀더 문구 ('' = Oopy 기본 문구)
+
+  /* ── 7. 키워드 ──
+     kwList 항목: { t:'칩 글자', q:'검색어(생략 시 t)', u:'이동 주소(있으면 검색 대신 이동)' }
+     예) kwList: [{ t:'환불' }, { t:'운영시간', q:'운영 시간' }, { t:'가맹 문의', u:'https://example.com/join' }] */
+  kwList: [],
+  kwAlign: 'left',              // 칩 정렬: 'left' | 'center' | 'right'
+  kwWrap: 'wrap',               // 'wrap'(여러 줄) | 'scroll'(한 줄 가로 스크롤)
+  kwPrefix: '',                 // 칩 글자 앞 기호. 예: '#'
+  kwMax: 0,                     // 최대 표시 개수 (0 = 제한 없음) 0~30
+  kwNewTab: false,              // URL 칩을 새 탭에서 열기
+
+  /* ── 8. 검색 모달 동작 ── */
+  closeOut: true,               // 검색어 입력 후 바깥 클릭 시 닫고 빈 검색창으로 다시 열기
+  closeOnlyText: true,          // 입력이 있을 때만 위 동작
+  blurAuto: true,               // 모달이 열릴 때 입력창 포커스 해제(모바일 키보드 자동 노출 방지)
+  openMode: 'auto',             // 'auto' | 'fn'(clickSearch 함수만) | 'btn'(검색 버튼 클릭만)
+  openBtn: 'button[aria-label="검색 창 열기"]',   // 검색 버튼 선택자
+
+  /* ── 9. 메뉴바 연동 ── */
+  barLink: true,                // true: 메뉴바에 밀착·열림 감지 / false: 메뉴바와 무관하게 배치
+  barSel: 'header[class*="efc_header"]',          // 메뉴바 선택자
+  menuOpenSel: '[aria-expanded="true"]',          // 메뉴 열림 감지 선택자
+  hideOnMenu: 'mobile',         // 메뉴가 열렸을 때 모달 숨김: 'mobile' | 'all' | 'off'
+
+  /* ── 10. 고급 ── */
+  fade: true,                   // 준비 후 부드럽게 표시
+  stableFrames: 6,              // 위치 보정 안정 프레임 수 1~30
+  tickMs: 500,                  // 주기 점검 간격(ms) 100~2000
+  cache: true,                  // 보정값 캐시(localStorage)
+  debug: false                  // 콘솔 로그
+};
+</script>
