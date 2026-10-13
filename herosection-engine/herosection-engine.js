@@ -776,16 +776,6 @@ contentOrder: []
     }
   }
 
-  if (window.MutationObserver) {
-    const observer = new MutationObserver(efh_debounce_z1(function () {
-      if (document.querySelector('.efh_hero_r1f')) { observer.disconnect(); return; }
-      efh_initHeroEngine_x1z();
-    }, 300));
-    observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(function () { observer.disconnect(); }, 20000);
-  }
-}
-
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', efh_bootstrap_w4q);
   } else {
