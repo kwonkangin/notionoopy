@@ -1,5 +1,6 @@
 (function () {
   const EFH_LOG_PREFIX = '[히어로엔진]';
+  const EFH_DECIDE_WAIT_MS = 4000;
 
   window.efh_mobileBreakpoint_v1 = window.efh_mobileBreakpoint_v1 || 768;
   window.efh_defaultSlideDuration_v1 = window.efh_defaultSlideDuration_v1 || 6;
@@ -236,6 +237,42 @@ candidates.forEach(function (el) {
   return null;
 }
 
+// ↓ 여기부터 새로 추가
+function efh_resolveVisibility_c9o(raw) {
+  if (!raw) return null;
+  if (/비노출|hidden/i.test(raw)) return false;
+  if (/노출|visible/i.test(raw)) return true;
+  return null;
+}
+
+function efh_hidePropertyArea_h6f(headerEls) {
+  const wrappers = [];
+  headerEls.forEach(function (h) { if (h && h.parentElement) wrappers.push(h.parentElement); });
+  if (!wrappers.length) return;
+  const container = wrappers[0].parentElement;
+  if (!container || container === document.body || container === document.documentElement) return;
+  let top = container;
+  while (top.parentElement && top.parentElement.children.length === 1 &&
+         !top.parentElement.classList.contains('width') &&
+         top.parentElement !== document.body && top.parentElement !== document.documentElement) {
+    top = top.parentElement;
+  }
+  const targets = [top];
+  const next = top.nextElementSibling;
+  if (next && next.children.length === 0 && /height:\s*1px/.test(next.getAttribute('style') || '')) targets.push(next);
+  targets.forEach(function (t) { t.classList.add('efh_panelHidden_q9m'); });
+}
+
+function efh_applyTitlePublic_c9p(metaGroup) {
+  const val = efh_resolveTitlePublic_c9n(metaGroup ? metaGroup.titlePublic : '');
+  if (val === null) return;
+  const titleEl = document.querySelector('.notion-page-block');
+  if (titleEl) titleEl.style.display = val ? '' : 'none';
+  const controlsEl = document.querySelector('.notion-page-controls');
+  const wrapEl = controlsEl ? controlsEl.parentElement : null;
+  if (wrapEl) wrapEl.style.display = val ? '' : 'none';
+}
+
   function efh_resolveAlignX_c9k(raw) {
     if (/좌/.test(raw)) return { items: 'flex-start', text: 'left' };
     if (/우/.test(raw)) return { items: 'flex-end', text: 'right' };
@@ -260,7 +297,7 @@ candidates.forEach(function (el) {
       bgVideoUrl: '', bgColor: '', usage: '', heightRaw: '', widthRaw: '',
       hAlignRaw: '', vAlignRaw: '', bgPositionRaw: '', bgScale: 100,
       shadowColorOverride: '', shadowAlphaOverride: '', slideDuration: 0,
-titlePublic: '',
+titlePublic: '', visibility: '', visibilityRowFound: false,
 contentOrder: []
     };
 
@@ -320,6 +357,9 @@ contentOrder: []
   data.usage = val.text;
 } else if (/^타이틀\s*공개/.test(fieldName)) {
   data.titlePublic = val.text;
+} else if (/^노출\s*여부/.test(fieldName)) {
+  data.visibility = val.text;
+  data.visibilityRowFound = true;
 }
     });
 
@@ -654,6 +694,7 @@ contentOrder: []
   }
 
   function efh_initHeroEngine_x1z() {
+    if (window.__efhDecided_v1) return;
     const found = efh_findAllHeaders_h1x();
     if (found.headers.length === 0) return;
 
@@ -674,12 +715,31 @@ contentOrder: []
     });
 
     if (!foundAny) return;
-    if (document.querySelector('.efh_hero_r1f')) return;
+    efh_hidePropertyArea_h6f(found.headers);
+
+    if (document.querySelector('.efh_hero_r1f')) { window.__efhDecided_v1 = true; return; }
+
+    if (!window.__efhFirstSeen_v1) window.__efhFirstSeen_v1 = Date.now();
+    const waited = Date.now() - window.__efhFirstSeen_v1;
+    const metaReady = !!(metaGroup && metaGroup.visibilityRowFound);
+    if (!metaReady && waited < EFH_DECIDE_WAIT_MS) return;
+
+    const visible = metaReady && efh_resolveVisibility_c9o(metaGroup.visibility) === true;
+    if (!visible) {
+      window.__efhDecided_v1 = true;
+      efh_applyTitlePublic_c9p(metaGroup);
+      console.info(EFH_LOG_PREFIX, '히어로 비노출 (노출여부: ' + (metaReady ? '"' + metaGroup.visibility + '"' : '속성 없음') + ')');
+      return;
+    }
+
     if (heroGroups.length === 0) {
+      if (waited < EFH_DECIDE_WAIT_MS) return;
+      window.__efhDecided_v1 = true;
       console.warn(EFH_LOG_PREFIX, '"섹션" 그룹을 찾지 못했습니다. 그룹 이름이 [% 섹션 N :: hero %] 형식인지 확인하세요.');
       return;
     }
 
+    window.__efhDecided_v1 = true;
     efh_ensureFontAwesome_c1a();
     efh_ensureVariableFont_c2a();
 
@@ -689,16 +749,8 @@ contentOrder: []
     const isCarousel = populatedGroups.length >= 2;
     const slidesData = isCarousel ? populatedGroups : [populatedGroups[0] || heroGroups[0]];
 
-        efh_renderHero_x2y(slidesData, usage, isCarousel, meta);
-
-    const titlePublicVal = efh_resolveTitlePublic_c9n(metaGroup ? metaGroup.titlePublic : '');
-    if (titlePublicVal !== null) {
-      const pageTitleBlockEl = document.querySelector('.notion-page-block');
-      if (pageTitleBlockEl) pageTitleBlockEl.style.display = titlePublicVal ? '' : 'none';
-      const controlsEl = document.querySelector('.notion-page-controls');
-      const wrapEl = controlsEl ? controlsEl.parentElement : null;
-      if (wrapEl) wrapEl.style.display = titlePublicVal ? '' : 'none';
-    }
+    efh_renderHero_x2y(slidesData, usage, isCarousel, meta);
+    efh_applyTitlePublic_c9p(metaGroup);
   }
 
   function efh_scheduleRetries_w3p(fn, maxTries, intervalMs) {
@@ -706,13 +758,23 @@ contentOrder: []
     const timer = setInterval(function () {
       tries++;
       fn();
-      if (document.querySelector('.efh_hero_r1f') || tries >= maxTries) clearInterval(timer);
+      if (window.__efhDecided_v1 || tries >= maxTries) clearInterval(timer);
     }, intervalMs);
   }
 
   function efh_bootstrap_w4q() {
-  efh_initHeroEngine_x1z();
-  efh_scheduleRetries_w3p(efh_initHeroEngine_x1z, 20, 500);
+    efh_initHeroEngine_x1z();
+    efh_scheduleRetries_w3p(efh_initHeroEngine_x1z, 20, 500);
+
+    if (window.MutationObserver) {
+      const observer = new MutationObserver(efh_debounce_z1(function () {
+        if (window.__efhDecided_v1) { observer.disconnect(); return; }
+        efh_initHeroEngine_x1z();
+      }, 300));
+      observer.observe(document.body, { childList: true, subtree: true });
+      setTimeout(function () { observer.disconnect(); }, 20000);
+    }
+  }
 
   if (window.MutationObserver) {
     const observer = new MutationObserver(efh_debounce_z1(function () {
