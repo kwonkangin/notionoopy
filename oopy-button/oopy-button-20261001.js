@@ -1,5 +1,5 @@
 //  <!-- 우피버튼 20261001 -->
-// <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/oopy-button/oopy-button-20261001" defer></script>
+// <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/oopy-button/oopy-button-20261001.js" defer></script>
 
 
 
@@ -174,55 +174,43 @@
 // =========================================================
 
 
-!function efc_shortcodeEngine_v12() {
-    'use strict';
 
+
+
+!function efc_shortcodeEngine_v121() {
+    'use strict';
+    var EFC_DEFAULTS = {
+        bc: '#f2f3f5', tc: '#55534e', w: 'F', r: '28', sp: '28', py: '13', ip: 'L'
+    };
     var STYLE_ID = 'efc_btn_style';
     var FA_ID = 'efc_fa_cdn';
     var TARGET_SELECTOR = '.notion-text-block, .notion-callout-block, .notion-column, .notion-collection-item, .notion-list-block, .notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block';
-
-    /* 숏코드 전체 매칭: [% button | ... %] 또는 [% button :: ... %] (종결은 %] ) */
-    var SHORTCODE_RE = /\[%(?:\s|&nbsp;)*button(?:\s|&nbsp;)*(?:\||::)([\s\S]*?)%\]/gi;
+    var SHORTCODE_SRC = '\\[%(?:\\s|&nbsp;)*button(?:\\s|&nbsp;)*(\\||::)([\\s\\S]*?)%\\]';
+    var SHORTCODE_RE = new RegExp(SHORTCODE_SRC, 'gi');
+    var API_RE = new RegExp(SHORTCODE_SRC, 'i');
     var LABEL_RE = /^(TXT|URL|IC|IP|IS|W|TA|R|BC|TC|HBC|HTC|FS|FW|SP)(?:\s+([\s\S]*))?$/i;
-
     var POS_LEGACY = ['txt', 'url', 'ic', 'ip', 'is', 'w', 'r', 'bc', 'tc', 'hbc', 'htc', 'fs', 'fw'];
     var POS_NEW = ['txt', 'url', 'ic', 'ip', 'is', 'w', 'ta', 'r', 'bc', 'tc', 'hbc', 'htc', 'fs', 'fw'];
-
+    var CANON_ORDER = ['txt', 'url', 'ic', 'ip', 'is', 'w', 'ta', 'r', 'bc', 'tc', 'hbc', 'htc', 'fs', 'fw', 'sp'];
     var CSS_TEXT = [
         '.full-width{width:100% !important;}',
-        '.ga-dynamic-btn{display:var(--btn-disp,inline-flex) !important;flex-direction:var(--btn-dir,row) !important;align-items:var(--btn-ai,center) !important;justify-content:var(--btn-jc,center) !important;gap:8px !important;text-align:var(--btn-ta,center) !important;font-size:var(--btn-fs,inherit) !important;font-weight:var(--btn-fw,inherit) !important;padding:13px var(--btn-sp,28px) !important;box-sizing:border-box !important;border:none !important;cursor:pointer !important;text-decoration:none !important;margin:8px var(--btn-mr,0) 8px var(--btn-ml,0) !important;background:var(--btn-bg,#f2f3f5) !important;color:var(--btn-color,#55534e) !important;width:var(--btn-w,auto) !important;border-radius:var(--btn-rad,28px) !important;box-shadow:0 4px 15px rgba(0,0,0,0.06) !important;transform:scale(1) !important;transition:opacity 250ms,transform 250ms cubic-bezier(0.16,1,0.3,1),box-shadow 250ms,background 250ms,color 250ms !important;}',
+        '.ga-dynamic-btn{display:var(--btn-disp,inline-flex) !important;flex-direction:var(--btn-dir,row) !important;align-items:var(--btn-ai,center) !important;justify-content:var(--btn-jc,center) !important;gap:8px !important;text-align:var(--btn-ta,center) !important;font-size:var(--btn-fs,inherit) !important;font-weight:var(--btn-fw,inherit) !important;padding:' + EFC_DEFAULTS.py + 'px var(--btn-sp,' + EFC_DEFAULTS.sp + 'px) !important;box-sizing:border-box !important;border:none !important;cursor:pointer !important;text-decoration:none !important;margin:8px var(--btn-mr,0) 8px var(--btn-ml,0) !important;background:var(--btn-bg,' + EFC_DEFAULTS.bc + ') !important;color:var(--btn-color,' + EFC_DEFAULTS.tc + ') !important;width:var(--btn-w,auto) !important;border-radius:var(--btn-rad,' + EFC_DEFAULTS.r + 'px) !important;box-shadow:0 4px 15px rgba(0,0,0,0.06) !important;transform:scale(1) !important;transition:opacity 250ms,transform 250ms cubic-bezier(0.16,1,0.3,1),box-shadow 250ms,background 250ms,color 250ms !important;}',
         '.ga-dynamic-btn:hover{background:var(--btn-h-bg,var(--btn-bg)) !important;color:var(--btn-h-color,var(--btn-color)) !important;transform:scale(var(--btn-h-scale,1.03)) !important;box-shadow:var(--btn-h-shadow,0 6px 20px rgba(0,0,0,0.12)) !important;}',
         '.ga-btn-icon_k9m{display:inline-flex !important;align-items:center !important;justify-content:center !important;font-size:var(--btn-is,1.2em) !important;}',
         'img.ga-btn-icon_k9m{width:var(--btn-is,1.2em) !important;height:var(--btn-is,1.2em) !important;max-width:none !important;max-height:none !important;border-radius:4px !important;object-fit:contain !important;}'
     ].join('\n');
-
-    /* ---------- 주입 ---------- */
     function efc_injectStyle() {
         if (document.getElementById(STYLE_ID)) return;
-        var st = document.createElement('style');
-        st.id = STYLE_ID;
-        st.textContent = CSS_TEXT;
-        document.head.appendChild(st);
+        var st = document.createElement('style'); st.id = STYLE_ID; st.textContent = CSS_TEXT; document.head.appendChild(st);
     }
-
     function efc_injectFontAwesome() {
         if (document.getElementById(FA_ID)) return;
-        var link = document.createElement('link');
-        link.id = FA_ID;
-        link.rel = 'stylesheet';
-        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
-        document.head.appendChild(link);
+        var link = document.createElement('link'); link.id = FA_ID; link.rel = 'stylesheet';
+        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'; document.head.appendChild(link);
     }
-
-    /* ---------- 유틸 ---------- */
-    function efc_esc(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-    function efc_css(s) {
-        return String(s).replace(/[;"'<>{}\\]/g, '').trim();
-    }
-
-    /* 태그 바깥의 구분자만 기준으로 분리 (태그 속성 안의 | 또는 :: 는 무시) */
+    function efc_esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function efc_escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function efc_css(s) { return String(s).replace(/[;"'<>{}\\]/g, '').trim(); }
     function efc_split(html, delim) {
         var out = [], cur = '', inTag = false, i = 0, n = html.length, dl = delim.length, ch;
         while (i < n) {
@@ -235,8 +223,6 @@
         out.push(cur);
         return out;
     }
-
-    /* 조각 하나를 (순수 글자, 링크 href)로 분해 */
     function efc_parseToken(html) {
         var text = html, href = '';
         if (html.indexOf('<') > -1 || html.indexOf('&') > -1) {
@@ -248,8 +234,6 @@
         text = text.replace(/\u200b/g, '').replace(/\u00a0/g, ' ').trim();
         return { text: text, href: href.trim() };
     }
-
-    /* 이름표 판별: 단독 R 은 이름표가 아니라 순서 기반 값으로 취급 */
     function efc_matchLabel(text) {
         var m = text.match(LABEL_RE);
         if (!m) return null;
@@ -259,97 +243,84 @@
         if (key === 'w' && val === '') val = 'w';
         return { key: key, val: val };
     }
-
-    /* URL 해석: NEW 키워드, href 우선, 프로토콜/특수 주소 보정 */
     function efc_resolveUrl(rawText, href) {
         var t = (rawText || '').trim();
         var openNew = false;
         var m = t.match(/^NEW(?:\s+([\s\S]*))?$/i);
         if (m) { openNew = true; t = (m[1] || '').trim(); }
-
         var addr = (href && href.trim()) ? href.trim() : t;
         addr = addr.replace(/[\s\u200b]+/g, '');
-
         if (!addr || /^(none|없음)$/i.test(addr)) addr = '#';
         else if (/^(javascript|data|vbscript):/i.test(addr)) addr = '#';
-        else if (addr.indexOf('{%') > -1) { /* 치환 태그는 그대로 유지 */ }
+        else if (addr.indexOf('{%') > -1) { }
         else if (!/^(?:https?:|mailto:|tel:|sms:|\/|#|\?)/i.test(addr)) addr = 'https://' + addr;
-
         return { url: addr, openNew: openNew };
     }
-
-    /* ---------- 숏코드 하나 -> 버튼 HTML ---------- */
-    function efc_buildButton(content) {
+    function efc_parseContent(content) {
         var plain = content.replace(/<[^>]*>/g, '');
         var delim = plain.indexOf('::') > -1 ? '::' : '|';
-
         var toks = efc_split(content, delim).map(function (raw) {
-            var t = efc_parseToken(raw);
-            t.label = efc_matchLabel(t.text);
-            return t;
+            var t = efc_parseToken(raw); t.label = efc_matchLabel(t.text); return t;
         });
-
         var useNew = toks.length >= 14 && !toks[13].label;
         var posKeys = useNew ? POS_NEW : POS_LEGACY;
-
-        /* 기본값 (W: F / BC: #f2f3f5 / TC: #55534e) */
         var p = {
-            txt: '버튼 문구', url: '#', ic: 'none', ip: 'L', is: '', w: 'f', ta: '', sp: '',
-            r: '28', bc: '#f2f3f5', tc: '#55534e', hbc: '', htc: '', fs: '', fw: ''
+            txt: '버튼 문구', url: '#', ic: 'none', ip: EFC_DEFAULTS.ip, is: '',
+            w: EFC_DEFAULTS.w.toLowerCase(), ta: '', sp: '', r: EFC_DEFAULTS.r,
+            bc: EFC_DEFAULTS.bc, tc: EFC_DEFAULTS.tc, hbc: '', htc: '', fs: '', fw: ''
         };
+        var explicit = {};
         var urlHref = '';
-
         toks.forEach(function (t, i) {
             var key, val;
             if (t.label) { key = t.label.key; val = t.label.val; }
             else if (i < posKeys.length && t.text !== '') { key = posKeys[i]; val = t.text; }
             else return;
             p[key] = val;
+            if (val !== '') explicit[key] = val;
             if (key === 'url') urlHref = t.href;
         });
-
-        var link = efc_resolveUrl(p.url, urlHref);
-
+        return { p: p, explicit: explicit, urlHref: urlHref, delim: delim, useNew: useNew };
+    }
+    function efc_canonical(parsed, link) {
+        var vals = [], d = '::';
+        CANON_ORDER.forEach(function (k) {
+            var v = parsed.explicit[k];
+            if (v === undefined) return;
+            if (k === 'url') v = (link.openNew ? 'NEW ' : '') + link.url;
+            if (String(v).indexOf('::') > -1) d = '|';
+            vals.push(k.toUpperCase() + ' ' + v);
+        });
+        return { d: d, c: vals.join(' ' + d + ' ') };
+    }
+    function efc_renderHtml(p, link, infoJson) {
         var ip = p.ip.toUpperCase();
         var dir = 'row';
-        if (ip === 'R') dir = 'row-reverse';
-        else if (ip === 'T') dir = 'column';
-        else if (ip === 'B') dir = 'column-reverse';
+        if (ip === 'R') dir = 'row-reverse'; else if (ip === 'T') dir = 'column'; else if (ip === 'B') dir = 'column-reverse';
         var isColumn = (dir === 'column' || dir === 'column-reverse');
-
         var is = '1.2em';
         if (p.is && !/^(none|없음)$/i.test(p.is)) is = /[a-zA-Z%]/.test(p.is) ? p.is : p.is + 'px';
-
         var wl = p.w.toLowerCase();
         var isFit = (wl === 'f' || wl === 'fit');
         var width = isFit ? 'fit-content' : '100%';
-
         var rad = p.r.replace(/[^0-9]/g, '');
-        rad = (rad === '' ? '28' : rad) + 'px';
-
-        var bc = p.bc || '#f2f3f5';
-        var tc = p.tc || '#55534e';
+        rad = (rad === '' ? EFC_DEFAULTS.r : rad) + 'px';
+        var bc = p.bc || EFC_DEFAULTS.bc;
+        var tc = p.tc || EFC_DEFAULTS.tc;
         var hbc = p.hbc || bc;
         var htc = p.htc || tc;
-
         var fs = /[0-9]/.test(p.fs) ? p.fs.replace(/[^0-9.]/g, '') + 'px' : '';
         var fw = /[0-9]/.test(p.fw) ? p.fw.replace(/[^0-9]/g, '') : '';
-
         var scale = '1.03', shadow = '0 6px 20px rgba(0, 0, 0, 0.12)';
-        if (/^(none|없음)$/i.test(hbc)) {
-            hbc = bc; htc = tc; scale = '1'; shadow = '0 4px 15px rgba(0, 0, 0, 0.06)';
-        }
-
+        if (/^(none|없음)$/i.test(hbc)) { hbc = bc; htc = tc; scale = '1'; shadow = '0 4px 15px rgba(0, 0, 0, 0.06)'; }
         var taRaw = p.ta.toLowerCase();
         var ta = (taRaw === 'l' || taRaw === 'left') ? 'L' : (taRaw === 'c' || taRaw === 'center') ? 'C' : (taRaw === 'r' || taRaw === 'right') ? 'R' : '';
         var flexPos = { L: 'flex-start', C: 'center', R: 'flex-end' };
         var textPos = { L: 'left', C: 'center', R: 'right' };
-
         var extra = [];
         if (!isFit) {
             var pos = ta ? flexPos[ta] : 'center';
-            if (isColumn) extra.push('--btn-ai:' + pos);
-            else extra.push('--btn-jc:' + pos);
+            if (isColumn) extra.push('--btn-ai:' + pos); else extra.push('--btn-jc:' + pos);
             extra.push('--btn-ta:' + (ta ? textPos[ta] : 'center'));
         } else if (ta) {
             extra.push('--btn-disp:flex');
@@ -357,7 +328,6 @@
             else if (ta === 'C') { extra.push('--btn-ml:auto'); extra.push('--btn-mr:auto'); }
             else extra.push('--btn-ml:auto');
         }
-
         var vars = [
             '--btn-bg:' + efc_css(bc), '--btn-color:' + efc_css(tc), '--btn-w:' + width, '--btn-rad:' + rad,
             '--btn-h-bg:' + efc_css(hbc), '--btn-h-color:' + efc_css(htc), '--btn-h-scale:' + scale,
@@ -365,13 +335,9 @@
         ];
         if (fs) vars.push('--btn-fs:' + fs);
         if (fw) vars.push('--btn-fw:' + fw);
-
-        /* SP: 좌우 안쪽 여백 (미지정 시 CSS 기본값 24px) */
         var spRaw = p.sp.replace(/[^0-9a-zA-Z.%]/g, '');
         if (/[0-9]/.test(spRaw)) vars.push('--btn-sp:' + (/[a-zA-Z%]/.test(spRaw) ? spRaw : spRaw + 'px'));
-
         vars = vars.concat(extra);
-
         var iconHtml = '';
         if (p.ic && !/^(none|없음)$/i.test(p.ic)) {
             if (p.ic.indexOf('http') === 0 || p.ic.indexOf('/') === 0 || p.ic.indexOf('data:image') === 0) {
@@ -380,52 +346,47 @@
                 iconHtml = '<i class="' + p.ic.replace(/[^\w\s-]/g, '') + ' ga-btn-icon_k9m" aria-hidden="true"></i>';
             }
         }
-
         return '<div class="ga-dynamic-btn' + (isFit ? '' : ' full-width') + '"'
             + ' data-raw-url="' + efc_esc(link.url) + '"'
             + ' data-new-win="' + (link.openNew ? '1' : '0') + '"'
+            + ' data-efc="' + efc_esc(infoJson) + '"'
             + ' style="' + vars.join(';') + ';"'
             + ' role="button" tabindex="0" aria-label="' + efc_esc(p.txt) + '">'
             + iconHtml + '<span>' + efc_esc(p.txt) + '</span></div>';
     }
-
-    /* ---------- 페이지 전체 컴파일 ---------- */
+    function efc_buildButton(content, rawContent, rawSep) {
+        var parsed = efc_parseContent(content);
+        var link = efc_resolveUrl(parsed.p.url, parsed.urlHref);
+        var canon = efc_canonical(parsed, link);
+        var info = JSON.stringify({ d: canon.d, c: canon.c, raw: rawContent, rs: rawSep });
+        return efc_renderHtml(parsed.p, link, info);
+    }
     function efc_compileButtons() {
         var blocks = document.querySelectorAll(TARGET_SELECTOR);
         blocks.forEach(function (block) {
             if (!block.isConnected) return;
             var html = block.innerHTML;
             if (!html || html.indexOf('[%') === -1) return;
-            var out = html.replace(SHORTCODE_RE, function (match, content) {
-                try { return efc_buildButton(content); }
+            var out = html.replace(SHORTCODE_RE, function (match, sep, content) {
+                try { return efc_buildButton(content, efc_parseToken(content).text, sep); }
                 catch (err) { console.error('[efc] shortcode error', err, match); return match; }
             });
             if (out !== html) block.innerHTML = out;
         });
     }
-
     var efc_observer = new MutationObserver(function (mutations) {
         for (var i = 0; i < mutations.length; i++) {
             if (mutations[i].addedNodes.length > 0) {
-                efc_observer.disconnect();
-                efc_compileButtons();
-                efc_observer.observe(document.body, { childList: true, subtree: true });
-                break;
+                efc_observer.disconnect(); efc_compileButtons(); efc_observer.observe(document.body, { childList: true, subtree: true }); break;
             }
         }
     });
-
     function efc_start() {
-        efc_injectStyle();
-        efc_injectFontAwesome();
+        efc_injectStyle(); efc_injectFontAwesome();
         efc_observer.observe(document.body, { childList: true, subtree: true });
         efc_compileButtons();
     }
-
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', efc_start);
-    else efc_start();
-
-    /* ---------- 클릭 / 키보드 ---------- */
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', efc_start); else efc_start();
     document.addEventListener('click', function (e) {
         var btn = e.target.closest ? e.target.closest('.ga-dynamic-btn') : null;
         if (!btn) return;
@@ -434,10 +395,29 @@
         if (btn.getAttribute('data-new-win') === '1') window.open(url, '_blank', 'noopener');
         else window.location.assign(url);
     });
-
     document.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') return;
         var btn = e.target.closest ? e.target.closest('.ga-dynamic-btn') : null;
         if (btn) btn.click();
     });
+    function efc_apiExtract(text) {
+        var m = String(text).match(API_RE);
+        return m ? { sep: m[1], content: m[2] } : { sep: '|', content: String(text) };
+    }
+    window.efcEngine = {
+        version: '12.1',
+        defaults: function () { return JSON.parse(JSON.stringify(EFC_DEFAULTS)); },
+        parse: function (text) {
+            var x = efc_apiExtract(text);
+            var parsed = efc_parseContent(efc_escHtml(x.content));
+            var link = efc_resolveUrl(parsed.p.url, parsed.urlHref);
+            return { p: parsed.p, explicit: parsed.explicit, delim: parsed.delim, layout: parsed.useNew ? 'new' : 'legacy', link: link };
+        },
+        render: function (text) {
+            var x = efc_apiExtract(text);
+            return efc_buildButton(efc_escHtml(x.content), x.content.trim(), x.sep);
+        },
+        resolveUrl: function (raw) { return efc_resolveUrl(raw, ''); },
+        recompile: efc_compileButtons
+    };
 }();
