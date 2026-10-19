@@ -5,18 +5,18 @@
 
 // =========================================================
 // call-card.js
-// 버전: 15.1.0
+// 버전: 15.1.1
 // 설명: 노션 콜아웃을 카드·카드 그룹으로 꾸미는 [% call-card %] 토큰 모듈 (통합판)
 // 의존성: core.js v1.2.0 이상 (core.js는 수정하지 않는다)
 // ---------------------------------------------------------
 // [개요]
-//  - 노션 콜아웃 안에 [% call-card %] 토큰을 적으면 해당 콜아웃을 카드로 만든다.
+//  - 콜아웃 안에 [% call-card %] 토큰을 적으면 해당 콜아웃을 카드로 만든다.
 //  - 콜아웃 안에 콜아웃이 있으면 카드 그룹(격자)으로 처리한다.
 //  - 이미지는 캡션 문법으로 FULL / FIT / BG 배치, 오버레이(OL), 모바일 위치(MT/MB), 카드 링크(URL)를 지정한다.
 //  - 대시보드(CallCardEngine.dashboard)로 설정을 미리보기·출력할 수 있다.
 //
 // [사용법]
-//  1. core.js를 먼저 로드한 뒤 이 파일을 로드한다.
+//  1. core.js를 먼저 로드한 뒤 이 파일을 로드한다. call-slide.js를 함께 쓰면 core.js -> call-slide.js -> call-card.js 순서이다.
 //  2. 이전의 card.js, stack-card-fix, column-card-mobile-fix는 모두 제거한다.
 //  3. 콜아웃 안에 별도 줄로 토큰을 적는다.  예) [% call-card :: PAD 32 :: R 20 %]
 //     ※ 맨 끝 %] 앞에 공백 한 칸을 둔다.  (예: RADIUS 50% %] )
@@ -59,6 +59,12 @@
 //  - 컬럼 일부에만 콜아웃이 있어도 카드 그룹으로 처리한다.
 //  - 모바일(640px 이하): PC 값에 비율을 곱한다. 문법에는 모바일 값을 따로 쓰지 않는다.
 //
+// [우피 클래스 이름 변경 대응]
+//  우피가 콜아웃·캡션의 CSS 클래스 이름(해시가 붙는 이름)을 바꿔도 동작하도록, 이 파일은 그런 이름에 의존하지 않는다.
+//  콜아웃의 내용 영역과 블록 영역은 DOM 구조로 찾고, 이미지 캡션은 "이미지 블록 안에서 이미지가 없고 글자가 있는
+//  가장 바깥 요소"로 찾는다. (예전 방식인 figcaption, 클래스에 caption 포함은 있으면 우선 사용한다)
+//  notion-*-block, data-block-id 같은 노션 고유 이름만 사용한다.
+//
 // [대시보드용 CSS 변수]  :root 에 적는다. 값에는 단위를 붙인다.
 //   --ce-card-pad / -padx / -pady        안쪽 여백          24px
 //   --ce-card-radius                     모서리             16px
@@ -94,8 +100,15 @@
 //  - 여러 컬럼 행이 섞인 개별 카드는 이미지 API의 실시간 모드 전환 대상이 아니다.
 //  - call-slide 안쪽 콜아웃은 건드리지 않는다.
 //  - 옛 [[N]] 문법은 더 이상 지원하지 않는다. [% plain %]을 사용한다.
-//  - 검증 범위: 새로고침 후 비교 114개 대상(카드·그룹 82, 이미지 32) 통과.
+//  - 이미지 블록 안에 캡션이 아닌 다른 글자가 있으면 캡션으로 잘못 볼 수 있다. (현재 우피 구조에서는 해당 없음)
+//  - 검증 범위: 새로고침 후 비교 114개 대상(카드·그룹 82, 이미지 32) 통과(v15.1.0 기준).
+//    v15.1.1의 캡션 구조 탐색은 가상 환경 단위 테스트로 확인했고, 실제 노션 화면에서의 동작은 직접 확인해야 한다.
 //    픽셀 배치, 이미지 잘림, 실제 클릭, 미사용 설정값, 모든 반응형 상태는 검증하지 않았다.
+//
+// [v15.1.1 변경]
+//  - 이미지 캡션(FIT, FULL, BG 등)이 화면에 그대로 보이던 문제 수정: 우피가 캡션 클래스 이름을 바꿔서
+//    캡션 요소를 못 찾던 것을 구조 기반 탐색으로 바꿨다.
+//  - 빈 제목 판정과 카드 박스 보조 탐색이 새 클래스 이름(밑줄 한 개)도 인식한다.
 //
 // [점검] 콘솔에서 CallCardEngine.diagnose()
 // =========================================================
@@ -103,7 +116,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '15.1.0';
+  var VERSION = '15.1.1';
 
   if (!global.CoreEngine || typeof global.CoreEngine.register !== 'function') {
     console.error('[card] CoreEngine이 로드되지 않았습니다. core.js를 먼저 불러오세요.');
@@ -410,7 +423,7 @@
     if (!flexWrap) return null;
     var contentBox = flexWrap.firstElementChild;
     if (contentBox) return contentBox;
-    return callout.querySelector('[class*="__content"]');
+    return callout.querySelector('[class*="_content"]');
   }
   function findBlocksWrap(cardBox) {
     var list = children(cardBox);
@@ -440,7 +453,7 @@
   }
   function isEmptyTitle(el) {
     var cls = String(el.className || '');
-    var looksLikeTitle = cls.indexOf('__title') !== -1 || !el.hasAttribute('data-block-id');
+    var looksLikeTitle = /_title(?:\s|$)/.test(cls) || !el.hasAttribute('data-block-id');
     return looksLikeTitle && !(el.textContent || '').trim() && !el.querySelector('img,video,iframe');
   }
   function isEmptySpacer(el) {
@@ -798,8 +811,21 @@
     setTimeout(function () { scheduleRefit(box); }, 150);
   }
 
+  /* 캡션 요소 찾기. 클래스 이름은 우피가 바꿀 수 있어서 구조로 찾는다.
+     1) 예전 방식(figcaption, 클래스에 caption 포함)이 있으면 그대로 쓴다.
+     2) 없으면 이미지 블록 안에서 이미지·영상 등을 포함하지 않으면서 글자가 있는 요소 중
+        가장 바깥(문서 순서상 가장 먼저 나오는) 요소를 캡션으로 본다. */
   function findCaptionEl(imageBlockEl) {
-    return imageBlockEl.querySelector('figcaption, [class*="Caption"], [class*="caption"]');
+    var legacy = imageBlockEl.querySelector('figcaption, [class*="Caption"], [class*="caption"]');
+    if (legacy) return legacy;
+    var nodes = imageBlockEl.querySelectorAll('*');
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (/^(IMG|VIDEO|IFRAME|SVG|CANVAS|PICTURE|SCRIPT|STYLE|NOSCRIPT)$/i.test(node.tagName)) continue;
+      if (node.querySelector('img,video,iframe,svg,canvas,picture')) continue;
+      if ((node.textContent || '').trim()) return node;
+    }
+    return null;
   }
   function hexToRgb(hex) {
     var clean = hex.replace('#', '');

@@ -5,7 +5,7 @@
 
 
 // =========================================================
-// call-slide.js · v1.6.0 · 대시보드 연결 API / 비율·BLEED 실시간 / 미리보기 창
+// call-slide.js · v1.6.1 · 대시보드 연결 API / 비율·BLEED 실시간 / 미리보기 창 / 우피 클래스 이름 독립
 // 목적: 노션/우피 상위 콜아웃의 직속 하위 콜아웃을 가로 슬라이더로 표시한다.
 // 필수: core.js v1.2.0 이상. 로드 순서: core.js → call-slide.js → call-card.js
 // 기존 변수명·클래스명·CSS 변수 접미사는 유지한다. 새 기능에 필요한 이름만 추가했다.
@@ -37,7 +37,7 @@
 //  SH / SHADOW             none        CSS box-shadow
 //  FR / FIT_RADIUS         비움        기존 호환용으로 읽기만 함. 화면 반영 없음
 //  길이 값에는 px, %, em, rem, vw, vh 같은 단위를 적는다. 예: W 360px
-//  짧은 이름이 긴 이름보다 우선한다. v1.5.0은 키의 소문자를 대문자로 정규화한다.
+//  짧은 이름이 긴 이름보다 우선한다. 키의 소문자는 대문자로 정규화한다.
 //
 // [이미지 캡션]
 //  OL 색 진하기 방향 시작 끝: 예) OL BLACK 0.4 B 0 75
@@ -49,6 +49,14 @@
 //  주소에 쉼표가 있으면 따옴표로 감싼다. javascript: 등 위험한 프로토콜은 거부한다.
 //  캡션의 FIT/FULL/BG는 무시한다. 이미지 모드는 상위 슬라이더 IMG로 결정한다.
 //  콜아웃마다 첫 이미지만 모드 처리 대상으로 삼는다. 캡션은 숨긴다.
+//
+// [우피 클래스 이름 변경 대응]  v1.6.1
+//  우피가 콜아웃·캡션의 CSS 클래스 이름(해시가 붙는 이름)을 바꿔도 동작하도록, 이 파일은 그런 이름에 의존하지 않는다.
+//  - 콜아웃의 내용 영역·블록 영역은 DOM 구조로 찾아 자체 클래스(slide-content_s4P, slide-blocks_s4P)를 붙이고,
+//    CSS와 코드는 이 자체 클래스만 쓴다.
+//  - 이미지 캡션은 "이미지 블록 안에서 이미지가 없고 글자가 있는 가장 바깥 요소"로 찾는다.
+//    (예전 방식인 figcaption, 클래스에 caption 포함은 있으면 우선 사용한다)
+//  - 빈 제목 줄은 이름이 _title로 끝나거나 data-block-id가 없는 빈 요소로 판정한다.
 //
 // [카드 아이콘 / 이동 화살표 구분]
 //  콜아웃 아이콘은 call-card처럼 제목 위의 박스로 표시한다. 상단 이미지가 있으면 그 아래에 둔다.
@@ -66,16 +74,16 @@
 //  --slide-icon-position_a9D:BL      --slide-icon-size_s3N:40px
 //  --slide-icon-gap_g6H:10px         --slide-transition_d6W:320ms
 //  --slide-overlay-hover_f8P:300ms   --slide-swipe-threshold_z1T:36px
-//  신규: --slide-radius_r4C:16px / --slide-shadow_s8H:none / --slide-bleed_b7E:NONE
+//  --slide-radius_r4C:16px / --slide-shadow_s8H:none / --slide-bleed_b7E:NONE
 //  우선순위: 슬라이더 토큰 > 공통 CSS > 엔진 기본값
 //
 // [드래그·클릭·재생]
-//  기존 v1.3.1~v1.4.0 수정 유지: 클릭은 카드로 전달하고, 8px 초과 드래그 후에만 포인터 캡처.
-//  이동 임계값 기본 36px. 이동 가능한 슬라이더는 글자 선택·브라우저 기본 드래그를 막는다.
+//  클릭은 카드로 전달하고, 8px 초과 드래그 후에만 포인터 캡처. 이동 임계값 기본 36px.
+//  이동 가능한 슬라이더는 글자 선택·브라우저 기본 드래그를 막는다.
 //  카드 내부의 링크·버튼·입력 요소는 카드 전체 링크보다 우선한다.
 //  카드 자체에 포커스가 있을 때 Enter/Space로 카드 링크를 연다.
 //  모든 카드가 화면에 들어가면 이동·자동 재생 중지. 크기 변경 시 이동 여부를 다시 계산한다.
-//  v1.5.0: 자동 재생·HP를 실시간 변경할 수 있도록 마우스·화면 진입 상태를 계속 추적한다.
+//  자동 재생·HP를 실시간 변경할 수 있도록 마우스·화면 진입 상태를 계속 추적한다.
 //  숨겨진 탭에서는 재생을 멈춘다. 수동 일시정지와 시스템 동작 줄이기 설정을 존중한다.
 //
 // [공존]
@@ -83,7 +91,7 @@
 //  슬라이드 안의 call-card·plain 토큰으로 카드 외형을 바꾸지 않는다.
 //  core.js와 call-card.js를 수정할 필요는 없다. 순서는 반드시 core → slide → card로 둔다.
 //
-// [대시보드 API v1.1.0: window.CallSlideEngine.dashboard]  (v1.0.0에 preview 추가)
+// [대시보드 API v1.1.0: window.CallSlideEngine.dashboard]
 //  list()                  슬라이더 목록: id, index, title, element
 //  schema()                21개 설정의 key, internal, token, longToken, css, defaultValue, type, requiresReload
 //  read(id)                config(편집값), applied(실제 적용값), overrides, pending, runtime, edited
@@ -95,6 +103,7 @@
 //  common.apply(patch)     공통 CSS 임시 편집. null=해당 임시 변경만 해제
 //  common.restore()        이 API가 추가한 공통 임시 변경 전체 해제 (기존 사이트 CSS는 보존)
 //  common.css({full})      공통 CSS 출력. 기본은 엔진 기본값과 다른 값만, full=true이면 전체
+//  preview                 미리보기 창 정보 { windowName, storageKey, active }
 //  API 인자 key:
 //    gap,width,mobileWidth,ratio,autoplay,interval,hoverPause,textColor,textAlign,imageMode,
 //    leftIcon,rightIcon,iconPosition,iconSize,iconGap,transition,overlayHover,swipeThreshold,bleed,radius,shadow
@@ -109,10 +118,9 @@
 //  read().pending에 대기 항목이 표시된다. 화면에서는 read().applied 값이 기준이다.
 //  새로고침만 하면 임시 편집은 사라진다. 출력 CSS와 토큰을 노션에 먼저 반영해야 영구 적용된다.
 //
-// [미리보기 창 v1.6.0: dashboard.preview]
-//  dashboard.preview = { windowName: 'CallSlidePreview', storageKey: 'ce-slide-preview-v1', active }
+// [미리보기 창: dashboard.preview]
 //  대시보드가 localStorage[storageKey]에 {common:{키:값}, sliders:{블록ID:{키:값|null}}}를 저장하고
-//  같은 페이지를 이름이 windowName인 창으로 열면, 그 창에서만 로드할 때 저장된 설정을 적용한다.
+//  같은 페이지를 이름이 windowName(CallSlidePreview)인 창으로 열면, 그 창에서만 로드할 때 저장된 설정을 적용한다.
 //  일반 창에는 영향이 없다. 이미지 모드처럼 DOM을 다시 만들어야 하는 설정을 실제 로드 결과로 확인하는 용도이다.
 //  미리보기 창 왼쪽 아래에 "미리보기" 표시가 나온다.
 //
@@ -129,29 +137,29 @@
 //
 // [제한과 검증]
 //  대시보드 UI·저장 슬롯·프리셋은 call-slide-dashboard.js가 제공한다. 이 파일은 연결 API와 미리보기 창 지원을 제공한다.
-//  슬라이드별 OL/URL 실시간 편집 API는 이번 범위에서 제외했다. 노션 이미지 캡션으로 지정한다.
+//  슬라이드별 OL/URL 실시간 편집 API는 없다. 노션 이미지 캡션으로 지정한다.
 //  FR은 미사용. destroy API는 없다. 모바일 폭과 BLEED 레이아웃은 기존 CSS 동작을 유지한다.
 //  LI/RI는 사이트에 해당 Font Awesome CSS와 웹폰트가 준비되어 있으면 실제 아이콘으로 표시한다.
 //  글리프/폰트를 확인할 수 없거나 LI가 비어 있으면 기본 화살표 기호로 대체한다.
 //  RI를 비우면 LI를 좌우 반전한다. 웹폰트형 Font Awesome 대상이며 SVG 치환 방식은 보장하지 않는다.
 //  엔진이 외부 Font Awesome CSS나 스크립트를 자동으로 삽입하지는 않는다.
-//  기존 v1.4.0 아이콘, PC 링크/드래그, 모바일 터치는 사용자 확인 완료.
-//  v1.5.0 API는 모의 환경 33건, 캡션 파서 8건 통과. 실제 노션 화면의 API 미리보기는 별도 확인 필요.
-// =========================================================
-
+//  이미지 블록 안에 캡션이 아닌 다른 글자가 있으면 캡션으로 잘못 볼 수 있다. (현재 우피 구조에서는 해당 없음)
+//  v1.6.1의 클래스 이름 독립 처리는 가상 환경 단위 테스트로 확인했다. 실제 노션 화면에서의 BG·FULL·글자색·캡션 동작은 확인 필요.
+//
+// [v1.6.1 변경 및 검증]
+//  - 우피가 클래스 이름을 바꿔도 동작하도록, 콜아웃 내용·블록 영역 CSS와 코드를 자체 클래스 기반으로 바꿨다.
+//  - 이미지 캡션 탐색을 구조 기반으로 바꿨다. 캡션을 못 찾으면 OL·URL이 무시되고 캡션 글자가 보이던 문제 방지.
+//  - 빈 제목 줄 판정을 이름이 아니라 구조로도 판정한다.
+//  - 대시보드 API(1.1.0)와 토큰·CSS 변수는 그대로이다.
+//
 // [v1.6.0 변경 및 검증]
 //  - 비율(RT)을 실시간으로 바꾼다. BG 슬라이드의 고정 비율 속성만 갱신한다.
-//  - BLEED를 실시간으로 바꾼다. 왼쪽 확장 계산을 함수로 분리하고, 부모 요소의 원래 인라인 값을 저장해
-//    BLEED를 NONE으로 되돌리면 복원한다.
+//  - BLEED를 실시간으로 바꾼다. 부모 요소의 원래 인라인 값을 저장해 NONE으로 되돌리면 복원한다.
 //  - 미리보기 창(CallSlidePreview)과 dashboard.preview를 추가했다. dashboard API는 1.1.0(추가만 있음).
-//  - schema()의 requiresReload는 imageMode만 true이다.
-//  - 가상 환경에서 문법·로드·미리보기 설정 읽기를 확인했다. 실제 노션 화면의 BLEED·비율 전환은 확인 필요.
 //
 // [v1.5.1 변경 및 검증]
 //  - list() 제목에서 숨겨진 캡션·이미지·토큰 글자를 빼고 첫 슬라이드 제목을 우선 사용한다.
 //  - LI/RI의 실제 FA 웹폰트 표시, 로딩 확인 전 기본 기호 유지, 명시한 RI의 기본 대체 화살표 방향 보정.
-//  - API는 v1.0.0 그대로 유지. 모바일 미리보기·저장 슬롯·프리셋은 대시보드에서 구현할 기능이다.
-//  - 실제 사이트의 FA 폰트 로드와 아이콘 모양은 확인 필요.
 // =========================================================
 
 (function (global) {
@@ -162,7 +170,7 @@
   }
 
   if (global.CallSlideEngine) { console.warn('[call-slide] 중복 로드를 건너뜁니다.'); return; }
-  var VERSION_r1Z = '1.6.0';
+  var VERSION_r1Z = '1.6.1';
   var liveSliders_d1A = [];
   var STYLE_ID_s4P = 'engine-call-slide-style-v12';
   var MOBILE_BREAKPOINT_h2V = 640;
@@ -189,7 +197,7 @@
         'padding-bottom:56px;' +
       '}' +
 
-      '.slide-item_s4P[data-image-mode="full"] [class*="__content"]{' +
+      '.slide-item_s4P[data-image-mode="full"] .slide-content_s4P{' +
         'overflow:visible!important;' +
       '}' +
 
@@ -221,7 +229,7 @@
       '}' +
 
       '.slide-item_s4P .slide-card_s4P > div,' +
-      '.slide-item_s4P .slide-card_s4P .CalloutBlock-module__b-lIEa__content{' +
+      '.slide-item_s4P .slide-card_s4P .slide-content_s4P{' +
         'min-height:0!important;' +
         'box-sizing:border-box!important;' +
         'border:0!important;' +
@@ -306,7 +314,7 @@
         'height:100%;' +
       '}' +
 
-      '.slide-card_s4P>.CalloutBlock-module__b-lIEa__content{' +
+      '.slide-card_s4P>.slide-content_s4P{' +
         'width:100%!important;' +
         'box-sizing:border-box;' +
       '}' +
@@ -326,7 +334,7 @@
 */
 '.slide-item_s4P[data-image-mode="bg"] .slide-card_s4P,' +
 '.slide-item_s4P[data-image-mode="bg"] .slide-card_s4P > div,' +
-'.slide-item_s4P[data-image-mode="bg"] .CalloutBlock-module__b-lIEa__content{' +
+'.slide-item_s4P[data-image-mode="bg"] .slide-content_s4P{' +
   'height:100%!important;' +
 '}' +
 
@@ -463,16 +471,16 @@
         'box-sizing:border-box!important;' +
       '}' +
 
-      '.slide-item_s4P[data-slide-text-color] .CalloutBlock-module__b-lIEa__blocks *:not(code):not(code *){' +
+      '.slide-item_s4P[data-slide-text-color] .slide-blocks_s4P *:not(code):not(code *){' +
         'color:inherit!important;' +
       '}' +
 
-      '.slide-item_s4P[data-slide-text-color] .CalloutBlock-module__b-lIEa__blocks code,' +
-      '.slide-item_s4P[data-slide-text-color] .CalloutBlock-module__b-lIEa__blocks code *{' +
+      '.slide-item_s4P[data-slide-text-color] .slide-blocks_s4P code,' +
+      '.slide-item_s4P[data-slide-text-color] .slide-blocks_s4P code *{' +
         'color:revert!important;' +
       '}' +
 
-      '.slide-bg-content_s4P .CalloutBlock-module__b-lIEa__blocks{' +
+      '.slide-bg-content_s4P .slide-blocks_s4P{' +
         'min-height:100%;' +
         'box-sizing:border-box;' +
       '}' +
@@ -772,8 +780,22 @@
     if(['http:','https:','mailto:','tel:','sms:'].indexOf(url_c3.protocol.toLowerCase())===-1)throw new Error('허용되지 않는 URL 프로토콜입니다.');
     return value_b3;
   }
+  /* 캡션 요소 찾기: 클래스 이름 대신 구조로 찾는다. (예전 방식이 있으면 우선 사용) */
+  function findCaptionEl_c1X(imageBlockEl_a) {
+    var legacy_b = imageBlockEl_a.querySelector('figcaption,[class*="Caption"],[class*="caption"]');
+    if (legacy_b) return legacy_b;
+    var nodes_c = imageBlockEl_a.querySelectorAll('*');
+    for (var i_d = 0; i_d < nodes_c.length; i_d++) {
+      var node_e = nodes_c[i_d];
+      if (/^(IMG|VIDEO|IFRAME|SVG|CANVAS|PICTURE|SCRIPT|STYLE|NOSCRIPT)$/i.test(node_e.tagName)) continue;
+      if (node_e.querySelector('img,video,iframe,svg,canvas,picture')) continue;
+      if ((node_e.textContent || '').trim()) return node_e;
+    }
+    return null;
+  }
+
   function captionInfo_n7H(imageBlock_q5J) {
-    var caption_s2K=imageBlock_q5J&&imageBlock_q5J.querySelector('figcaption,[class*="Caption"],[class*="caption"]');
+    var caption_s2K=imageBlock_q5J&&findCaptionEl_c1X(imageBlock_q5J);
     var text_w4V=caption_s2K?(caption_s2K.textContent||''):'';
     var segments_j6A=splitCaption_k1A(text_w4V);
     var result_x5C={overlay_s1R:null,url_v3P:'',newTab_a7D:false};
@@ -889,8 +911,9 @@
 
   function isEmptyTitle_q8W(el_p3K) {
     return el_p3K.classList &&
-      String(el_p3K.className).indexOf('CalloutBlock-module__b-lIEa__title') !== -1 &&
-      !(el_p3K.textContent || '').trim();
+      (/_title(?:\s|$)/.test(String(el_p3K.className)) || !el_p3K.hasAttribute('data-block-id')) &&
+      !(el_p3K.textContent || '').trim() &&
+      !el_p3K.querySelector('img,video,iframe,svg,canvas');
   }
 
   function isIcon_v2M(el_p3K) {
@@ -1050,7 +1073,7 @@
     slideItem_q1P.dataset.imageMode = 'full';
 
     /*
-      Oopy/Notion이 .CalloutBlock-module__b-lIEa__content에 기본으로
+      Oopy/Notion이 콜아웃 내용 영역(.slide-content_s4P)에 기본으로
       padding(16 16 16 12)과 display:flex를 깔아둔다. 이 padding이
       바로 이미지 여백의 실체였다. content의 padding은 0으로 없애고,
       대신 텍스트 블록들(이미지가 아닌 형제)에 그 padding 값을
@@ -1063,7 +1086,7 @@
       (detached)에는 getComputedStyle이 빈 문자열을 반환하므로 그
       경우엔 이 20px 기본값이 그대로 유지된다.
     */
-    var contentNode_w8L = imageBlock_c3R.closest('.CalloutBlock-module__b-lIEa__content');
+    var contentNode_w8L = imageBlock_c3R.closest('.slide-content_s4P');
     var originalPadding_q9F = { top: '20px', right: '20px', bottom: '20px', left: '20px' };
 
     if (contentNode_w8L) {
@@ -1095,14 +1118,14 @@
     }
 
     /*
-      Oopy 기본 CSS(.CalloutBlock-module__b-lIEa__container:first-child)가
+      Oopy 기본 CSS(콜아웃 컨테이너의 :first-child)가
       margin-top:2px를 부여한다. 실측 결과 이 값 자체가 최종 4px
       오차의 주 원인은 아니었지만(원인은 VERTICAL_OVERSCAN 쪽 서브
       픽셀 오차), 이 마진이 있으면 카드마다 레이아웃 기준선이
       미세하게 달라질 수 있어 0으로 고정해 둔다. 부작용 없음을
       확인했다.
     */
-    var containerNode_m4Y = imageBlock_c3R.closest('.CalloutBlock-module__b-lIEa__container');
+    var containerNode_m4Y = imageBlock_c3R.closest('.slide-card_s4P');
     if (containerNode_m4Y) {
       containerNode_m4Y.style.setProperty('margin-top', '0', 'important');
     }
@@ -1171,6 +1194,10 @@
     var cardBox_b5W = findCardBox_k9M(callout_g4N);
     var blocksWrap_e3P = findBlocksWrap_l3F(cardBox_b5W);
     if (!cardBox_b5W || !blocksWrap_e3P) return { item_z1F: item_z1F, url_b2C: '', newTab_z8A: false };
+
+    /* 우피의 해시 클래스 이름 대신 구조로 찾은 요소에 자체 클래스를 붙이고, CSS는 이 클래스만 쓴다. */
+    cardBox_b5W.classList.add('slide-content_s4P');
+    blocksWrap_e3P.classList.add('slide-blocks_s4P');
 
     cardBox_b5W.style.setProperty('border-radius', 'inherit', 'important');
     cardBox_b5W.style.setProperty('overflow', 'hidden', 'important');
@@ -1311,7 +1338,7 @@
     var measuredPadding_h4W = '16px';
 
     if (sourceCards_m3A[0]) {
-      var sampleContent_r7L = sourceCards_m3A[0].querySelector('.CalloutBlock-module__b-lIEa__content');
+      var sampleContent_r7L = findCardBox_k9M(sourceCards_m3A[0]);
       if (sampleContent_r7L) {
         var sampleStyle_v2Q = getComputedStyle(sampleContent_r7L);
         if (sampleStyle_v2Q.paddingLeft && sampleStyle_v2Q.paddingLeft !== '0px') {
@@ -2051,6 +2078,3 @@
 
   console.log('[call-slide] 콜아웃 슬라이더 엔진 로드 완료 (v' + VERSION_r1Z + ')');
 })(window);
-
-
-

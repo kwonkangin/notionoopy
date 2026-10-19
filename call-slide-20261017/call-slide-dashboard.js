@@ -552,3 +552,4 @@ P.addEventListener('beforeunload',destroy);W.__callSlideDash={version:'1.1.0',wi
 refresh();renderSlots();renderPresets();syncUI();hist=[stateString()];hi=0;
 console.log('[slide dashboard v1.1] 사이트 공통·선택 슬라이더 편집, 미리보기 창, 설정 점검. 저장본은 자동 적용하지 않습니다.');
 })();
+ 

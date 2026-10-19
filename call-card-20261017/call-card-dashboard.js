@@ -394,3 +394,4 @@ function destroy(){if(closed)return;if(peeking)peekEnd();closed=true;[histTimer,
 P.addEventListener('beforeunload',destroy);W.__callCardDash={version:'3.1.0',window:P,destroy,select:id=>choose(id)};
 refresh();renderSlots();renderPresets();syncUI();hist=[stateString()];hi=0;schedulePreview();console.log('[card dashboard v3] 카드·PLAIN·이미지·OL·URL 통합. 저장본은 자동 적용하지 않습니다.');
 })();
+ 
