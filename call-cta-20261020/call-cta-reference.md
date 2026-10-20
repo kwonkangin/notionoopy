@@ -1,4 +1,4 @@
-# call-cta 참고 문서
+# call-cta 참고 문서 
 
 ## 1. 토큰 [% call-cta :: 키 값 %]
 
