@@ -421,9 +421,3 @@ if(!boot()){
 }
 W.CallCtaEngine.boot=boot;
 })(window);
-
-
-
-
-
-</script>
