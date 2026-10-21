@@ -1,0 +1,734 @@
+/* =========================================================================
+ * gallery-overlay-engine.css   (DB 갤러리 오버레이 엔진 스타일, 커버형 / 사이드형)
+ * 버전: 2.1.1   (gallery-overlay-engine.js 2.1.x 와 함께 쓴다. JS는 2.1.0 그대로)
+ * [2.1.1] --ga-side-thumb-top-fit 적용: 상·하 배치 이미지 폭 full(카드 전체 폭, 기본) / boxed(--ga-side-thumb-size까지, 가운데)
+ * ========================================================================= */
+/**
+ * ======================================================================
+ * [Notion Overlay Gallery Master - CSS Core Engine]
+ * 작성일: 2026-07-21
+ * 기능: 썸네일 비율 고정, 오버레이 딤 필터, 범용 속성 레이어 재배치
+ * ======================================================================
+ */
+
+ /*
+   에픽션 노션 갤러리 제어 엔진 코어 스타일
+   파일명: epiction-gallery-style.css
+*/
+
+/* 
+  ========================================================================
+  [CSS 코어 엔진] 미디어 쿼리 및 반응형 변수 할당 구역
+  ========================================================================
+*/
+@media screen and (max-width: 1024px) { 
+  :root { 
+    --ga-card-padding: 12px; 
+    --ga-section-gap: 16px; 
+    --ga-title-size: 1.1em; 
+    --ga-prop-all-size: 0.95em; 
+    --ga-text-width: var(--ga-text-width-tab); 
+  } 
+}
+@media screen and (max-width: 768px) { 
+  :root { 
+    --ga-card-padding: 10px; 
+    --ga-section-gap: 12px; 
+    --ga-item-gap: 4px; 
+    --ga-title-size: 1em; 
+    --ga-prop-all-size: 0.9em; 
+    --ga-text-width: var(--ga-text-width-mob); 
+  } 
+}
+@media screen and (min-width: 1025px) {
+  :root { --ga-text-width: var(--ga-text-width-pc); }
+}
+
+/* 칩 크기 연동 최상위 변수 */
+:root {
+  --ga-chip-radius-select: var(--ga-chip-radius);
+  --ga-chip-radius-relation: var(--ga-chip-radius);
+  --ga-chip-radius-best: var(--ga-chip-radius);
+  --ga-chip-height-select: var(--ga-chip-height);
+  --ga-chip-height-relation: var(--ga-chip-height);
+  --ga-chip-height-best: var(--ga-chip-height);
+}
+
+/* 
+  [애니메이션 및 레이아웃 초기화] 
+  스크롤 감지 시 카드가 부드럽게 떠오르는 페이드인 효과 
+*/
+.ga_cardCore_k3z { opacity: 0; transform: translateY(15px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+.ga_cardCore_k3z.efc_visible_m4q { opacity: 1; transform: translateY(0); }
+
+/* 노션의 기본 UI(타이틀, 탭 등) 숨김 및 CSS Grid 기반 가로 배열 설정 */
+.ga-hidden-title, .ga-hidden-tabs { display: none !important; }
+.ga_overlay_u4b .notion-gallery-view .notion-collection_view-block > div > div:first-child { display: grid !important; gap: var(--ga-grid-gap, 16px) !important; grid-template-columns: repeat(var(--ga-cols-pc), minmax(0, 1fr)) !important; }
+@media screen and (max-width: 1024px) { .ga_overlay_u4b .notion-gallery-view .notion-collection_view-block > div > div:first-child { grid-template-columns: repeat(var(--ga-cols-tab), minmax(0, 1fr)) !important; } }
+@media screen and (max-width: 768px)  { .ga_overlay_u4b .notion-gallery-view .notion-collection_view-block > div > div:first-child { grid-template-columns: repeat(var(--ga-cols-mob), minmax(0, 1fr)) !important; } }
+
+/* 썸네일 이미지 비율 및 컨테이너 제한 */
+.ga_overlay_u4b .notion-gallery-view .notion-collection-item > :first-child { aspect-ratio: var(--ga-ratio, 1/1) !important; width: 100% !important; height: auto !important; border-radius: var(--ga-card-radius, 0px) !important; overflow: hidden !important; }
+.css-cnzm4r { position: unset !important; }
+
+/* 
+  [카드 본문 구조화] 
+  Flexbox 기반으로 속성들을 묶어 정렬 논리 제어 
+*/
+.ga_cardCore_k3z { position: relative !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-content: flex-start !important; padding: var(--ga-card-padding, 14px) !important; overflow: hidden !important; z-index: 1; box-sizing: border-box !important; height: 100% !important; }
+html[data-ga-absolute] .ga_cardCore_k3z { justify-content: var(--ga-h-align, flex-start) !important; }
+.ga_cardCore_k3z > div:first-child:not(.css-0):not(.css-1n1men8), .ga_cardCore_k3z > div[style*="position: relative"]:first-child { display: none !important; }
+
+.ga_overlay_u4b .css-1n1men8 { display: contents !important; }
+
+
+/* 타이틀 래퍼 및 개별 속성 열 초기 셋업 */
+.ga_cardCore_k3z > div.css-0 { display: flex !important; flex-wrap: wrap !important; width: var(--ga-text-width, 100%) !important; align-items: flex-start !important; text-align: var(--ga-t-align, left) !important; z-index: 2 !important; position: relative !important; padding: 0 !important; background: transparent !important; margin: 0 0 var(--ga-item-gap, 8px) 0 !important; box-sizing: border-box !important; min-width: 0 !important; justify-content: var(--ga-h-align, flex-start) !important; }
+html[data-ga-absolute="1"] .ga_cardCore_k3z .ga_visLast_p8d { margin-bottom: 0 !important; }
+
+/* 노션 기본 주입 패딩/마진 강제 초기화 (들여쓰기 교정용) */
+html body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f { display: flex !important; flex-wrap: nowrap !important; align-items: flex-start !important; min-width: 0 !important; column-gap: var(--ga-lbl-space, 8px) !important; margin-left: 0px !important; margin-right: 0px !important; margin-bottom: var(--ga-item-gap, 8px) !important; margin-top: 0px !important; padding-left: 0px !important; padding-right: 0px !important; border-radius: 0px !important; overflow: visible !important; }
+.ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > .ga_propName_m7a { flex-shrink: 0 !important; white-space: nowrap !important; align-self: flex-start !important; padding-top: 1px !important; }
+.ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > *:not(.ga_propName_m7a) { flex: 1 1 0 !important; min-width: 0 !important; word-break: break-word !important; white-space: normal !important; overflow-wrap: break-word !important; }
+html body .notion-app .ga_overlay_u4b .css-1hj95xj { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; width: 100% !important; background: transparent !important; }
+
+/* 
+  ========================================================================
+  [너비 구역 분리 제어 엔진] 
+  사용자 설정에 따라 상단/중단/하단 영역의 퍼센트 너비를 다르게 상속
+  ========================================================================
+*/
+/* 스코프 0 (모든 구역 너비 강제 제어) */
+html[data-ga-width-scope="0"][data-ga-h-align="flex-start"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f:not(.ga_selFam_r8j):not(.ga_oppTag_l2x) { flex: 0 0 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; padding-right: calc(100% - var(--ga-text-width, 100%)) !important; padding-left: 0 !important; }
+html[data-ga-width-scope="0"][data-ga-h-align="flex-end"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f:not(.ga_selFam_r8j):not(.ga_oppTag_l2x) { flex: 0 0 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; padding-left: calc(100% - var(--ga-text-width, 100%)) !important; padding-right: 0 !important; }
+html[data-ga-width-scope="0"][data-ga-h-align="center"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f:not(.ga_selFam_r8j):not(.ga_oppTag_l2x) { flex: 0 0 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; padding-left: calc((100% - var(--ga-text-width, 100%)) / 2) !important; padding-right: calc((100% - var(--ga-text-width, 100%)) / 2) !important; }
+
+/* 스코프 1 (상단 구역 한정 너비 제어, 중/하단은 100% 채움 보장) */
+html[data-ga-width-scope="1"][data-ga-h-align="flex-start"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_isTop_t1p:not(.ga_selFam_r8j):not(.ga_oppTag_l2x) { flex: 0 0 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; padding-right: calc(100% - var(--ga-text-width, 100%)) !important; padding-left: 0 !important; }
+html[data-ga-width-scope="1"][data-ga-h-align="flex-end"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_isTop_t1p:not(.ga_selFam_r8j):not(.ga_oppTag_l2x) { flex: 0 0 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; padding-left: calc(100% - var(--ga-text-width, 100%)) !important; padding-right: 0 !important; }
+html[data-ga-width-scope="1"][data-ga-h-align="center"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_isTop_t1p:not(.ga_selFam_r8j):not(.ga_oppTag_l2x) { flex: 0 0 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; padding-left: calc((100% - var(--ga-text-width, 100%)) / 2) !important; padding-right: calc((100% - var(--ga-text-width, 100%)) / 2) !important; }
+html[data-ga-width-scope="1"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_isDown_d2n:not(.ga_selFam_r8j):not(.ga_oppTag_l2x) { flex: 0 0 100% !important; max-width: 100% !important; width: 100% !important; box-sizing: border-box !important; padding-left: 0 !important; padding-right: 0 !important; }
+
+/* 선택 속성 레이아웃 분리 적용 */
+html[data-ga-width-scope="0"][data-ga-display="inline-flex"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j { display: inline-flex !important; width: auto !important; max-width: 100% !important; margin-right: 0 !important; }
+html[data-ga-width-scope="0"][data-ga-display="inline-flex"][data-ga-h-align="flex-start"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j { margin-right: var(--ga-group-gap, 12px) !important; margin-left: 0 !important; }
+html[data-ga-width-scope="0"][data-ga-display="inline-flex"][data-ga-h-align="flex-end"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j { margin-left: var(--ga-group-gap, 12px) !important; margin-right: 0 !important; }
+html[data-ga-width-scope="0"][data-ga-display="flex"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j { display: flex !important; width: var(--ga-text-width, 100%) !important; margin-left: 0 !important; margin-right: 0 !important; }
+
+html[data-ga-width-scope="1"][data-ga-display="inline-flex"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j { display: inline-flex !important; width: auto !important; max-width: 100% !important; margin-right: 0 !important; }
+html[data-ga-width-scope="1"][data-ga-display="inline-flex"][data-ga-h-align="flex-start"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j { margin-right: var(--ga-group-gap, 12px) !important; margin-left: 0 !important; }
+html[data-ga-width-scope="1"][data-ga-display="inline-flex"][data-ga-h-align="flex-end"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j { margin-left: var(--ga-group-gap, 12px) !important; margin-right: 0 !important; }
+html[data-ga-width-scope="1"][data-ga-display="flex"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j.ga_isTop_t1p { display: flex !important; width: var(--ga-text-width, 100%) !important; margin-left: 0 !important; margin-right: 0 !important; }
+html[data-ga-width-scope="1"][data-ga-display="flex"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j.ga_isDown_d2n { display: flex !important; width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+
+/* 
+  ========================================================================
+  [시각적 기능 방어 및 특수 속성 레이아웃] 
+  ========================================================================
+*/
+/* 속성값 높이 수축 방지 (라벨 상단 배열 시 겹침 이슈 완전 차단) */
+html body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblTop_w4n { flex-direction: column !important; align-items: flex-start !important; row-gap: var(--ga-lbl-space, 4px) !important; height: auto !important; }
+html body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblTop_w4n > .ga_propName_m7a { text-align: left !important; max-width: 100% !important; }
+html body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblTop_w4n > :not(.ga_propName_m7a) { flex: 1 1 auto !important; width: 100% !important; max-width: 100% !important; height: auto !important; min-height: 18px !important; }
+
+/* 링크(URL) 및 관계형 속성 특수 마크업 보장 */
+
+html[data-ga-width-scope="0"] .ga_overlay_u4b .css-1n1men8 > div.ga_urlFam_d4q { display: flex !important; width: var(--ga-text-width, 100%) !important; margin-left: 0 !important; margin-right: 0 !important; }
+html[data-ga-width-scope="1"] .ga_overlay_u4b .css-1n1men8 > div.ga_urlFam_d4q.ga_isTop_t1p { display: flex !important; width: var(--ga-text-width, 100%) !important; margin-left: 0 !important; margin-right: 0 !important; }
+html[data-ga-width-scope="1"] .ga_overlay_u4b .css-1n1men8 > div.ga_urlFam_d4q.ga_isDown_d2n { display: flex !important; width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+.ga_overlay_u4b .css-1n1men8 > div.ga_urlFam_d4q a { color: var(--ga-url-color, #ffffff) !important; text-decoration: var(--ga-url-underline, none) !important; opacity: 1 !important; }
+.ga_overlay_u4b .css-1n1men8 > div.ga_urlFam_d4q a * { color: inherit !important; opacity: 1 !important; background: transparent !important; background-image: none !important; text-decoration: inherit !important; }
+
+/* 모듈 단위 칩 모양 고정 (선택, 멀티선택 등) */
+.ga_overlay_u4b .ga_chipLeaf_n1e { display: inline-flex !important; align-items: center !important; flex-shrink: 0 !important; box-sizing: border-box !important; padding-left: var(--ga-chip-pad-x) !important; padding-right: var(--ga-chip-pad-x) !important; padding-top: var(--ga-chip-pad-y) !important; padding-bottom: var(--ga-chip-pad-y) !important; overflow: hidden !important; transform: translateZ(0); }
+.ga_overlay_u4b .ga_chipLeaf_n1e * { border-radius: 0 !important; }
+.ga_overlay_u4b .ga_chipSel_j3k { border-radius: var(--ga-chip-radius-select) !important; height: var(--ga-chip-height-select) !important; }
+.ga_overlay_u4b .ga_chipRel_t9p { border-radius: var(--ga-chip-radius-relation) !important; height: var(--ga-chip-height-relation) !important; }
+
+/* 노션 인라인 스타일 덮어쓰기 (강제 컬러 적용) */
+html[data-ga-color-mode="1"] body .notion-app .ga_overlay_u4b .ga_chipSel_j3k { background: color-mix(in srgb, var(--ga-prop-all-custom-bg) calc(var(--ga-prop-all-custom-bg-op, 1) * 100%), transparent) !important; background-color: color-mix(in srgb, var(--ga-prop-all-custom-bg) calc(var(--ga-prop-all-custom-bg-op, 1) * 100%), transparent) !important; }
+html[data-ga-color-mode="1"] body .notion-app .ga_overlay_u4b .ga_chipSel_j3k * { color: var(--ga-prop-all-color) !important; opacity: 1 !important; }
+html[data-ga-color-mode="1"] body .notion-app .ga_overlay_u4b .ga_chipSel_j3k div { background: transparent !important; background-color: transparent !important; }
+
+/* [v2.0.0] 관계형(구조 기반): JS가 붙이는 ga_relBox / ga_relChip / ga_relIcon / ga_relText 클래스만 대상으로 함 */
+.ga_overlay_u4b .ga_relBox { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; flex: 1 1 0 !important; min-width: 0 !important; max-width: 100% !important; background: transparent !important; padding: 0 !important; overflow: hidden !important; }
+.ga_overlay_u4b .ga_relChip { display: inline-flex !important; align-items: center !important; box-sizing: border-box !important; min-width: 0 !important; max-width: 100% !important; flex-shrink: 1 !important; }
+.ga_overlay_u4b .ga_relText { display: block !important; min-width: 0 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+.ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_relIcon { display: var(--ga-relation-icon, block) !important; margin-right: 4px !important; }
+.ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .ga_relIcon { display: var(--ga-side-relation-icon, block) !important; margin-right: 4px !important; }
+html[data-ga-relation-wrap="1"] .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_relText { white-space: normal !important; overflow: visible !important; text-overflow: initial !important; overflow-wrap: anywhere !important; }
+html[data-ga-side-relation-wrap="1"] .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .ga_relText { white-space: normal !important; overflow: visible !important; text-overflow: initial !important; overflow-wrap: anywhere !important; }
+html[data-ga-relation-mode="1"] .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_relChip { background: color-mix(in srgb, var(--ga-relation-custom-bg, #660223) calc(var(--ga-relation-custom-bg-op, .4) * 100%), transparent) !important; background-color: color-mix(in srgb, var(--ga-relation-custom-bg, #660223) calc(var(--ga-relation-custom-bg-op, .4) * 100%), transparent) !important; color: #ffffff !important; }
+html[data-ga-side-relation-mode="1"] .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .ga_relChip { background: color-mix(in srgb, var(--ga-side-relation-custom-bg, #660223) calc(var(--ga-side-relation-custom-bg-op, .4) * 100%), transparent) !important; background-color: color-mix(in srgb, var(--ga-side-relation-custom-bg, #660223) calc(var(--ga-side-relation-custom-bg-op, .4) * 100%), transparent) !important; color: #ffffff !important; }
+html[data-ga-relation-mode="1"] .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_relChip *, html[data-ga-side-relation-mode="1"] .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .ga_relChip * { color: currentColor !important; fill: currentColor !important; }
+
+/* [v2.0.0] 사이드형 이미지 fill 모드: 위·아래를 카드 여백에 붙여 카드 높이를 따라 늘어난다 (JS가 같은 값을 인라인으로도 지정) */
+html[data-ga-side-thumb-mode="fill"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right > div:first-child:not(.css-0):not(.css-1n1men8),
+html[data-ga-side-thumb-mode="fill"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left > div:first-child:not(.css-0):not(.css-1n1men8) { aspect-ratio: auto !important; max-height: none !important; }
+
+/* [v2.0.0] 날짜 줄 글꼴 (값이 설정된 경우에만 JS가 ga_dateSize/Weight/Color 클래스를 붙인다). 값 컨테이너에만 지정하고 자손은 상속해서 em 값이 겹쳐 커지지 않는다 */
+html body .notion-app .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .css-1n1men8 > div.ga_dateSize_q1s > :not(.ga_propName_m7a) { font-size: var(--ga-date-size) !important; }
+html body .notion-app .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .css-1n1men8 > div.ga_dateSize_q1s > :not(.ga_propName_m7a) * { font-size: inherit !important; }
+html body .notion-app .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .css-1n1men8 > div.ga_dateWeight_q2w > :not(.ga_propName_m7a) { font-weight: var(--ga-date-weight) !important; }
+html body .notion-app .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .css-1n1men8 > div.ga_dateWeight_q2w > :not(.ga_propName_m7a) * { font-weight: inherit !important; }
+html body .notion-app .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .css-1n1men8 > div.ga_dateColor_q3c > :not(.ga_propName_m7a) { color: var(--ga-date-color) !important; }
+html body .notion-app .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .css-1n1men8 > div.ga_dateColor_q3c > :not(.ga_propName_m7a) * { color: inherit !important; }
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_dateSize_q1s > :not(.ga_propName_m7a) { font-size: var(--ga-side-date-size) !important; }
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_dateSize_q1s > :not(.ga_propName_m7a) * { font-size: inherit !important; }
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_dateWeight_q2w > :not(.ga_propName_m7a) { font-weight: var(--ga-side-date-weight) !important; }
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_dateWeight_q2w > :not(.ga_propName_m7a) * { font-weight: inherit !important; }
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_dateColor_q3c > :not(.ga_propName_m7a) { color: var(--ga-side-date-color) !important; }
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_dateColor_q3c > :not(.ga_propName_m7a) * { color: inherit !important; }
+
+/* [v2.1.0] 칩 컨테이너 줄바꿈: 좁은 화면(태블릿·모바일)에서 칩이 찌그러져 글자가 세로로 쌓이지 않고 다음 줄로 넘어간다 */
+.ga_overlay_u4b .ga_chipBox_r2w { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; align-items: center !important; min-width: 0 !important; max-width: 100% !important; background: transparent !important; }
+.ga_overlay_u4b .ga_chipBox_r2w > .ga_chipLeaf_n1e { flex: 0 1 auto !important; min-width: min-content !important; max-width: 100% !important; }
+.ga_overlay_u4b .ga_chipBox_r2w > .ga_chipLeaf_n1e, .ga_overlay_u4b .ga_chipBox_r2w > .ga_chipLeaf_n1e * { white-space: normal !important; word-break: keep-all !important; overflow-wrap: break-word !important; text-overflow: clip !important; }
+
+/* [v2.1.0] 관계형 글자색 (--ga-relation-color / --ga-side-relation-color 가 있을 때 JS가 ga_relColor_k7c 를 붙인다) */
+html body .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_relChip.ga_relColor_k7c,
+html body .ga_overlay_u4b .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_relChip.ga_relColor_k7c * { color: var(--ga-relation-color) !important; }
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .ga_relChip.ga_relColor_k7c,
+html body .ga_overlay_u4b .ga_cardCore_k3z[data-ga-design="side"] .ga_relChip.ga_relColor_k7c * { color: var(--ga-side-relation-color) !important; }
+
+/* [v2.1.0] 칩 나열 방식(사이드형): inline-flex = 내용 크기만큼, flex = 한 줄 전체 폭 */
+html[data-ga-side-display="inline-flex"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_selFam_r8j { display: inline-flex !important; width: auto !important; flex: 0 1 auto !important; max-width: 100% !important; }
+html[data-ga-side-display="flex"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_selFam_r8j { display: flex !important; width: 100% !important; flex: 0 0 100% !important; max-width: 100% !important; }
+
+/* 텍스트 크기 및 서식 중앙 제어 */
+.ga_cardCore_k3z > div.css-0 * { color: var(--ga-title-color, #ffffff) !important; }
+.ga_overlay_u4b .css-1n1men8 > div *:not(.ga_propName_m7a) { color: var(--ga-prop-all-color, #0f0f0f) !important; }
+html[data-ga-use-title="1"] .ga_cardCore_k3z > div.css-0 * { font-size: var(--ga-title-size) !important; font-weight: var(--ga-title-weight) !important; line-height: var(--ga-line-height, 1.4) !important; }
+/* [v2.1.0] 칩 서식(--ga-prop-all-size/weight)은 선택·다중선택 속성에만, 나머지 속성은 --ga-plain-size/weight 로 따로 조정한다. 값 컨테이너에만 지정하고 자손은 상속한다(em 값이 겹쳐 커지지 않게) */
+html[data-ga-use-prop-all="1"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j > :not(.ga_propName_m7a) { font-size: var(--ga-prop-all-size) !important; font-weight: var(--ga-prop-all-weight) !important; line-height: var(--ga-line-height, 1.4) !important; }
+html[data-ga-use-prop-all="1"] .ga_overlay_u4b .css-1n1men8 > div.ga_selFam_r8j > :not(.ga_propName_m7a) * { font-size: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+html[data-ga-use-prop-all="1"] .ga_overlay_u4b .css-1n1men8 > div:not(.ga_selFam_r8j) > :not(.ga_propName_m7a) { font-size: var(--ga-plain-size, 1.05em) !important; font-weight: var(--ga-plain-weight, 400) !important; line-height: var(--ga-line-height, 1.4) !important; }
+html[data-ga-use-prop-all="1"] .ga_overlay_u4b .css-1n1men8 > div:not(.ga_selFam_r8j) > :not(.ga_propName_m7a) * { font-size: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+
+/* 위치 제어용 투명 스페이서 블록 */
+.ga_cardCore_k3z .ga_structural_spacer { width: 100% !important; margin: 0 !important; padding: 0 !important; background: transparent !important; border: none !important; display: block !important; }
+.ga_spacerTop_p9m    { order: 150 !important; }
+.ga_spacerBottom_c2w { order: 250 !important; }
+html[data-ga-spacer-top="0"] .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_spacerTop_p9m { display: none !important; height: 0 !important; }
+html[data-ga-spacer-bottom="0"] .ga_cardCore_k3z:not([data-ga-design="side"]) .ga_spacerBottom_c2w { display: none !important; height: 0 !important; }
+html[data-ga-side-spacer-top="0"] .ga_cardCore_k3z[data-ga-design="side"] .ga_spacerTop_p9m { display: none !important; height: 0 !important; }
+html[data-ga-side-spacer-bottom="0"] .ga_cardCore_k3z[data-ga-design="side"] .ga_spacerBottom_c2w { display: none !important; height: 0 !important; }
+html[data-ga-absolute="1"] .ga_spacerTop_p9m, html[data-ga-absolute="1"] .ga_spacerBottom_c2w { flex-grow: 0 !important; }
+html[data-ga-absolute="0"] .ga_spacerTop_p9m, html[data-ga-absolute="0"] .ga_spacerBottom_c2w { flex-grow: 0 !important; display: block !important; height: var(--ga-section-gap, 24px) !important; }
+
+/* 가로 세로 텍스트 정렬 제어 시스템 */
+.ga_cardCore_k3z > div.css-0 *, .ga_overlay_u4b .css-1n1men8 > div *:not(.ga_propName_m7a) { text-align: var(--ga-t-align, left) !important; }
+.ga_cardCore_k3z > div.css-0 div, .ga_overlay_u4b .css-1n1men8 > div div { justify-content: var(--ga-h-align, flex-start) !important; }
+html[data-ga-lbl-align="left"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > .ga_propName_m7a { text-align: left !important; justify-content: flex-start !important; }
+html[data-ga-lbl-align="center"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > .ga_propName_m7a { text-align: center !important; justify-content: center !important; }
+html[data-ga-lbl-align="right"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > .ga_propName_m7a { text-align: right !important; justify-content: flex-end !important; }
+html[data-ga-val-align="left"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > :not(.ga_propName_m7a) { text-align: left !important; justify-content: flex-start !important; }
+html[data-ga-val-align="center"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > :not(.ga_propName_m7a) { text-align: center !important; justify-content: center !important; }
+html[data-ga-val-align="right"] body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f > :not(.ga_propName_m7a) { text-align: right !important; justify-content: flex-end !important; }
+
+/* 
+  ========================================================================
+  [특수 최우수(BEST) 태그 제어] 
+  화면 레이아웃 변경에 영향받지 않고 우측 상단에 100% 고정되도록 강제 방어
+  ========================================================================
+*/
+html body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_oppTag_l2x { position: absolute !important; top: var(--ga-card-padding, 14px) !important; z-index: 5 !important; margin: 0 !important; overflow: visible !important; display: inline-flex !important; flex-wrap: nowrap !important; width: auto !important; max-width: calc(100% - (var(--ga-card-padding, 14px) * 2)) !important; flex: 0 0 auto !important; }
+html[data-ga-h-align="flex-start"] .ga_overlay_u4b .ga_oppTag_l2x { right: var(--ga-card-padding, 14px) !important; left: auto !important; justify-content: flex-end !important; text-align: right !important; }
+html[data-ga-h-align="flex-end"] .ga_overlay_u4b .ga_oppTag_l2x { left: var(--ga-card-padding, 14px) !important; right: auto !important; justify-content: flex-start !important; text-align: left !important; }
+html[data-ga-h-align="center"] .ga_overlay_u4b .ga_oppTag_l2x { right: var(--ga-card-padding, 14px) !important; left: auto !important; }
+
+html[data-ga-best-shape="1"] body .notion-app .ga_overlay_u4b .ga_chipBest_h6w { padding: var(--ga-chip-pad-y) var(--ga-chip-pad-x) !important; border-radius: var(--ga-chip-radius) !important; height: var(--ga-chip-height) !important; background: color-mix(in srgb, var(--ga-best-bg, var(--ga-prop-all-custom-bg)) calc(var(--ga-best-bg-op, 1) * 100%), transparent) !important; background-color: color-mix(in srgb, var(--ga-best-bg, var(--ga-prop-all-custom-bg)) calc(var(--ga-best-bg-op, 1) * 100%), transparent) !important; }
+html[data-ga-best-shape="1"] body .notion-app .ga_overlay_u4b .ga_chipBest_h6w, html[data-ga-best-shape="1"] body .notion-app .ga_overlay_u4b .ga_chipBest_h6w * { color: var(--ga-best-color, #ffffff) !important; }
+html[data-ga-best-shape="0"] body .notion-app .ga_overlay_u4b .ga_chipBest_h6w, html[data-ga-best-shape="0"] body .notion-app .ga_overlay_u4b .ga_chipBest_h6w * { height: var(--ga-best-height) !important; padding: var(--ga-best-pad-y) var(--ga-best-pad-x) !important; border-radius: var(--ga-best-radius) !important; font-size: var(--ga-best-size) !important; font-weight: var(--ga-best-weight) !important; background: color-mix(in srgb, var(--ga-best-bg, var(--ga-prop-all-custom-bg)) calc(var(--ga-best-bg-op, 1) * 100%), transparent) !important; background-color: color-mix(in srgb, var(--ga-best-bg, var(--ga-prop-all-custom-bg)) calc(var(--ga-best-bg-op, 1) * 100%), transparent) !important; color: var(--ga-best-color, #ffffff) !important; }
+html[data-ga-best-shape="2"] body .notion-app .ga_overlay_u4b .ga_chipBest_h6w { background: transparent !important; background-color: transparent !important; border-radius: var(--ga-chip-radius) !important; height: var(--ga-chip-height) !important; padding: var(--ga-chip-pad-y) var(--ga-chip-pad-x) !important; }
+html[data-ga-best-shape="2"] body .notion-app .ga_overlay_u4b .ga_chipBest_h6w * { color: inherit !important; }
+
+/* 
+  ========================================================================
+  [라벨 숨김 및 기기 해상도 대응 반응형 숨김 구역]
+  모바일 우선순위 역전 결함 해결: 해당 블록을 최하단에 배치하여 
+  숨김 명령이 너비 제어 명령보다 무조건 우선하도록 강제함 (100% 해결)
+  ========================================================================
+*/
+html body .notion-app .ga_overlay_u4b .ga_propName_m7a, html body .notion-app .ga_overlay_u4b .ga_propName_m7a * { font-size: var(--ga-lbl-size) !important; font-weight: var(--ga-lbl-weight) !important; color: var(--ga-lbl-color, #ffffff) !important; }
+
+html body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblHide_s8c > .ga_propName_m7a { display: none !important; }
+html body .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblHide_s8c { column-gap: 0 !important; }
+
+@media screen and (min-width: 1025px) { 
+  html[data-ga-width-scope][data-ga-display] body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblHidePc_q1r > .ga_propName_m7a { display: none !important; } 
+}
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  html[data-ga-width-scope][data-ga-display] body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblHideTab_m5k > .ga_propName_m7a { display: none !important; }
+  html[data-ga-width-scope][data-ga-display] body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_hideTab_v9m { display: none !important; }
+}
+@media screen and (max-width: 768px) {
+  html[data-ga-width-scope][data-ga-display] body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblHideMob_t7j > .ga_propName_m7a { display: none !important; }
+  html[data-ga-width-scope][data-ga-display] body .notion-app .ga_overlay_u4b .css-1n1men8 > div.ga_inlineRow_b5f.ga_hideMob_z3l { display: none !important; }
+}
+
+/* ------------------------------------------------------------------------
+   1. 사이드형 갤러리 그리드
+   - PC/태블릿: 사이드형 전용 열 수
+   - 모바일: 1열 고정
+   - ga_sideGalleryGrid_s1p는 엔진 JS가 실제 그리드 요소에 부여하는 클래스
+   ------------------------------------------------------------------------ */
+.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p {
+  grid-template-columns: repeat(var(--ga-side-cols-pc, 2), minmax(0, 1fr)) !important;
+  gap: var(--ga-side-grid-gap, 16px) !important;
+}
+
+@media screen and (max-width: 1024px) {
+  .ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p {
+    grid-template-columns: repeat(var(--ga-side-cols-tab, 2), minmax(0, 1fr)) !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p.ga_sideGalleryGrid_s1p {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* 카드 바깥 래퍼: 커버형의 썸네일 비율/모서리 설정 누수 차단 */
+.notion-collection_view-block[data-ga-design="side"] .notion-collection-item > :first-child {
+  aspect-ratio: auto !important;
+  height: auto !important;
+  border-radius: var(--ga-side-card-radius, 10px) !important;
+  overflow: hidden !important;
+}
+
+/* ------------------------------------------------------------------------
+   2. 사이드형 카드 본문과 썸네일
+   - 썸네일은 절대 위치
+   - 카드 본문은 썸네일 반대편 공간을 확보
+   - 모든 카드 여백은 --ga-side-card-padding만 사용
+   ------------------------------------------------------------------------ */
+.ga_cardCore_k3z[data-ga-design="side"] {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background-image: none !important;
+  padding: var(--ga-side-card-padding, 20px) !important;
+}
+
+.ga_cardCore_k3z[data-ga-design="side"] > div:first-child:not(.css-0):not(.css-1n1men8) {
+  display: block !important;
+  overflow: hidden !important;
+  border-radius: var(--ga-side-card-radius, 10px) !important;
+}
+
+.ga_cardCore_k3z[data-ga-design="side"] > div:first-child:not(.css-0):not(.css-1n1men8) img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: var(--ga-side-thumb-position, top) !important;
+  border-radius: inherit !important;
+}
+
+html[data-ga-side-content-valign="center"] .ga_cardCore_k3z[data-ga-design="side"] {
+  justify-content: center !important;
+}
+
+/* 우측 배치 (기본) */
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right {
+  padding-right: calc(
+    var(--ga-side-thumb-size, 120px)
+    + var(--ga-side-item-gap, 8px)
+    + var(--ga-side-card-padding, 20px)
+  ) !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right > div:first-child:not(.css-0):not(.css-1n1men8) {
+  position: absolute !important;
+  z-index: 1 !important;
+  top: var(--ga-side-card-padding, 20px) !important;
+  right: var(--ga-side-card-padding, 20px) !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+html[data-ga-side-thumb-mode="fixed"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right > div:first-child:not(.css-0):not(.css-1n1men8) {
+  width: var(--ga-side-thumb-size, 120px) !important;
+  aspect-ratio: var(--ga-side-thumb-ratio, 1 / 1) !important;
+  max-height: calc(100% - (var(--ga-side-card-padding, 20px) * 2)) !important;
+}
+html[data-ga-side-thumb-mode="auto"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right > div:first-child:not(.css-0):not(.css-1n1men8),
+html:not([data-ga-side-thumb-mode]) .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right > div:first-child:not(.css-0):not(.css-1n1men8) {
+  bottom: var(--ga-side-card-padding, 20px) !important;
+  top: auto !important;
+  height: auto !important;
+  width: fit-content !important;
+  max-width: var(--ga-side-thumb-size, 120px) !important;
+}
+html[data-ga-side-thumb-mode="auto"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right > div:first-child:not(.css-0):not(.css-1n1men8) img,
+html:not([data-ga-side-thumb-mode]) .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_right > div:first-child:not(.css-0):not(.css-1n1men8) img {
+  object-fit: contain !important;
+}
+
+/* 좌측 배치 */
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left {
+  padding-left: calc(
+    var(--ga-side-thumb-size, 120px)
+    + var(--ga-side-item-gap, 8px)
+    + var(--ga-side-card-padding, 20px)
+  ) !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left > div:first-child:not(.css-0):not(.css-1n1men8) {
+  position: absolute !important;
+  z-index: 1 !important;
+  top: var(--ga-side-card-padding, 20px) !important;
+  left: var(--ga-side-card-padding, 20px) !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+html[data-ga-side-thumb-mode="fixed"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left > div:first-child:not(.css-0):not(.css-1n1men8) {
+  width: var(--ga-side-thumb-size, 120px) !important;
+  aspect-ratio: var(--ga-side-thumb-ratio, 1 / 1) !important;
+  max-height: calc(100% - (var(--ga-side-card-padding, 20px) * 2)) !important;
+}
+html[data-ga-side-thumb-mode="auto"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left > div:first-child:not(.css-0):not(.css-1n1men8),
+html:not([data-ga-side-thumb-mode]) .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left > div:first-child:not(.css-0):not(.css-1n1men8) {
+  bottom: var(--ga-side-card-padding, 20px) !important;
+  top: auto !important;
+  height: auto !important;
+  width: fit-content !important;
+  max-width: var(--ga-side-thumb-size, 120px) !important;
+}
+html[data-ga-side-thumb-mode="auto"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left > div:first-child:not(.css-0):not(.css-1n1men8) img,
+html:not([data-ga-side-thumb-mode]) .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_left > div:first-child:not(.css-0):not(.css-1n1men8) img {
+  object-fit: contain !important;
+}
+
+/* 상단 배치 (태블릿·모바일 전용) */
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top,
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_bottom {
+  padding-left: var(--ga-side-card-padding, 20px) !important;
+  padding-right: var(--ga-side-card-padding, 20px) !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > div:first-child:not(.css-0):not(.css-1n1men8),
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_bottom > div:first-child:not(.css-0):not(.css-1n1men8) {
+  position: static !important;
+  height: auto !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > div:first-child:not(.css-0):not(.css-1n1men8),
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_bottom > div:first-child:not(.css-0):not(.css-1n1men8) {
+  width: auto !important;
+  max-width: 100% !important;
+  aspect-ratio: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > div:first-child:not(.css-0):not(.css-1n1men8) img,
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_bottom > div:first-child:not(.css-0):not(.css-1n1men8) img {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > div:first-child:not(.css-0):not(.css-1n1men8) {
+  order: -1 !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_bottom > div:first-child:not(.css-0):not(.css-1n1men8) {
+  order: 999 !important;
+  margin-top: var(--ga-side-item-gap, 8px) !important;
+  margin-bottom: 0 !important;
+}
+
+/* 썸네일 숨김 */
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_hidden > div:first-child:not(.css-0):not(.css-1n1men8) {
+  display: none !important;
+}
+
+/* top 전용: 원본 노션 레이어와 독립된 일반 흐름 썸네일 */
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > .ga_flowThumb_t7m {
+  display: block !important;
+  order: -10 !important;
+  width: 100% !important;
+  margin: 0 0 16px 0 !important;
+  overflow: hidden !important;
+  border-radius: var(--ga-side-card-radius, 10px) !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > .ga_flowThumb_t7m img {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+  border-radius: inherit !important;
+}
+.ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > div:first-child:not(.css-0):not(.css-1n1men8):not(.ga_flowThumb_t7m) {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------------
+   3. 제목·속성 컨테이너
+   ------------------------------------------------------------------------ */
+/* 사이드형 콘텐츠 래퍼: 제목+속성을 하나의 그룹으로 묕어 order 기반 정렬이 가능하게 함 */
+.ga_cardCore_k3z[data-ga-design="side"] > .ga_sideContentWrap_x9k {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-content: flex-start !important;
+  justify-content: var(--ga-side-h-align, flex-start) !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ga_sideContentWrap_x9k > div.css-0 {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 0 var(--ga-side-item-gap, 8px) 0 !important;
+  padding: 0 !important;
+  color: var(--ga-side-title-color, #0f0f0f) !important;
+  text-align: var(--ga-side-t-align, left) !important;
+}
+
+.ga_sideContentWrap_x9k > div.css-0 * {
+  color: var(--ga-side-title-color, #0f0f0f) !important;
+  text-align: var(--ga-side-t-align, left) !important;
+  line-height: var(--ga-side-line-height, 1.4) !important;
+}
+
+html[data-ga-side-use-title="1"] .ga_sideContentWrap_x9k > div.css-0,
+html[data-ga-side-use-title="1"] .ga_sideContentWrap_x9k > div.css-0 * {
+  font-size: var(--ga-side-title-size, 1.2em) !important;
+  font-weight: var(--ga-side-title-weight, 700) !important;
+}
+
+/* 속성 컨테이너를 해체하여 속성 행들이 래퍼의 직접 자식으로서 제목과 order를 공유하게 함 */
+.ga_sideContentWrap_x9k > .css-1n1men8 {
+  display: contents !important;
+}
+
+/* ------------------------------------------------------------------------
+   4. 일반 속성 행 / 라벨 / 속성값
+   ------------------------------------------------------------------------ */
+.ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  column-gap: var(--ga-side-lbl-space, 8px) !important;
+}
+/* 값이 커져도 카드 영역을 넘지 않고 단어 기준 줄바꿈 */
+.ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f > :not(.ga_propName_m7a) {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  color: var(--ga-side-prop-color, #0f0f0f) !important;
+  text-align: var(--ga-side-t-align, left) !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  line-height: var(--ga-side-line-height, 1.4) !important;
+}
+
+/* [v2.1.0] 사이드형: 칩 서식은 선택·다중선택 속성에만, 나머지는 --ga-side-plain-size/weight. 값 컨테이너에만 지정하고 자손은 상속한다 */
+html[data-ga-side-use-prop="1"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_selFam_r8j > :not(.ga_propName_m7a) { font-size: var(--ga-side-prop-size, 1.05em) !important; font-weight: var(--ga-side-prop-weight, 400) !important; }
+html[data-ga-side-use-prop="1"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_selFam_r8j > :not(.ga_propName_m7a) * { font-size: inherit !important; font-weight: inherit !important; }
+html[data-ga-side-use-prop="1"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f:not(.ga_selFam_r8j) > :not(.ga_propName_m7a) { font-size: var(--ga-side-plain-size, 1.05em) !important; font-weight: var(--ga-side-plain-weight, 400) !important; }
+html[data-ga-side-use-prop="1"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f:not(.ga_selFam_r8j) > :not(.ga_propName_m7a) * { font-size: inherit !important; font-weight: inherit !important; }
+
+.ga_cardCore_k3z[data-ga-design="side"] .ga_propName_m7a,
+.ga_cardCore_k3z[data-ga-design="side"] .ga_propName_m7a * {
+  flex-shrink: 0 !important;
+  align-self: flex-start !important;
+  color: var(--ga-side-lbl-color, #ffffff) !important;
+  font-size: var(--ga-side-lbl-size, 1.05em) !important;
+  font-weight: var(--ga-side-lbl-weight, 700) !important;
+  line-height: var(--ga-side-line-height, 1.4) !important;
+  white-space: nowrap !important;
+}
+
+html[data-ga-side-show-label="0"] .ga_cardCore_k3z[data-ga-design="side"] .ga_propName_m7a {
+  display: none !important;
+}
+
+/* 라벨이 값 위에 놓이는 엔진 클래스 */
+.ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblTop_w4n {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  row-gap: var(--ga-side-lbl-space, 4px) !important;
+}
+
+.ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f.ga_lblTop_w4n > :not(.ga_propName_m7a) {
+  width: 100% !important;
+  flex: 1 1 auto !important;
+}
+
+/* 라벨 정렬 */
+html[data-ga-side-lbl-align="left"] .ga_cardCore_k3z[data-ga-design="side"] .ga_propName_m7a { text-align: left !important; justify-content: flex-start !important; }
+html[data-ga-side-lbl-align="center"] .ga_cardCore_k3z[data-ga-design="side"] .ga_propName_m7a { text-align: center !important; justify-content: center !important; }
+html[data-ga-side-lbl-align="right"] .ga_cardCore_k3z[data-ga-design="side"] .ga_propName_m7a { text-align: right !important; justify-content: flex-end !important; }
+
+/* 속성값 정렬 */
+html[data-ga-side-val-align="left"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f > :not(.ga_propName_m7a) { text-align: left !important; justify-content: flex-start !important; }
+html[data-ga-side-val-align="center"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f > :not(.ga_propName_m7a) { text-align: center !important; justify-content: center !important; }
+html[data-ga-side-val-align="right"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_inlineRow_b5f > :not(.ga_propName_m7a) { text-align: right !important; justify-content: flex-end !important; }
+
+/* ------------------------------------------------------------------------
+   5. 선택/멀티선택 칩
+   ------------------------------------------------------------------------ */
+.ga_cardCore_k3z[data-ga-design="side"] .ga_selFam_r8j { max-width: 100% !important; }
+
+.ga_cardCore_k3z[data-ga-design="side"] .ga_chipLeaf_n1e {
+  display: inline-flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex-shrink: 1 !important;
+
+  padding:
+    var(--ga-side-chip-pad-y, 0px)
+    var(--ga-side-chip-pad-x, 6px) !important;
+
+  overflow: visible !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  text-overflow: initial !important;
+}
+
+.ga_cardCore_k3z[data-ga-design="side"] .ga_chipLeaf_n1e * {
+  max-width: 100% !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  text-overflow: initial !important;
+}
+
+.ga_cardCore_k3z[data-ga-design="side"] .ga_chipSel_j3k,
+.ga_cardCore_k3z[data-ga-design="side"] .ga_chipRel_t9p {
+  border-radius: var(--ga-side-chip-radius, 0px) !important;
+  height: var(--ga-side-chip-height, 20px) !important;
+}
+
+html[data-ga-side-color-mode="1"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipSel_j3k {
+  background: color-mix(
+    in srgb,
+    var(--ga-side-prop-custom-bg, #2f48a1)
+    calc(var(--ga-side-prop-custom-bg-op, 0.9) * 100%),
+    transparent
+  ) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--ga-side-prop-custom-bg, #2f48a1)
+    calc(var(--ga-side-prop-custom-bg-op, 0.9) * 100%),
+    transparent
+  ) !important;
+}
+
+html[data-ga-side-color-mode="1"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipSel_j3k,
+html[data-ga-side-color-mode="1"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipSel_j3k * {
+  color: var(--ga-side-prop-color, #0f0f0f) !important;
+}
+
+html[data-ga-side-color-mode="0"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipSel_j3k {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ------------------------------------------------------------------------
+   6. URL / 관계형 / 프로필
+   ------------------------------------------------------------------------ */
+.ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_urlFam_d4q a,
+.ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_urlFam_d4q a * {
+  color: var(--ga-side-url-color, #ffffff) !important;
+  text-decoration: var(--ga-side-url-underline, none) !important;
+}
+
+html[data-ga-side-url-mode="2"] .ga_cardCore_k3z[data-ga-design="side"] .css-1n1men8 > div.ga_urlFam_d4q {
+  background: color-mix(
+    in srgb,
+    var(--ga-side-url-custom-bg, #660223)
+    calc(var(--ga-side-url-custom-bg-op, 0) * 100%),
+    transparent
+  ) !important;
+}
+
+
+
+
+
+html[data-ga-side-profile-img="none"] .ga_cardCore_k3z[data-ga-design="side"] .ga_avatar_y2b {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------------
+   7. BEST 태그
+   ------------------------------------------------------------------------ */
+.ga_cardCore_k3z[data-ga-design="side"] .ga_oppTag_l2x {
+  top: var(--ga-side-card-padding, 20px) !important;
+  right: var(--ga-side-card-padding, 20px) !important;
+  left: auto !important;
+  max-width: calc(100% - (var(--ga-side-card-padding, 20px) * 2)) !important;
+}
+
+html[data-ga-side-best-shape="1"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipBest_h6w {
+  height: var(--ga-side-chip-height, 20px) !important;
+  padding: var(--ga-side-chip-pad-y, 0px) var(--ga-side-chip-pad-x, 6px) !important;
+  border-radius: var(--ga-side-chip-radius, 0px) !important;
+  background: color-mix(
+    in srgb,
+    var(--ga-side-best-bg, #2b4cdb)
+    calc(var(--ga-side-best-bg-op, 1) * 100%),
+    transparent
+  ) !important;
+  color: var(--ga-side-best-color, #ffffff) !important;
+}
+
+html[data-ga-side-best-shape="0"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipBest_h6w {
+  height: var(--ga-side-best-height, auto) !important;
+  padding: var(--ga-side-best-pad-y, 4px) var(--ga-side-best-pad-x, 10px) !important;
+  border-radius: var(--ga-side-best-radius, 4px) !important;
+  background: color-mix(
+    in srgb,
+    var(--ga-side-best-bg, #2b4cdb)
+    calc(var(--ga-side-best-bg-op, 1) * 100%),
+    transparent
+  ) !important;
+  color: var(--ga-side-best-color, #ffffff) !important;
+}
+
+html[data-ga-side-best-shape="0"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipBest_h6w,
+html[data-ga-side-best-shape="0"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipBest_h6w * {
+  font-size: var(--ga-side-best-size, 1.05em) !important;
+  font-weight: var(--ga-side-best-weight, 700) !important;
+}
+
+html[data-ga-side-best-shape="2"] .ga_cardCore_k3z[data-ga-design="side"] .ga_chipBest_h6w {
+  height: var(--ga-side-chip-height, 20px) !important;
+  padding: var(--ga-side-chip-pad-y, 0px) var(--ga-side-chip-pad-x, 6px) !important;
+  border-radius: var(--ga-side-chip-radius, 0px) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* [v2.1.1] 사이드형 상·하 배치 이미지 폭(--ga-side-thumb-top-fit): boxed이면 --ga-side-thumb-size 폭까지만 키우고 가운데에 둔다. full(기본)은 카드 안쪽 전체 폭.
+   위쪽 배치의 이미지(.ga_flowThumb_t7m)는 첫 번째 자식 div 규칙(width:auto, margin 0)보다 우선하도록 클래스를 겹쳐 쓴다. */
+html[data-ga-side-thumb-top-fit="boxed"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_top > .ga_flowThumb_t7m.ga_flowThumb_t7m,
+html[data-ga-side-thumb-top-fit="boxed"] .ga_cardCore_k3z[data-ga-design="side"].ga_thumbPos_bottom > div:first-child:not(.css-0):not(.css-1n1men8) {
+  width: var(--ga-side-thumb-size, 120px) !important;
+  max-width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
