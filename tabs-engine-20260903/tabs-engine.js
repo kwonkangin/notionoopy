@@ -208,7 +208,8 @@
     if (previous) previous.style.setProperty('margin-bottom', '0px');
 
     inst.panel.querySelectorAll('.notion-callout-block').forEach(callout => {
-  if (ccBox && ccBox.getAttribute('data-card-engine-box') === 'true') return;   // ← 콜카드가 실제로 처리한 콜아웃은 여기서 건너뜀
+  const ccBox = callout.firstElementChild?.firstElementChild;
+  if (ccBox && ccBox.getAttribute('data-card-engine-box') === 'true') return;
 
   setStyle(callout, {
     display: css('calloutDisplay', 'block'),
@@ -225,7 +226,7 @@
     padding: css('calloutPad', '22px'),
     'box-sizing': 'border-box'
   });
-
+  
   callout.querySelectorAll('.notion-sub_sub_header-block, .notion-sub_sub_header-block h4').forEach(title => {
     setStyle(title, {
       'font-family': css('calloutTitleFamily', 'inherit'),
