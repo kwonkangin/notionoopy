@@ -208,7 +208,7 @@
     if (previous) previous.style.setProperty('margin-bottom', '0px');
 
     inst.panel.querySelectorAll('.notion-callout-block').forEach(callout => {
-  if (callout.dataset.ceOwner === 'card') return;   // ← 추가된 줄: 콜카드가 이미 처리한 콜아웃은 건너뜀
+  if (ccBox && ccBox.getAttribute('data-card-engine-box') === 'true') return;   // ← 콜카드가 실제로 처리한 콜아웃은 여기서 건너뜀
 
   setStyle(callout, {
     display: css('calloutDisplay', 'block'),
