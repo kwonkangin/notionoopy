@@ -208,8 +208,7 @@
     if (previous) previous.style.setProperty('margin-bottom', '0px');
 
     inst.panel.querySelectorAll('.notion-callout-block').forEach(callout => {
-  const ccBox = callout.firstElementChild?.firstElementChild;
-  if (ccBox && ccBox.getAttribute('data-card-engine-box') === 'true') return;
+  if (callout.querySelector('[data-card-engine-box="true"]')) return;
 
   setStyle(callout, {
     display: css('calloutDisplay', 'block'),
@@ -226,7 +225,7 @@
     padding: css('calloutPad', '22px'),
     'box-sizing': 'border-box'
   });
-  
+
   callout.querySelectorAll('.notion-sub_sub_header-block, .notion-sub_sub_header-block h4').forEach(title => {
     setStyle(title, {
       'font-family': css('calloutTitleFamily', 'inherit'),
