@@ -1,0 +1,40 @@
+<script>
+window.GA_USER={
+  "v":{
+    "--grid-cols-tab":"2",
+    "--grid-cols-mob":"1",
+    "--ga-grid-gap-row":"24px",
+    "--ga-grid-gap-col":"24px",
+    "--ga-card-border-color":"rgba(222, 222, 222, 0.5)",
+    "--ga-card-border-width":"1.5px",
+    "--ga-card-radius-tl":"20px",
+    "--ga-card-radius-tr":"20px",
+    "--ga-card-radius-br":"20px",
+    "--ga-card-radius-bl":"20px",
+    "--ga-card-shadow":"0px 2px 8px 0px rgba(0, 0, 0, 0.08)",
+    "--ga-thumb-radius-tl":"0px",
+    "--ga-thumb-radius-tr":"0px",
+    "--ga-thumb-radius-br":"0px",
+    "--ga-thumb-radius-bl":"0px",
+    "--ga-pad-t":"20px",
+    "--ga-pad-r":"20px",
+    "--ga-pad-b":"20px",
+    "--ga-pad-l":"20px",
+    "--ga-use-notion-color-select":"0",
+    "--ga-select-bg-custom":"#f3f4f6",
+    "--ga-select-color-custom":"#364153",
+    "--ga-select-pill-size":"16px",
+    "--ga-select-radius":"30px",
+    "--ga-body-gap":"13px",
+    "--ga-gap-desc":"4px",
+    "--ga-stack-gap":"8px",
+    "--ga-hover-bg":"0",
+    "--ga-hover-shadow":"0",
+    "--ga-hover-lift-on":"0"
+  },
+  "tagMode":"none",
+  "dateFormat":"dot",
+  "metaLayout":"stack",
+  "dateCompact":"0"
+};
+</script>
