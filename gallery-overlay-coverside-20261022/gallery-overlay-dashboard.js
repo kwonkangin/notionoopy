@@ -10,8 +10,12 @@
 
 
 /* ======================================================================
- * gallery-overlay-dashboard.js — v1.0.1
- * 의존성: GalleryOverlayEngine 2.0.0 이상 (2.1.0 권장) / dashboard API 1.0.0
+ * gallery-overlay-dashboard.js — v1.2.0
+ * 의존성: GalleryOverlayEngine 2.0.0 이상 (2.3.0 권장) / dashboard API 1.0.0
+ * [1.2.0] 엔진 2.3.0 대응: 제목·텍스트 속성·속성별(번호=줄수) 줄 수 제한(PC/태블릿/모바일), 같은 줄 카드 높이 맞춤 항목 추가.
+ * [1.1.0] 엔진 2.2.0 대응: 설정 코드 출력이 엔진 기본값 표와 다른 값만 내보냄(전체 출력 스위치는 그대로),
+ *         출력 글자 수 표시, 스택형(design:"stack") 선택·설정 그룹, 썸네일 가득 채우기·위/아래 비율·최대 높이,
+ *         모바일/태블릿 기준 폭, 최대 높이 none 입력.
  * [1.0.1] 엔진 2.1.0 대응: relation-color·plain-size·plain-weight 이름표와 '일반 속성 서식' 섹션 추가,
  *         선택지는 엔진이 주는 한글 이름표(labels)를 우선 사용, 칩 높이 자동(auto) 지원(입력·가져오기),
  *         엔진 버전 확인(2.0.0 미만 중단 / 2.1.0 미만 경고), 일부 깨진 글자(サイト, 変更内容) 수정
@@ -36,11 +40,11 @@ const required=['schema','forceSync'];
 if(!A||required.some(k=>typeof A[k]!=='function')||!A.common||!A.galleries||!A.properties){console.error('[gallery dashboard] GalleryOverlayEngine 2.0.0 이상의 dashboard API가 필요합니다.');return;}
 const ev=String((E&&E.VERSION)||'0').split('.').map(n=>parseInt(n,10)||0),evNum=ev[0]*10000+(ev[1]||0)*100+(ev[2]||0);
 if(evNum<20000){console.error('[gallery dashboard] 엔진 '+(E&&E.VERSION)+'은(는) 지원하지 않습니다. 2.0.0 이상이 필요합니다.');return;}
-const engineWarn=evNum<20100?'엔진 '+E.VERSION+': 칩 서식 분리·관계형 글자색·일반 속성 서식 항목이 없고 일부 문제가 있습니다. 2.1.0 이상으로 교체하세요.':'';
+const engineWarn=evNum<20100?'엔진 '+E.VERSION+': 칩 서식 분리·관계형 글자색·일반 속성 서식 항목이 없고 일부 문제가 있습니다. 2.1.0 이상으로 교체하세요.':(evNum<20300?'엔진 '+E.VERSION+': 스택형·썸네일 가득 채우기·줄 수 제한·기본값 기준 출력이 없습니다. 2.3.0 이상으로 교체하세요.':'');
 const old=W.__galleryOverlayDash;if(old&&old.destroy)old.destroy();
 const P=W.open('','GalleryOverlayDashboard','width=690,height=980,resizable=yes,scrollbars=yes');
 if(!P){console.error('[gallery dashboard] 팝업 차단을 해제한 뒤 다시 실행하세요.');return;}
-const PD=P.document;PD.open();PD.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>Gallery Dashboard v1.0.1</title></head><body></body></html>');PD.close();
+const PD=P.document;PD.open();PD.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>Gallery Dashboard v1.2.0</title></head><body></body></html>');PD.close();
 PD.documentElement.style.cssText=PD.body.style.cssText='width:100%;height:100%;margin:0;overflow:hidden';
 const host=PD.createElement('div');host.style.cssText='width:100%;height:100%';PD.body.appendChild(host);const R=host.attachShadow({mode:'open'});
 const clone=x=>JSON.parse(JSON.stringify(x)),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b),has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
@@ -96,9 +100,9 @@ function restoreScope(){change(()=>{if(mode==='common'){model.edits={};applyComm
 function effective(f,axis){const ed=model.edits[f.key];if(ed!==undefined){if(typeof ed!=='object')return String(ed);if(has(ed,axis))return String(ed[axis]);}return String((baseValues[f.key]||{})[axis]||f.def||'').replace(/^"|"$/g,'');}
 function fieldPatch(f,axis,v){change(()=>{if(axis==='both')model.edits[f.key]=v;else{const prev=model.edits[f.key];if(typeof prev!=='object'||prev===null){model.edits[f.key]={};if(prev!==undefined){if(f.cover)model.edits[f.key].cover=prev;if(f.side)model.edits[f.key].side=prev;}}model.edits[f.key][axis]=v;}A.common.apply({[f.key]:model.edits[f.key]});});}
 const AUTO_KEYS=['chip-height'];
-function valid(f,v){if(v==='auto'&&AUTO_KEYS.includes(f.key))return true;if(/[;{}<>\u0000]/.test(v))return false;if(v==='')return ['len','weight','color','text'].includes(f.type);if(f.type==='select')return f.options.includes(v);if(f.type==='list')return /^(?:\d+|title)(?:\s+(?:\d+|title))*$/.test(v);if(f.type==='ratio')return /^\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?$/.test(v)&&v.split('/').every(n=>+n>0);if(['int','num','weight'].includes(f.type))return /^-?\d+(?:\.\d+)?$/.test(v)&&(f.type!=='int'||Number.isInteger(+v))&&(f.type!=='weight'||(+v>=100&&+v<=900));if(['px','em','pct','len'].includes(f.type))return /^-?\d+(?:\.\d+)?(?:px|em|rem|%|vw|vh)$/.test(v);if(['color','hex'].includes(f.type))return W.CSS.supports('color',v);return true;}
-const GROUPS={shadow:'그림자',layout:'그리드 / 카드 레이아웃',label:'라벨 / 속성 노출',place:'속성 배치 / 텍스트 영역',thumb:'썸네일',dim:'배경 딤',chip:'칩 서식 (선택·다중선택 속성)',plain:'일반 속성 서식 (텍스트·날짜 등)',title:'제목',url:'URL',relation:'관계형',profile:'프로필 사진',best:'BEST 태그',date:'날짜 · 시간 · 요일'};
-const LABELS={
+function valid(f,v){if(v==='auto'&&AUTO_KEYS.includes(f.key))return true;if(v==='none'&&f.allowNone)return true;if(/[;{}<>\u0000]/.test(v))return false;if(f.type==='lines')return v===''||(/^\d+$/.test(v)&&+v<=10);if(/prop-lines/.test(f.key))return v===''||/^\d+\s*=\s*\d+(?:\s+\d+\s*=\s*\d+)*$/.test(v);if(v==='')return ['len','weight','color','text'].includes(f.type);if(f.type==='select')return f.options.includes(v);if(f.type==='list')return /^(?:\d+|title)(?:\s+(?:\d+|title))*$/.test(v);if(f.type==='ratio')return /^\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?$/.test(v)&&v.split('/').every(n=>+n>0);if(['int','num','weight'].includes(f.type))return /^-?\d+(?:\.\d+)?$/.test(v)&&(f.type!=='int'||Number.isInteger(+v))&&(f.type!=='weight'||(+v>=100&&+v<=900));if(['px','em','pct','len'].includes(f.type))return /^-?\d+(?:\.\d+)?(?:px|em|rem|%|vw|vh)$/.test(v);if(['color','hex'].includes(f.type))return W.CSS.supports('color',v);return true;}
+const GROUPS={shadow:'그림자',layout:'그리드 / 카드 레이아웃',label:'라벨 / 속성 노출',place:'속성 배치 / 텍스트 영역',lines:'줄 수 제한 (말줄임표)',thumb:'썸네일',stack:'스택형 (design: "stack")',dim:'배경 딤',chip:'칩 서식 (선택·다중선택 속성)',plain:'일반 속성 서식 (텍스트·날짜 등)',title:'제목',url:'URL',relation:'관계형',profile:'프로필 사진',best:'BEST 태그',date:'날짜 · 시간 · 요일'};
+const LABELS={'thumb-top-ratio':'위·아래 배치 썸네일 비율','thumb-top-max-height':'위·아래 배치 썸네일 최대 높이','thumb-bleed':'썸네일 가득 채우기 (PC)','thumb-bleed-tab':'썸네일 가득 채우기 (태블릿)','thumb-bleed-mob':'썸네일 가득 채우기 (모바일)','bp-mob':'모바일 기준 폭 (이하)','bp-tab':'태블릿 기준 폭 (이하)','stack-cols-pc':'스택형 PC 열 수','stack-cols-tab':'스택형 태블릿 열 수','stack-thumb-ratio':'스택형 썸네일 비율','stack-thumb-position':'스택형 썸네일 크롭 위치','stack-thumb-radius':'스택형 썸네일 모서리 (여백 안쪽일 때)','stack-thumb-bleed':'스택형 가득 채우기 (PC)','stack-thumb-bleed-tab':'스택형 가득 채우기 (태블릿)','stack-thumb-bleed-mob':'스택형 가득 채우기 (모바일)','stack-empty-thumb':'스택형 이미지 없는 카드','title-lines':'제목 최대 줄 수 (PC)','title-lines-tab':'제목 최대 줄 수 (태블릿)','title-lines-mob':'제목 최대 줄 수 (모바일)','text-lines':'텍스트 속성 최대 줄 수 (PC)','text-lines-tab':'텍스트 속성 최대 줄 수 (태블릿)','text-lines-mob':'텍스트 속성 최대 줄 수 (모바일)','prop-lines':'속성별 줄 수 (PC)','prop-lines-tab':'속성별 줄 수 (태블릿)','prop-lines-mob':'속성별 줄 수 (모바일)','row-equal':'같은 줄 카드 높이',
 'shadow-toggle':'그림자 켜기','shadow-x':'그림자 가로 위치','shadow-y':'그림자 세로 위치','shadow-blur':'그림자 흐림','shadow-spread':'그림자 확장','shadow-color':'그림자 색상',
 'cols-pc':'PC 열 수','cols-tab':'태블릿 열 수','cols-mob':'모바일 열 수','card-radius':'카드 모서리 둥글기','card-padding':'카드 내부 여백','grid-gap':'카드 사이 간격','item-gap':'속성 줄 간격','group-gap':'속성 그룹 좌우 간격','line-height':'줄 간격 비율','h-align':'구역 가로 정렬','lbl-align':'라벨 정렬','val-align':'속성값 정렬','t-align':'일반 텍스트 정렬','ratio':'커버형 카드 비율',
 'show-label':'라벨 전체 노출','label-hide-pc':'PC 라벨 숨김 번호','label-hide-tab':'태블릿 라벨 숨김 번호','label-hide-mob':'모바일 라벨 숨김 번호','label-top-props':'라벨을 위에 놓을 번호','hide-props-tab':'태블릿 속성 숨김 번호','hide-props-mob':'모바일 속성 숨김 번호','next-tag-num':'BEST 고정 속성 번호','lbl-size':'라벨 글자 크기','lbl-weight':'라벨 글자 굵기','lbl-color':'라벨 글자색','lbl-space':'라벨과 값 사이 간격',
@@ -111,6 +115,23 @@ const LABELS={
 'date-format':'날짜 형식','date-custom':'날짜 직접 입력 패턴','date-weekday':'요일 표기','date-time':'시간 표기','date-range-sep':'기간 구분 기호','date-size':'날짜 글자 크기','date-weight':'날짜 글자 굵기','date-color':'날짜 글자색',
 'relation-color':'관계형 글자색','plain-size':'일반 속성 글자 크기','plain-weight':'일반 속성 글자 굵기'};
 const NOTES={
+ 'thumb-top-ratio':'위·아래 배치에서 썸네일 가로세로비를 고정하고 사진은 잘라서 채웁니다. 스택형은 아래 스택형 비율을 씁니다.',
+ 'thumb-top-max-height':'위·아래 배치 썸네일의 최대 높이입니다. 넓은 화면에서 썸네일이 너무 커지는 것을 막습니다. none 이면 제한 없음.',
+ 'thumb-bleed':'1이면 썸네일이 카드 테두리까지 가득 찹니다(좌·우 배치는 위·아래·바깥쪽, 위·아래 배치는 위·좌·우). 폭별로 따로 정합니다.',
+ 'bp-mob':'이 폭 이하이면 모바일 구간입니다. 아이패드 미니 세로(744px)를 태블릿으로 두려면 600~700px.',
+ 'bp-tab':'이 폭 이하(모바일 초과)이면 태블릿 구간, 초과하면 PC 구간입니다.',
+ 'stack-cols-pc':'스택형의 PC 열 수. 모바일은 1열 고정입니다.',
+ 'stack-empty-thumb':'keep: 같은 비율의 빈 박스를 둡니다 / collapse: 이미지 자리를 접습니다.',
+ 'title-lines':'제목을 몇 줄까지 보일지 정합니다. 넘치는 부분은 …로 줄입니다. 0 이면 제한 없음. 잘린 글은 마우스를 올리면 전체 글이 툴팁으로 보입니다(PC).',
+ 'title-lines-tab':'비워 두면 PC 값을 따릅니다.',
+ 'title-lines-mob':'비워 두면 태블릿 값(태블릿도 비면 PC 값)을 따릅니다.',
+ 'text-lines':'텍스트 속성 전체의 최대 줄 수. 선택·다중선택(칩), 날짜, 관계형, URL 에는 적용되지 않습니다. 관계형·URL 은 아래 속성별 줄 수로 지정하세요. 0 이면 제한 없음.',
+ 'text-lines-tab':'비워 두면 PC 값을 따릅니다.',
+ 'text-lines-mob':'비워 두면 태블릿 값(태블릿도 비면 PC 값)을 따릅니다.',
+ 'prop-lines':'속성 번호=줄수 를 공백으로 나열합니다. 예: 2=1 5=3 (2번 속성 1줄, 5번 속성 3줄). 텍스트 줄 수보다 우선하며 텍스트·날짜·관계형·URL 속성에 쓸 수 있습니다. 2=0 은 그 속성만 제한 없음.',
+ 'prop-lines-tab':'태블릿에서 바꿀 속성만 적습니다. 적지 않은 번호는 PC 값을 따릅니다.',
+ 'prop-lines-mob':'모바일에서 바꿀 속성만 적습니다. 적지 않은 번호는 태블릿(없으면 PC) 값을 따릅니다.',
+ 'row-equal':'사이드형·스택형에서 같은 줄에 놓인 카드의 높이를 가장 큰 카드에 맞춥니다.',
  'thumb-mode':'auto: 원본 비율 / fixed: 폭·비율 고정 / fill: 좌·우 배치에서 카드 높이를 채움. max-height 제한 없음.',
  'thumb-ratio':'fixed에서는 비율 고정, fill에서는 최소 카드 높이를 정하는 기준입니다. top/bottom은 별도 흐름입니다.',
  'empty-thumb':'keep: 이미지 자리를 비워 둠 / collapse: 이미지가 없으면 자리를 접고 텍스트를 전체 폭으로.',
@@ -132,13 +153,13 @@ const NOTES={
  'relation-color':'관계형 칩의 글자색입니다. 비우면 기본 흰색입니다.'};
 const OPTION_LABEL={fill:'fill · 카드 높이 채움',auto:'auto · 원본 비율',fixed:'fixed · 비율 고정',keep:'keep · 빈 자리 유지',collapse:'collapse · 빈 자리 접기',NONE:'없음',SHORT_PAREN:'(월)',SHORT:'월 / 짧은 날짜',LONG:'월요일',AUTO:'원본 유지',HIDE:'시간 숨김','24H':'24시간 (20:00)','12H':'12시간 (오후 8:00)',ARROW:'→',TILDE:'~',DASH:'- / –',CUSTOM:'직접 입력',block:'표시',none:'숨김','flex-start':'왼쪽',center:'가운데','flex-end':'오른쪽',left:'왼쪽',right:'오른쪽',top:'위',bottom:'아래'};
 const entries=[];
-function ranges(f,unit){if(/op$|opacity/.test(f.key))return [0,1,.05];if(f.key==='line-height')return [1,3,.05];if(/^cols/.test(f.key))return [1,6,1];if(f.type==='weight')return [100,900,100];if(f.key==='thumb-size')return [0,800,10];if(unit==='%')return [0,100,1];if(unit==='em'||unit==='rem')return [0,5,.05];return [/gap|shadow-[xy]|spread/.test(f.key)?-80:0,160,1];}
+function ranges(f,unit){if(f.type==='lines')return [0,10,1];if(/max-height/.test(f.key))return [0,1000,10];if(/^bp-/.test(f.key))return [320,1600,10];if(/op$|opacity/.test(f.key))return [0,1,.05];if(f.key==='line-height')return [1,3,.05];if(/^cols/.test(f.key))return [1,6,1];if(f.type==='weight')return [100,900,100];if(f.key==='thumb-size')return [0,800,10];if(unit==='%')return [0,100,1];if(unit==='em'||unit==='rem')return [0,5,.05];return [/gap|shadow-[xy]|spread/.test(f.key)?-80:0,160,1];}
 function makeControl(f,parent,axis){
  const row=el('div',null,parent,{class:'controls'}),hint=el('div','',parent,{class:'hint'});let input,slider,unit,picker,autoSw;
  function send(value){value=String(value).trim();if(!valid(f,value)){input&&input.classList.add('invalid');hint.textContent='유효한 값으로 완성하세요. 아직 적용하지 않았습니다.';return;}input&&input.classList.remove('invalid');hint.textContent='';fieldPatch(f,axis,value);}
  if(f.type==='select'){
    input=select(row,f.options.map(o=>[o,(f.labels&&f.labels[o])||OPTION_LABEL[o]||o]),'',send,LABELS[f.key]||f.key);
- }else if(['px','em','pct','len','num','int','weight'].includes(f.type)){
+ }else if(['px','em','pct','len','num','int','weight','lines'].includes(f.type)){
    const units=f.type==='px'?['px']:f.type==='pct'?['%']:['em','len'].includes(f.type)?['px','em','rem','%','vw','vh']:null;
    slider=el('input',null,row,{type:'range','aria-label':LABELS[f.key]+' 슬라이더'});
    input=el('input',null,row,{type:'number',class:'num',step:'any','aria-label':LABELS[f.key]});
@@ -196,7 +217,7 @@ function renderGalleries(){
  function put(k,v){change(()=>{model.targets[selected][k]=v;A.galleries.setTargets(clone(model.targets));});}
  el('div','키워드',galleryFields,{class:'label'});const kw=el('input',null,galleryFields,{class:'txt',type:'text','aria-label':'갤러리 키워드'});kw.value=t.keyword||'';kw.onchange=guarded(()=>{if(!kw.value.trim()){message('키워드는 비울 수 없습니다.',true);return;}put('keyword',kw.value.trim());renderGalleries();});
  const r=el('div',null,galleryFields,{class:'toolbar'});
- select(r,[['cover','커버형'],['side','사이드형']],t.design||'cover',v=>put('design',v),'디자인');
+ select(r,[['cover','커버형'],['side','사이드형'],['stack','스택형']],t.design||'cover',v=>put('design',v),'디자인');
  select(r,[['right','썸네일 오른쪽'],['left','썸네일 왼쪽']],t.thumbSide||'right',v=>put('thumbSide',v),'PC 썸네일 위치');
  sw(r,'제목 숨김',!!t.hideTitle,v=>put('hideTitle',v));sw(r,'탭 숨김',!!t.hideTabs,v=>put('hideTabs',v));sw(r,'썸네일 노출',t.showThumb!==false,v=>put('showThumb',v));
  btn('선택 행 삭제',galleryFields,()=>{if(P.confirm('선택한 키워드 설정 행을 삭제할까요? 노션 DB는 삭제되지 않습니다.'))change(()=>{model.targets.splice(selected,1);A.galleries.setTargets(clone(model.targets));renderGalleries();});});
@@ -223,7 +244,7 @@ const importSec=section('가져오기 / JSON 보관'),importText=el('textarea',n
 const importBar=el('div',null,importSec,{class:'toolbar'});btn('검증 후 가져오기',importBar,importData);btn('전체 편집 JSON 출력',importBar,()=>{importText.value=JSON.stringify({tool:'gallery-overlay-dashboard',version:1,model},null,2);});
 el('div','코드는 eval하지 않습니다. CSS는 알려진 변수만, JS 설정은 JSON 배열 형식만 읽습니다. 알 수 없는 CSS 변수는 경고하고 건너뜁니다.',importSec,{class:'hint'});
 function validateEdits(edits){if(!edits||typeof edits!=='object'||Array.isArray(edits))throw Error('edits는 객체여야 합니다.');Object.entries(edits).forEach(([k,v])=>{const f=byKey[k];if(!f)throw Error('알 수 없는 편집 키: '+k);const pairs=v!==null&&typeof v==='object'?Object.entries(v):[[f.cover?'cover':'side',v]];if(!pairs.length)throw Error('빈 편집 값: '+k);pairs.forEach(([axis,val])=>{if(!['cover','side'].includes(axis)||!f[axis]||typeof val!=='string'||!valid(f,val))throw Error('유효하지 않은 값: '+k+' '+axis);});});}
-function checkTargets(ts){if(!Array.isArray(ts)||ts.length>100)throw Error('갤러리 설정은 배열이어야 합니다.');ts.forEach(t=>{if(!t||typeof t.keyword!=='string'||!t.keyword.trim()||!['cover','side'].includes(t.design||'cover')||!['left','right'].includes(t.thumbSide||'right'))throw Error('갤러리 키워드/디자인/위치를 확인하세요.');['hideTitle','hideTabs','showThumb'].forEach(k=>{if(t[k]!==undefined&&typeof t[k]!=='boolean')throw Error(k+'는 true/false입니다.');});});}
+function checkTargets(ts){if(!Array.isArray(ts)||ts.length>100)throw Error('갤러리 설정은 배열이어야 합니다.');ts.forEach(t=>{if(!t||typeof t.keyword!=='string'||!t.keyword.trim()||!['cover','side','stack'].includes(t.design||'cover')||!['left','right'].includes(t.thumbSide||'right'))throw Error('갤러리 키워드/디자인/위치를 확인하세요.');['hideTitle','hideTabs','showThumb'].forEach(k=>{if(t[k]!==undefined&&typeof t[k]!=='boolean')throw Error(k+'는 true/false입니다.');});});}
 function importData(){const text=importText.value.trim();if(!text)throw Error('가져올 코드를 넣으세요.');let next=clone(model),unknown=[];
  if(text.startsWith('{')){const o=JSON.parse(text);if(o.tool!=='gallery-overlay-dashboard'||o.version!==1||!o.model)throw Error('지원하지 않는 대시보드 JSON입니다.');next=clone(o.model);validateEdits(next.edits);checkTargets(next.targets);if(next.schema!==null)checkSchema(next.schema);}
  else{let count=0,m;const re=/(--[\w-]+)\s*:\s*([^;{}]+)\s*;/g;while((m=re.exec(text))){const p=byCss[m[1]];if(!p){unknown.push(m[1]);continue;}const v=m[2].replace(/\s*!important\s*$/,'').trim().replace(/^"|"$/g,'');if(!valid(p.f,v))throw Error('유효하지 않은 CSS: '+m[1]);const prev=next.edits[p.f.key];if(typeof prev!=='object'||prev===null){next.edits[p.f.key]={};if(prev!==undefined){if(p.f.cover)next.edits[p.f.key].cover=prev;if(p.f.side)next.edits[p.f.key].side=prev;}}next.edits[p.f.key][p.axis]=v;count++;}
@@ -236,8 +257,8 @@ const outputText=el('textarea',null,outputSec,{readonly:'',spellcheck:'false','a
 btn('코드 갱신',outputBar,renderOutput);btn('복사하기',outputBar,()=>copyText(outputText.value));btn('미니파이 복사',outputBar,()=>copyText(outputText.value.replace(/\/\*[\s\S]*?\*\//g,'').replace(/>\s+</g,'><').replace(/\n\s*/g,'')));
 el('div','출력은 엔진 본체가 아닌 설정입니다. 기존 사이트 설정 블록을 교체하세요. 스키마 번호와 구역 배치는 서로 맞춰야 합니다. 키워드·스키마는 전체 배열로 출력됩니다.',outputSec,{class:'hint warn'});
 const changeList=el('pre','',outputSec);
-function outputCode(){const read=A.common.read(),lines=[];F.forEach(f=>['cover','side'].forEach(a=>{if(!f[a])return;const raw=String((read[f.key]||{})[a]||'');let v=raw;if(!v&&prefs.full)v=String(f.def||'');if(!v&&(f.always||f.group==='best'))v=String(f.def||'');if(!v)return;if(/date-custom$/.test(f[a]))v=JSON.stringify(v.replace(/^"|"$/g,''));if(/[{}<>;]/.test(v))throw Error('출력할 수 없는 CSS 값: '+f[a]);lines.push('    '+f[a]+': '+v+';');}));const safe=x=>JSON.stringify(x,null,2).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');return '<style>\n  :root {\n'+lines.join('\n')+'\n  }\n</style>\n\n<script>\nwindow.GA_GALLERY_TARGETS = '+safe(model.targets)+';\n'+(model.schema?'window.GA_PROP_SCHEMA = '+safe(model.schema)+';\n':'')+'</script>';}
-function renderOutput(){outputText.value=outputCode();changeList.textContent='변경 목록\n'+Object.keys(model.edits).map(k=>'• '+(LABELS[k]||k)).join('\n')+'\n갤러리 설정 '+(same(model.targets,start.targets)?'유지':'변경')+' / 속성 스키마 '+(same(model.schema,start.schema)?'유지':'변경');}
+function outputCode(){const read=A.common.read(),lines=[],useDef=evNum>=20200&&typeof A.defaultOf==='function',nz=s=>String(s).replace(/\s+/g,'').replace(/^"|"$/g,'').toLowerCase();F.forEach(f=>['cover','side'].forEach(a=>{if(!f[a])return;const raw=String((read[f.key]||{})[a]||'');let v=raw;if(!v&&prefs.full)v=String(f.def||'');if(!useDef&&!v&&(f.always||f.group==='best'))v=String(f.def||'');if(!v)return;if(useDef&&!prefs.full){const dv=A.defaultOf(f[a]);if(dv!==''&&nz(v)===nz(dv))return;}if(/date-custom$/.test(f[a]))v=JSON.stringify(v.replace(/^"|"$/g,''));if(/[{}<>;]/.test(v))throw Error('출력할 수 없는 CSS 값: '+f[a]);lines.push('    '+f[a]+': '+v+';');}));const safe=x=>JSON.stringify(x,null,2).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');return '<style>\n  :root {\n'+lines.join('\n')+'\n  }\n</style>\n\n<script>\nwindow.GA_GALLERY_TARGETS = '+safe(model.targets)+';\n'+(model.schema?'window.GA_PROP_SCHEMA = '+safe(model.schema)+';\n':'')+'</script>';}
+function renderOutput(){outputText.value=outputCode();changeList.textContent='변경 목록\n'+Object.keys(model.edits).map(k=>'• '+(LABELS[k]||k)).join('\n')+'\n출력 글자 수 '+outputText.value.length+'자'+(evNum>=20200?(prefs.full?' (전체 출력)':' (기본값과 다른 값만)'):'')+'\n갤러리 설정 '+(same(model.targets,start.targets)?'유지':'변경')+' / 속성 스키마 '+(same(model.schema,start.schema)?'유지':'변경');}
 async function copyText(text){try{await P.navigator.clipboard.writeText(text);message('복사했습니다.');}catch(e){const t=el('textarea',text,R);t.value=text;t.select();const ok=PD.execCommand('copy');t.remove();message(ok?'복사했습니다.':'자동 복사가 차단됐습니다. 출력 텍스트를 선택해 복사하세요.',!ok);}}
 function saveSlot(){commit();if(slots.length>=30)throw Error('저장 슬롯은 최대 30개입니다.');const next=slots.concat([{name:'슬롯 '+(slots.length+1)+' · '+new Date().toLocaleString('ko-KR'),model:clone(model)}]);if(writeStore('slots',next)){slots=next;renderSlots();slotSel.value=String(slots.length-1);message('임시저장했습니다. 자동 적용하지 않습니다.');}}
 function renderSlots(){slotSel.textContent='';slots.forEach((s,i)=>el('option',s.name,slotSel,{value:i}));slotStatus.textContent=slots.length+'/30개';}
@@ -257,7 +278,7 @@ function pick(e){if(!prefs.pick||peeking||busy)return;const id=A.cards.galleryOf
 D.addEventListener('click',pick,true);
 function destroy(closePopup=false){if(closed)return;endPeek();commit();closed=true;clearTimeout(historyTimer);clearTimeout(renderTimer);clearTimeout(toastTimer);D.removeEventListener('click',pick,true);P.removeEventListener('blur',endPeek);clearHighlight();highlight.remove();if(W.__galleryOverlayDash===publicApi)delete W.__galleryOverlayDash;if(closePopup&&!P.closed)P.close();}
 P.addEventListener('beforeunload',()=>destroy(false));
-const publicApi={VERSION:'1.0.1',destroy:()=>destroy(true),window:P,root:R,getState:()=>clone(model),audit:()=>A.properties.audit(),export:outputCode};W.__galleryOverlayDash=publicApi;
+const publicApi={VERSION:'1.2.0',destroy:()=>destroy(true),window:P,root:R,getState:()=>clone(model),audit:()=>A.properties.audit(),export:outputCode};W.__galleryOverlayDash=publicApi;
 const footer=el('footer',null,app,{class:'sticky'});btn('최종적용 코드 출력하기',footer,()=>{renderOutput();outputSec.scrollIntoView({behavior:'smooth',block:'start'});}).className='primary';
 renderSlots();setMode('common');renderAll();histButtons();
 console.info('[gallery dashboard] v1.0.1 열림. 공개 페이지 임시 편집만 적용합니다.');if(engineWarn)message(engineWarn,true);

@@ -1,6 +1,9 @@
 /* =========================================================================
  * gallery-overlay-engine.js   (DB 갤러리 오버레이 엔진, 커버형 / 사이드형)
- * 버전: 2.1.0
+ * 버전: 2.3.0
+ * [2.3.0] 제목·텍스트 속성·속성 번호별 줄 수 제한(말줄임표, 폭별), 잘린 글에만 전체 글 툴팁, 같은 줄 카드 높이 맞춤
+ * [2.2.0] 기본값 표(GA_DEFAULTS) 자동 적용 / 스택형 design:'stack' / 썸네일 가득 채우기(--ga-side-thumb-bleed*) / 상·하 배치 고정 비율·최대 높이
+ *          / 기준 폭 변수(--ga-bp-mob, --ga-bp-tab) / blockId 로 갤러리 지정(GA_GALLERY_TARGETS 항목에 blockId, 선택 기능)
  * 설명: 노션(Oopy) 갤러리 뷰를 키워드로 찾아 카드 안의 제목과 속성을 다시 배치하고 꾸민다.
  * 설정: 사이트에 넣는 :root 변수(--ga-*)와 window.GA_GALLERY_TARGETS, window.GA_PROP_SCHEMA
  *
@@ -59,7 +62,113 @@
   // 중복 실행 방지 플래그
   if (window.GA_OVERLAY_ENGINE_RUNNING) return;
   window.GA_OVERLAY_ENGINE_RUNNING = true;
-  const GA_VERSION = '2.1.0';
+  const GA_VERSION = '2.3.0';
+
+  /* =====================================================================
+     [2.2.0] 기본값 표 (GA_DEFAULTS)  ─ 기본값은 여기 한 곳에서만 고친다.
+     - 엔진이 시작할 때 이 표를 <style id="ga-defaults"> 로 <head> 맨 앞에 넣는다.
+       사이트의 :root 설정은 뒤에 오므로, 사이트에 적은 변수만 기본값을 덮어쓴다.
+     - 비워 두는 변수(라벨 글자색, 관계형 글자색, 날짜 굵기, 폭별 줄 수, 속성별 줄 수)는 표에 넣지 않는다.
+       라벨 글자색 비움=본문 색 상속, 관계형 글자색 비움=칩 글자색을 따른다.
+     - 대시보드는 이 표와 다른 값만 출력한다(GalleryOverlayEngine.dashboard.defaults()).
+     ===================================================================== */
+  const GA_DEFAULTS = {
+    common: { '--ga-bp-mob': '600px', '--ga-bp-tab': '1024px' },
+    cover: {
+      '--ga-cols-pc': '1', '--ga-cols-tab': '1', '--ga-card-radius': '20px',
+      '--ga-card-padding': '28px', '--ga-grid-gap': '28px', '--ga-item-gap': '12px',
+      '--ga-line-height': '1.4', '--ga-h-align': 'flex-start', '--ga-lbl-align': 'left',
+      '--ga-val-align': 'left', '--ga-t-align': 'left', '--ga-show-label': '0',
+      '--ga-label-hide-pc': '0', '--ga-label-hide-tab': '0', '--ga-label-hide-mob': '0',
+      '--ga-label-top-props': '0', '--ga-hide-props-tab': '0', '--ga-hide-props-mob': '0',
+      '--ga-next-tag-num': '0', '--ga-section-top': '4 title 1', '--ga-section-center': '0',
+      '--ga-section-bottom': '3', '--ga-section-gap': '20px', '--ga-spacer-top-visible': '0',
+      '--ga-spacer-bottom-visible': '1', '--ga-chip-radius': '160px', '--ga-chip-height': '28px',
+      '--ga-chip-pad-x': '12px', '--ga-chip-pad-y': '12px', '--ga-plain-size': '1.3em',
+      '--ga-use-title': '1', '--ga-title-size': '1.2em', '--ga-title-weight': '800',
+      '--ga-title-color': '#0f0f0f', '--ga-url-format': '0', '--ga-url-cut-length': '12',
+      '--ga-url-color-mode': '0', '--ga-url-custom-bg': '#393939', '--ga-url-custom-bg-op': '0',
+      '--ga-url-color': '#ffffff', '--ga-url-underline': 'none', '--ga-relation-color-mode': '1',
+      '--ga-relation-custom-bg': '#660223', '--ga-relation-custom-bg-op': '0', '--ga-relation-icon': 'block',
+      '--ga-relation-full-text': '1', '--ga-prop-profile-img': 'block', '--ga-best-use-global-shape': '1',
+      '--ga-best-bg': '#2b4cdb', '--ga-best-bg-op': '1', '--ga-best-color': '#ffffff',
+      '--ga-best-size': '1.05em', '--ga-best-weight': '700', '--ga-best-height': 'auto',
+      '--ga-best-pad-x': '10px', '--ga-best-pad-y': '4px', '--ga-best-radius': '4px',
+      '--ga-date-format': 'DOT', '--ga-date-weekday': 'NONE', '--ga-date-size': '16px',
+      '--ga-date-color': '#99a8bc', '--ga-prop-all-display': 'inline-flex', '--ga-prop-all-color-mode': '1',
+      '--ga-prop-all-custom-bg': '#f3f4f6', '--ga-prop-all-custom-bg-op': '1', '--ga-prop-all-color': '#787e89',
+      '--ga-prop-all-size': '1.1em', '--ga-prop-all-weight': '400', '--ga-card-shadow-toggle': '0',
+      '--ga-card-shadow-x': '0px', '--ga-card-shadow-y': '2px', '--ga-card-shadow-blur': '4px',
+      '--ga-card-shadow-spread': '0px', '--ga-card-shadow-color': 'rgba(15,15,15,0.1)', '--ga-cols-mob': '1',
+      '--ga-group-gap': '12px', '--ga-text-width-scope': '1', '--ga-text-width-pc': '96%',
+      '--ga-text-width-tab': '100%', '--ga-text-width-mob': '100%', '--ga-absolute-position': '1',
+      '--ga-dim-hex': '#000000', '--ga-dim-opacity': '0.2', '--ga-ratio': '3/4',
+      '--ga-lbl-size': '1.05em', '--ga-lbl-weight': '700', '--ga-lbl-space': '8px',
+      '--ga-use-prop-all': '1', '--ga-plain-weight': '400', '--ga-date-custom': 'YYYY.MM.DD',
+      '--ga-date-time': 'AUTO', '--ga-date-range-sep': 'AUTO', '--ga-title-lines': '2',
+      '--ga-text-lines': '2'
+    },
+    side: {
+      '--ga-side-cols-pc': '1', '--ga-side-cols-tab': '1', '--ga-side-card-radius': '20px',
+      '--ga-side-card-padding': '28px', '--ga-side-grid-gap': '28px', '--ga-side-item-gap': '12px',
+      '--ga-side-line-height': '1.4', '--ga-side-h-align': 'flex-start', '--ga-side-lbl-align': 'left',
+      '--ga-side-val-align': 'left', '--ga-side-t-align': 'left', '--ga-side-show-label': '0',
+      '--ga-side-label-hide-pc': '0', '--ga-side-label-hide-tab': '0', '--ga-side-label-hide-mob': '0',
+      '--ga-side-label-top-props': '0', '--ga-side-hide-props-tab': '0', '--ga-side-hide-props-mob': '0',
+      '--ga-side-next-tag-num': '0', '--ga-side-section-top': '4 title 1', '--ga-side-section-center': '0',
+      '--ga-side-section-bottom': '3', '--ga-side-section-gap': '20px', '--ga-side-spacer-top-visible': '0',
+      '--ga-side-spacer-bottom-visible': '1', '--ga-side-chip-radius': '160px', '--ga-side-chip-height': '28px',
+      '--ga-side-chip-pad-x': '12px', '--ga-side-chip-pad-y': '12px', '--ga-side-plain-size': '1.3em',
+      '--ga-side-use-title': '1', '--ga-side-title-size': '1.2em', '--ga-side-title-weight': '800',
+      '--ga-side-title-color': '#0f0f0f', '--ga-side-url-format': '0', '--ga-side-url-cut-length': '12',
+      '--ga-side-url-color-mode': '0', '--ga-side-url-custom-bg': '#393939', '--ga-side-url-custom-bg-op': '0',
+      '--ga-side-url-color': '#ffffff', '--ga-side-url-underline': 'none', '--ga-side-relation-color-mode': '1',
+      '--ga-side-relation-custom-bg': '#660223', '--ga-side-relation-custom-bg-op': '0', '--ga-side-relation-icon': 'block',
+      '--ga-side-relation-full-text': '1', '--ga-side-prop-profile-img': 'block', '--ga-side-best-use-global-shape': '1',
+      '--ga-side-best-bg': '#2b4cdb', '--ga-side-best-bg-op': '1', '--ga-side-best-color': '#ffffff',
+      '--ga-side-best-size': '1.05em', '--ga-side-best-weight': '700', '--ga-side-best-height': 'auto',
+      '--ga-side-best-pad-x': '10px', '--ga-side-best-pad-y': '4px', '--ga-side-best-radius': '4px',
+      '--ga-side-date-format': 'DOT', '--ga-side-date-weekday': 'NONE', '--ga-side-date-size': '16px',
+      '--ga-side-date-color': '#99a8bc', '--ga-side-prop-display': 'inline-flex', '--ga-side-prop-color-mode': '1',
+      '--ga-side-prop-custom-bg': '#f3f4f6', '--ga-side-prop-custom-bg-op': '1', '--ga-side-prop-color': '#787e89',
+      '--ga-side-prop-size': '1.1em', '--ga-side-prop-weight': '400', '--ga-side-thumb-mode': 'fill',
+      '--ga-side-thumb-size': '340px', '--ga-side-thumb-ratio': '16/9', '--ga-side-thumb-position': 'center',
+      '--ga-side-content-valign': 'top', '--ga-side-thumb-side-tab': 'right', '--ga-side-thumb-side-mob': 'top',
+      '--ga-side-thumb-top-fit': 'full', '--ga-side-show-thumb-tab': '1', '--ga-side-show-thumb-mob': '1',
+      '--ga-side-empty-thumb': 'collapse', '--ga-side-lbl-size': '1.05em', '--ga-side-lbl-weight': '700',
+      '--ga-side-lbl-space': '8px', '--ga-side-use-prop-all': '1', '--ga-side-plain-weight': '400',
+      '--ga-side-date-custom': 'YYYY.MM.DD', '--ga-side-date-time': 'AUTO', '--ga-side-date-range-sep': 'AUTO',
+      '--ga-side-thumb-bleed': '0', '--ga-side-thumb-bleed-tab': '0', '--ga-side-thumb-bleed-mob': '1',
+      '--ga-side-thumb-top-ratio': '4/3', '--ga-side-thumb-top-max-height': '360px', '--ga-side-title-lines': '2',
+      '--ga-side-text-lines': '2', '--ga-side-row-equal': '1'
+    },
+    stack: {
+      '--ga-stack-cols-pc': '3', '--ga-stack-cols-tab': '2', '--ga-stack-thumb-ratio': '4/3',
+      '--ga-stack-thumb-position': 'center', '--ga-stack-thumb-radius': '12px', '--ga-stack-thumb-bleed': '1',
+      '--ga-stack-thumb-bleed-tab': '1', '--ga-stack-thumb-bleed-mob': '1', '--ga-stack-empty-thumb': 'keep'
+    }
+  };
+  const GA_DEFAULTS_FLAT = Object.assign({}, GA_DEFAULTS.common, GA_DEFAULTS.cover, GA_DEFAULTS.side, GA_DEFAULTS.stack);
+  (function gaInjectDefaults() {
+    if (document.getElementById('ga-defaults')) return;
+    const st = document.createElement('style');
+    st.id = 'ga-defaults';
+    st.textContent = ':root{' + Object.keys(GA_DEFAULTS_FLAT).map(function(k) { return k + ':' + GA_DEFAULTS_FLAT[k] + ';'; }).join('') + '}';
+    const head = document.head || document.documentElement;
+    head.insertBefore(st, head.firstChild);
+  })();
+
+  /* [2.2.0] 기준 폭: --ga-bp-mob(기본 600px) 이하=mob, --ga-bp-tab(기본 1024px) 이하=tab, 나머지=pc. CSS는 html[data-ga-bp]로 구분한다. */
+  function gaApplyBp() {
+    const root = document.documentElement, cs = getComputedStyle(root);
+    const mob = parseFloat(cs.getPropertyValue('--ga-bp-mob')) || 600, tab = parseFloat(cs.getPropertyValue('--ga-bp-tab')) || 1024;
+    const w = window.innerWidth, bp = w <= mob ? 'mob' : (w <= tab ? 'tab' : 'pc');
+    if (root.getAttribute('data-ga-bp') !== bp) root.setAttribute('data-ga-bp', bp);
+    return bp;
+  }
+  gaApplyBp();
+  window.addEventListener('resize', gaApplyBp);
+
 
 // === [추가] 디버그 유틸리티 ===
 // 콘솔에서 window.GA_DEBUG = true 를 실행하면 상세 진단 로그(A, B 항목)가 활성화됩니다.
@@ -268,6 +377,9 @@ const gaSanityRules = {
   const GA_EXTRA_HASH_VARS = ['--ga-side-thumb-mode', '--ga-side-thumb-size', '--ga-side-thumb-ratio', '--ga-side-thumb-position', '--ga-side-content-valign', '--ga-side-empty-thumb', '--ga-spacer-top-visible', '--ga-spacer-bottom-visible', '--ga-side-spacer-top-visible', '--ga-side-spacer-bottom-visible', '--ga-relation-color', '--ga-side-relation-color'];
   ['--ga-date-', '--ga-side-date-'].forEach(p => ['format', 'custom', 'weekday', 'time', 'range-sep', 'size', 'weight', 'color'].forEach(k => GA_EXTRA_HASH_VARS.push(p + k)));
 
+  ['--ga-bp-mob','--ga-bp-tab','--ga-side-thumb-bleed','--ga-side-thumb-bleed-tab','--ga-side-thumb-bleed-mob','--ga-side-thumb-top-ratio','--ga-side-thumb-top-max-height','--ga-side-thumb-side-tab','--ga-side-thumb-side-mob','--ga-side-show-thumb-tab','--ga-side-show-thumb-mob','--ga-side-row-equal','--ga-stack-cols-pc','--ga-stack-cols-tab','--ga-stack-thumb-ratio','--ga-stack-thumb-position','--ga-stack-thumb-radius','--ga-stack-thumb-bleed','--ga-stack-thumb-bleed-tab','--ga-stack-thumb-bleed-mob','--ga-stack-empty-thumb'].forEach(function(v) { GA_EXTRA_HASH_VARS.push(v); });
+  ['--ga-', '--ga-side-'].forEach(function(p) { ['title-lines', 'text-lines', 'prop-lines'].forEach(function(b) { ['', '-tab', '-mob'].forEach(function(s) { GA_EXTRA_HASH_VARS.push(p + b + s); }); }); });
+
   /* 숨긴 제목/탭 요소 기록(rescan 때 복원) */
   const GA_HIDDEN = new WeakMap();
   function gaRememberHidden(block, el) {
@@ -289,82 +401,176 @@ const gaSanityRules = {
     if (labels.length > 1) { for (let i = 1; i < labels.length; i++) labels[i].remove(); }
   };
 
-  function getGaBreakpoint() {
-    const w = window.innerWidth;
-    if (w <= 768) return 'mob';
-    if (w <= 1024) return 'tab';
-    return 'pc';
+  function getGaBreakpoint() { return gaApplyBp(); }
+
+  /* =====================================================================
+     [2.3.0] 줄 수 제한(말줄임표) / 같은 줄 카드 높이 맞춤 / 전체 글 툴팁
+     ===================================================================== */
+  /* 줄 수 설정 읽기. 폭별 변수가 비어 있으면 위 단계 값을 따른다(모바일 ← 태블릿 ← PC). 속성별 목록은 단계마다 덮어쓴다. */
+  function gaLinesCfg(rs, design, bp) {
+    const pre = design === 'side' ? '--ga-side-' : '--ga-';
+    const steps = bp === 'pc' ? [''] : (bp === 'tab' ? ['', '-tab'] : ['', '-tab', '-mob']);
+    const raw = function(base) { return steps.map(function(s) { return (rs.getPropertyValue(pre + base + s) || '').trim().replace(/^"|"$/g, ''); }); };
+    const num = function(base) { let v = 0; raw(base).forEach(function(s) { if (/^\d+$/.test(s)) v = Math.min(10, parseInt(s, 10)); }); return v; };
+    const props = new Map();
+    raw('prop-lines').forEach(function(s) {
+      s.replace(/\s*=\s*/g, '=').split(/\s+/).forEach(function(tok) {
+        const m = /^(\d+)=(\d+)$/.exec(tok);
+        if (m) props.set(parseInt(m[1], 10), Math.min(10, parseInt(m[2], 10)));
+      });
+    });
+    return { title: num('title-lines'), text: num('text-lines'), props: props };
+  }
+  /* 글이 직접 들어 있는 상자를 찾는다: 블록 요소가 하나뿐인 동안 안쪽으로 내려간다 */
+  function gaTextHost(el) {
+    let h = el;
+    for (let i = 0; i < 6; i++) {
+      const kids = Array.from(h.children).filter(function(c) { return !c.classList.contains('ga_propName_m7a') && !c.classList.contains('ga_structural_spacer'); });
+      const ownText = Array.from(h.childNodes).some(function(n) { return n.nodeType === 3 && n.nodeValue.trim(); });
+      if (ownText || kids.length !== 1) break;
+      const d = getComputedStyle(kids[0]).display;
+      if (d === 'inline' || d === 'contents' || d === 'none') break;
+      h = kids[0];
+    }
+    return h;
+  }
+  function gaClampEl(el, n) {
+    if (!el || !(n > 0)) return;
+    el.classList.add('ga_clamp_l4n');
+    el.style.setProperty('--ga-lc', String(n));
+    el.setAttribute('data-ga-tip', '');
+  }
+  function gaUnclamp(el) {
+    el.classList.remove('ga_clamp_l4n');
+    el.style.removeProperty('--ga-lc');
+    if (el.hasAttribute('data-ga-tip')) { el.removeAttribute('data-ga-tip'); el.removeAttribute('title'); }
+  }
+  /* 속성 행 하나의 글 상자에 줄 수 제한을 건다. 선택·다중선택(칩) 속성은 제외한다. */
+  function gaClampRow(row, type, n) {
+    if (type === 'relation') { const r = findRel(row); if (r && r.content) gaClampEl(r.content, n); return; }
+    if (type === 'url') { const a = row.querySelector('a[href]'); const s = a && (a.querySelector('span span') || a.querySelector('span')); if (s) gaClampEl(s, n); return; }
+    if (type === 'select') return;
+    const val = Array.from(row.children).filter(function(c) { return !c.classList.contains('ga_propName_m7a'); })[0];
+    if (val) gaClampEl(gaTextHost(val), n);
+  }
+  /* 실제로 잘린 글에만 전체 글 툴팁(title)을 단다 */
+  function gaTipPass() {
+    document.querySelectorAll('.ga_clamp_l4n').forEach(function(el) {
+      if (el.scrollHeight > el.clientHeight + 1) {
+        const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (el.getAttribute('title') !== t) el.setAttribute('title', t);
+      } else if (el.hasAttribute('title')) el.removeAttribute('title');
+    });
+  }
+  /* 사이드형·스택형: 같은 줄에 놓인 카드의 높이를 가장 큰 카드에 맞춘다 (--ga-side-row-equal: 0 이면 끔) */
+  function gaEqualizeRows() {
+    const on = (getComputedStyle(document.documentElement).getPropertyValue('--ga-side-row-equal') || '').trim() !== '0';
+    document.querySelectorAll('.ga_overlay_u4b[data-ga-design="side"]').forEach(function(block) {
+      const cards = Array.from(block.querySelectorAll('.ga_cardCore_k3z'));
+      const refresh = function(c) { const tw = gaThumbOf(c); if (tw) updateSideThumbSize(c, tw); else { c.style.removeProperty('min-height'); gaApplyRowMin(c); } };
+      let had = false;
+      cards.forEach(function(c) { if (c.dataset.gaRowMin) { c.dataset.gaRowMin = ''; had = true; } });
+      if (had) cards.forEach(refresh);
+      if (!on) return;
+      const rows = new Map();
+      cards.forEach(function(c) {
+        const item = c.closest('.notion-collection-item') || c;
+        const top = Math.round(item.getBoundingClientRect().top + window.scrollY);
+        const h = c.getBoundingClientRect().height;
+        const r = rows.get(top) || { max: 0, list: [] };
+        r.max = Math.max(r.max, h); r.list.push({ c: c, h: h }); rows.set(top, r);
+      });
+      rows.forEach(function(r) {
+        if (r.list.length < 2) return;
+        r.list.forEach(function(x) { if (x.h < r.max - 1) { x.c.dataset.gaRowMin = String(Math.ceil(r.max)); refresh(x.c); } });
+      });
+    });
+  }
+  let gaEqTimer = null;
+  function gaScheduleEqualize() {
+    clearTimeout(gaEqTimer);
+    gaEqTimer = setTimeout(function() { requestAnimationFrame(function() { try { gaEqualizeRows(); gaTipPass(); } catch (e) { console.error(e); } }); }, 80);
   }
 
-  // 사이드형 썸네일 크기·위치·노출을 브레이크포인트별로 재계산 (좌/우/상/하 + 노출 지원)
-  function updateSideThumbSize(coreCard, thumbWrapper) {
+  // [2.2.0] 사이드형·스택형 썸네일 크기·위치·노출 재계산 (좌/우/상/하 + 가득 채우기 + 스택형)
+  function gaUpdateThumbCore(coreCard, thumbWrapper) {
     if (coreCard.dataset.gaDesign !== 'side') return;
     const rootStyles = getComputedStyle(document.documentElement);
+    const gv = function(n) { return rootStyles.getPropertyValue(n).trim(); };
     const bp = getGaBreakpoint();
-    const baseSide = coreCard.dataset.gaThumbSide || 'right';
+    const isStack = coreCard.dataset.gaVariant === 'stack';
+    const baseSide = isStack ? 'top' : (coreCard.dataset.gaThumbSide || 'right');
     const baseShow = coreCard.dataset.gaShowThumb !== 'false';
 
     let effSide = baseSide;
-    if (bp === 'tab') { const v = rootStyles.getPropertyValue('--ga-side-thumb-side-tab').trim(); if (v) effSide = v; }
-    if (bp === 'mob') { const v = rootStyles.getPropertyValue('--ga-side-thumb-side-mob').trim(); if (v) effSide = v; }
+    if (!isStack && bp === 'tab') { const v = gv('--ga-side-thumb-side-tab'); if (v) effSide = v; }
+    if (!isStack && bp === 'mob') { const v = gv('--ga-side-thumb-side-mob'); if (v) effSide = v; }
 
     let effShow = baseShow;
-    if (bp === 'tab' && rootStyles.getPropertyValue('--ga-side-show-thumb-tab').trim() === '0') effShow = false;
-    if (bp === 'mob' && rootStyles.getPropertyValue('--ga-side-show-thumb-mob').trim() === '0') effShow = false;
+    if (bp === 'tab' && gv('--ga-side-show-thumb-tab') === '0') effShow = false;
+    if (bp === 'mob' && gv('--ga-side-show-thumb-mob') === '0') effShow = false;
 
-    coreCard.classList.remove('ga_thumbPos_right', 'ga_thumbPos_left', 'ga_thumbPos_top', 'ga_thumbPos_bottom', 'ga_thumbPos_hidden');
+    /* 가득 채우기(bleed): 폭별 변수가 비어 있으면 PC 변수를 따른다 */
+    const bleedBase = isStack ? '--ga-stack-thumb-bleed' : '--ga-side-thumb-bleed';
+    let bleedV = gv(bleedBase + (bp === 'tab' ? '-tab' : (bp === 'mob' ? '-mob' : '')));
+    if (bleedV === '') bleedV = gv(bleedBase);
+    const bleed = bleedV === '1';
+
+    coreCard.classList.remove('ga_thumbPos_right', 'ga_thumbPos_left', 'ga_thumbPos_top', 'ga_thumbPos_bottom', 'ga_thumbPos_hidden', 'ga_thumbBleed');
     ['padding-left','padding-right','min-height'].forEach(function(p) { coreCard.style.removeProperty(p); });
     ['width','height','order','margin-top','margin-bottom','top','bottom','aspect-ratio','max-height','position','opacity','overflow','pointer-events','left'].forEach(function(p) { thumbWrapper.style.removeProperty(p); });
 
     const gaHasThumbImg = !!thumbWrapper.querySelector('img');
-    const gaCollapseEmpty = (rootStyles.getPropertyValue('--ga-side-empty-thumb') || '').trim().replace(/^"|"$/g, '') === 'collapse';
+    const gaCollapseEmpty = isStack ? (gv('--ga-stack-empty-thumb').replace(/^"|"$/g, '') === 'collapse') : (gv('--ga-side-empty-thumb').replace(/^"|"$/g, '') === 'collapse');
     if (!effShow || (!gaHasThumbImg && gaCollapseEmpty)) {
       const oldFlowThumb = coreCard.querySelector(':scope > .ga_flowThumb_t7m');
       if (oldFlowThumb) oldFlowThumb.remove();
       coreCard.classList.add('ga_thumbPos_hidden');
       return;
     }
+    if (bleed) coreCard.classList.add('ga_thumbBleed');
 
     let flowThumb = coreCard.querySelector(':scope > .ga_flowThumb_t7m');
-    if (effSide === 'top') {
+    if (effSide === 'top' || effSide === 'bottom') {
+      /* 위·아래 배치는 둘 다 복제 이미지(flowThumb)로 그린다. 이미지가 없는 스택형 카드는 빈 박스를 둔다. */
       const srcImg = thumbWrapper.querySelector('img');
       const src = srcImg && (srcImg.currentSrc || srcImg.src);
-      if (src) {
+      if (src || !gaHasThumbImg) {
         if (!flowThumb) {
           flowThumb = document.createElement('div');
           flowThumb.className = 'ga_flowThumb_t7m';
-          flowThumb.appendChild(document.createElement('img'));
           coreCard.insertBefore(flowThumb, coreCard.firstChild);
         }
-        const cloneImg = flowThumb.querySelector('img');
-        if (cloneImg.src !== src) cloneImg.src = src;
+        let cloneImg = flowThumb.querySelector('img');
+        if (src) {
+          if (!cloneImg) { cloneImg = document.createElement('img'); flowThumb.appendChild(cloneImg); }
+          if (cloneImg.src !== src) cloneImg.src = src;
+        } else if (cloneImg) { cloneImg.remove(); }
+        flowThumb.classList.toggle('ga_flowEmpty_q3r', !src);
       }
       /* 원본 이미지는 display:none으로 숨기지 않고 1px 크기로 남겨 둔다. (지연 로딩 이미지는 숨겨진 상태에서 불러오지 않을 수 있다) */
       ['position:absolute', 'top:0', 'left:0', 'width:1px', 'height:1px', 'opacity:0', 'overflow:hidden', 'pointer-events:none', 'display:block'].forEach(function(d) { var kv = d.split(':'); thumbWrapper.style.setProperty(kv[0], kv[1], 'important'); });
-      coreCard.classList.add('ga_thumbPos_top');
+      coreCard.classList.add(effSide === 'top' ? 'ga_thumbPos_top' : 'ga_thumbPos_bottom');
       return;
     }
     if (flowThumb) flowThumb.remove();
     thumbWrapper.style.removeProperty('display');
-    if (effSide === 'bottom') {
-      coreCard.classList.add('ga_thumbPos_bottom');
-      return;
-    }
 
     coreCard.classList.add(effSide === 'left' ? 'ga_thumbPos_left' : 'ga_thumbPos_right');
 
-    const mode = rootStyles.getPropertyValue('--ga-side-thumb-mode').trim() || 'auto';
+    const mode = gv('--ga-side-thumb-mode') || 'auto';
     const padPx = parseFloat(getComputedStyle(coreCard).paddingTop) || 20;
-    const maxW = parseFloat(rootStyles.getPropertyValue('--ga-side-thumb-size')) || 120;
+    const edgePx = bleed ? 0 : padPx;
+    const maxW = parseFloat(gv('--ga-side-thumb-size')) || 120;
+    const parseRatio = function(s) { const p = (s || '1/1').trim().split('/').map(function(x) { return parseFloat(x); }); return (p.length === 2 && p[1]) ? (p[0] / p[1]) : 1; };
 
     if (mode === 'fill') {
-      /* fill: 카드 높이를 따라 이미지 영역이 늘어난다. 지정 비율은 최소 높이로 쓴다. */
-      const rp = (rootStyles.getPropertyValue('--ga-side-thumb-ratio') || '1/1').trim().split('/').map(function(s) { return parseFloat(s); });
-      const rr = (rp.length === 2 && rp[1]) ? (rp[0] / rp[1]) : 1;
-      coreCard.style.setProperty('min-height', (maxW / rr + padPx * 2) + 'px', 'important');
+      /* fill: 카드 높이를 따라 이미지 영역이 늘어난다. 지정 비율은 최소 높이로 쓴다. 가득 채우기면 위·아래 여백이 0이다. */
+      const rr = parseRatio(gv('--ga-side-thumb-ratio'));
+      coreCard.style.setProperty('min-height', (maxW / rr + edgePx * 2) + 'px', 'important');
       thumbWrapper.style.setProperty('width', maxW + 'px', 'important');
-      thumbWrapper.style.setProperty('top', padPx + 'px', 'important');
-      thumbWrapper.style.setProperty('bottom', padPx + 'px', 'important');
+      thumbWrapper.style.setProperty('top', edgePx + 'px', 'important');
+      thumbWrapper.style.setProperty('bottom', edgePx + 'px', 'important');
       thumbWrapper.style.setProperty('height', 'auto', 'important');
       thumbWrapper.style.setProperty('aspect-ratio', 'auto', 'important');
       thumbWrapper.style.setProperty('max-height', 'none', 'important');
@@ -372,18 +578,15 @@ const gaSanityRules = {
     }
 
     if (mode === 'fixed') {
-      const ratioStr = (rootStyles.getPropertyValue('--ga-side-thumb-ratio') || '1/1').trim();
-      const parts = ratioStr.split('/').map(function(s) { return parseFloat(s); });
-      const fixedRatio = (parts.length === 2 && parts[1]) ? (parts[0] / parts[1]) : 1;
       const finalW = maxW;
-      const finalH = maxW / fixedRatio;
-      coreCard.style.setProperty('min-height', (finalH + padPx * 2) + 'px', 'important');
+      const finalH = maxW / parseRatio(gv('--ga-side-thumb-ratio'));
+      coreCard.style.setProperty('min-height', (finalH + edgePx * 2) + 'px', 'important');
       thumbWrapper.style.setProperty('height', finalH + 'px', 'important');
       thumbWrapper.style.setProperty('width', finalW + 'px', 'important');
       return;
     }
 
-    const availH = coreCard.clientHeight - (padPx * 2);
+    const availH = coreCard.clientHeight - (edgePx * 2);
     if (availH <= 0) return;
     const imgEl = thumbWrapper.querySelector('img');
     let finalW = maxW, finalH = availH;
@@ -394,6 +597,19 @@ const gaSanityRules = {
     }
     thumbWrapper.style.setProperty('height', finalH + 'px', 'important');
     thumbWrapper.style.setProperty('width', finalW + 'px', 'important');
+  }
+
+  /* [2.3.0] 같은 줄 카드 높이 맞춤: 계산해 둔 줄 최대 높이(data-ga-row-min)를 최소 높이로 적용한다 */
+  function gaApplyRowMin(coreCard) {
+    const rm = parseFloat(coreCard.dataset.gaRowMin) || 0;
+    if (rm > 0) {
+      const cur = parseFloat(coreCard.style.minHeight) || 0;
+      if (rm > cur) coreCard.style.setProperty('min-height', rm + 'px', 'important');
+    }
+  }
+  function updateSideThumbSize(coreCard, thumbWrapper) {
+    gaUpdateThumbCore(coreCard, thumbWrapper);
+    if (coreCard.dataset.gaDesign === 'side') gaApplyRowMin(coreCard);
   }
 
   // 사이드형 사이드형 제목+속성을 하나의 래퍼로 묕어 order 기반 정렬이 가능하게 함
@@ -485,6 +701,7 @@ const gaSanityRules = {
     const propNames = Array.isArray(window.GA_PROP_SCHEMA) ? window.GA_PROP_SCHEMA.map(s => s.name) : (Array.isArray(window.GA_PROP_NAMES) ? window.GA_PROP_NAMES : []);
     if (propNames.length === 0 || !window.GA_GALLERY_TARGETS) return;
     gaBaseCapture();
+    gaApplyBp();
 
     const currentHash = getGalleryStateHash(rs);
     if (currentHash === lastStateHash) return; 
@@ -547,6 +764,7 @@ document.querySelectorAll('.notion-collection_view-block').forEach(function(bloc
   if (gridEl) {
     if (hasSideCard) { gridEl.classList.add('ga_sideGalleryGrid_s1p'); htmlRoot.setAttribute('data-ga-has-side', '1'); }
     else { gridEl.classList.remove('ga_sideGalleryGrid_s1p'); }
+    gridEl.classList.toggle('ga_stackGrid_k2q', !!hasSideCard && !!block.closest('.notion-collection_view-block[data-ga-variant="stack"]'));
   }
 });
 
@@ -562,7 +780,10 @@ const titleEl = block.querySelector('.css-nlnkrp .css-1b3theg')
 block.querySelectorAll('.css-cnzm4r').forEach(function(el) { el.style.removeProperty('position'); });
 let tabEls = block.querySelectorAll('.css-14wd0sq .css-152tfkv, .css-fblfsq .css-152tfkv');
 if (tabEls.length === 0) tabEls = block.querySelectorAll('[role="tablist"] [role="menuitem"] span');
-if (!titleEl && tabEls.length === 0) {
+const gaBid = block.getAttribute('data-block-id') || '';
+const gaNested = !!(block.parentElement && block.parentElement.closest('.notion-collection_view-block'));
+const gaIdHit = !!gaBid && !gaNested && window.GA_GALLERY_TARGETS.some(function(t) { return t.blockId && t.blockId === gaBid; });
+if (!titleEl && tabEls.length === 0 && !gaIdHit) {
   // 다른 .notion-collection_view-block 안에 중첩된 내부 래퍼는 원래 제목/탭이 없는 게 정상이라 경고에서 제외
   const isNestedInsideAnotherBlock = block.parentElement && block.parentElement.closest('.notion-collection_view-block');
   if (!isNestedInsideAnotherBlock) {
@@ -574,17 +795,20 @@ if (!titleEl && tabEls.length === 0) {
       const tabText = Array.from(tabEls).map(el => el.textContent.trim()).join(" ");
       let matched = false, targetCfg = null;
       for (let t of window.GA_GALLERY_TARGETS) {
-        if (tabText.includes(t.keyword) || titleText.includes(t.keyword)) { matched = true; targetCfg = t; break; }
+        if (t.blockId ? (!gaNested && t.blockId === gaBid) : (t.keyword && (tabText.includes(t.keyword) || titleText.includes(t.keyword)))) { matched = true; targetCfg = t; break; }
       }
       block.classList.add('ga-configured');
       /* 변경 후 */
 if (matched) {
   block.classList.add('ga_overlay_u4b');
   // [신규] 이 갤러리만의 디자인 설정을 블록 자신에게 기록 (페이지 내 여러 갤러리가 서로 다른 디자인을 쓸 수 있게 함)
-  block.dataset.gaDesign = targetCfg.design || 'cover';
+  /* design:'stack' 은 내부적으로 사이드형 + 스택 변형(data-ga-variant)으로 처리한다 */
+  const gaDesignRaw = targetCfg.design || 'cover';
+  block.dataset.gaDesign = gaDesignRaw === 'stack' ? 'side' : gaDesignRaw;
+  block.dataset.gaVariant = gaDesignRaw === 'stack' ? 'stack' : '';
   block.dataset.gaTarget = String(window.GA_GALLERY_TARGETS.indexOf(targetCfg));
   block.dataset.gaShowThumb = String(targetCfg.showThumb !== false);
-  block.dataset.gaThumbSide = targetCfg.thumbSide || 'right';
+  block.dataset.gaThumbSide = gaDesignRaw === 'stack' ? 'top' : (targetCfg.thumbSide || 'right');
   if (targetCfg.hideTitle) {
     const hideTitleTarget = block.querySelector('.css-1s74r6z') || (titleEl && titleEl.closest('a[href^="/"]') ? titleEl.closest('a[href^="/"]').parentElement : null);
     if (hideTitleTarget) { hideTitleTarget.style.setProperty('display', 'none', 'important'); gaRememberHidden(block, hideTitleTarget); }
@@ -661,7 +885,10 @@ const activeBottomSeq = design === 'side' ? bottomSeqSide : bottomSeq;
 coreCard.dataset.gaDesign = design;
 coreCard.dataset.gaShowThumb = String(showThumb);
 coreCard.dataset.gaThumbSide = thumbSide;
+coreCard.dataset.gaVariant = galleryBlock ? (galleryBlock.dataset.gaVariant || '') : '';
 const sideWrap = design === 'side' ? ensureSideContentWrap(coreCard) : null;
+coreCard.querySelectorAll('.ga_clamp_l4n').forEach(gaUnclamp);
+const gaLn = gaLinesCfg(rs, design, getGaBreakpoint());
 
 
    
@@ -698,7 +925,7 @@ if (design === 'side' && thumbWrapper) {
     coreCard.dataset.gaThumbObs = '1';
     const thumbRO = new ResizeObserver(() => updateSideThumbSize(coreCard, thumbWrapper));
     thumbRO.observe(coreCard);
-    if (bgImgEl) bgImgEl.addEventListener('load', () => updateSideThumbSize(coreCard, thumbWrapper));
+    if (bgImgEl) bgImgEl.addEventListener('load', () => { updateSideThumbSize(coreCard, thumbWrapper); gaScheduleEqualize(); });
   }
 }
 
@@ -718,6 +945,7 @@ if (design === 'side' && thumbWrapper) {
         }
 
         /* 변경 후 */
+if (titleBox && titleBox.style.display !== 'none' && gaLn.title > 0) gaClampEl(gaTextHost(titleBox), gaLn.title);
 const rawChildren = Array.from(container.children).filter(c => !c.classList.contains('ga_structural_spacer'));
 if (window.GA_DEBUG && rawChildren.length !== propNames.length) {
   gaWarn(`propcount-${rawChildren.length}`, `카드의 실제 속성 개수(${rawChildren.length})가 GA_PROP_NAMES 설정 개수(${propNames.length})와 다릅니다. 라벨이 밀릴 수 있습니다.`, item);
@@ -773,7 +1001,7 @@ if (window.GA_DEBUG_STATE) { window.GA_DEBUG_STATE.cards = window.GA_DEBUG_STATE
               Array.from(gaRel.box.children).forEach(chip => {
                 chip.classList.add('ga_chipLeaf_n1e', 'ga_relChip');
                 chip.classList.add(propNum === nextTagNum ? 'ga_chipBest_h6w' : 'ga_chipRel_t9p');
-                chip.classList.toggle('ga_relColor_k7c', !!gaRelColor);
+                chip.classList.add('ga_relColor_k7c');
               });
             }
           }
@@ -862,6 +1090,7 @@ if (curHideMobSet.has(meta.propNum)) child.classList.add('ga_hideMob_z3l');
           else if (activeCenterSeq.includes(propNum)) finalOrder = 200 + activeCenterSeq.indexOf(propNum);
           else if (activeBottomSeq.includes(propNum)) finalOrder = 300 + activeBottomSeq.indexOf(propNum);
           child.style.setProperty('order', finalOrder, 'important');
+          { const gaRt = gaRowType(child); const gaN = gaLn.props.has(meta.propNum) ? gaLn.props.get(meta.propNum) : (gaRt === 'text' ? gaLn.text : 0); if (gaN > 0) gaClampRow(child, gaRt, gaN); }
 
           // 너비 분할을 위한 상단/중하단 클래스 동적 주입
           if (!child.classList.contains('ga_oppTag_l2x')) {
@@ -954,6 +1183,7 @@ itemDataList.forEach(data => {
 
 });
 
+gaScheduleEqualize();
 lastStateHash = currentHash;
   }
 
@@ -1049,6 +1279,30 @@ window.GA_forceSync = () => {
     S('thumb', 'thumb-side-tab', '--ga-side-thumb-side-tab', 'select', 'right', { options: ['right', 'left', 'top', 'bottom'] }),
     S('thumb', 'thumb-side-mob', '--ga-side-thumb-side-mob', 'select', 'right', { options: ['right', 'left', 'top', 'bottom'] }),
     S('thumb', 'thumb-top-fit', '--ga-side-thumb-top-fit', 'select', 'full', { options: ['full', 'boxed'] }),
+    S('thumb', 'thumb-top-ratio', '--ga-side-thumb-top-ratio', 'ratio', '4/3'),
+    S('thumb', 'thumb-top-max-height', '--ga-side-thumb-top-max-height', 'len', '360px', { allowNone: true }),
+    S('thumb', 'thumb-bleed', '--ga-side-thumb-bleed', 'select', '0', { options: ONOFF }),
+    S('thumb', 'thumb-bleed-tab', '--ga-side-thumb-bleed-tab', 'select', '0', { options: ONOFF }),
+    S('thumb', 'thumb-bleed-mob', '--ga-side-thumb-bleed-mob', 'select', '1', { options: ONOFF }),
+    B('layout', 'bp-mob', '--ga-bp-mob', 'px', '600px'), B('layout', 'bp-tab', '--ga-bp-tab', 'px', '1024px'),
+    S('stack', 'stack-cols-pc', '--ga-stack-cols-pc', 'int', '3'), S('stack', 'stack-cols-tab', '--ga-stack-cols-tab', 'int', '2'),
+    S('stack', 'stack-thumb-ratio', '--ga-stack-thumb-ratio', 'ratio', '4/3'),
+    S('stack', 'stack-thumb-position', '--ga-stack-thumb-position', 'pos', 'center'),
+    S('stack', 'stack-thumb-radius', '--ga-stack-thumb-radius', 'px', '12px'),
+    S('stack', 'stack-thumb-bleed', '--ga-stack-thumb-bleed', 'select', '1', { options: ONOFF }),
+    S('stack', 'stack-thumb-bleed-tab', '--ga-stack-thumb-bleed-tab', 'select', '1', { options: ONOFF }),
+    S('stack', 'stack-thumb-bleed-mob', '--ga-stack-thumb-bleed-mob', 'select', '1', { options: ONOFF }),
+    S('stack', 'stack-empty-thumb', '--ga-stack-empty-thumb', 'select', 'keep', { options: ['keep', 'collapse'] }),
+    P('lines', 'title-lines', '--ga-title-lines', '--ga-side-title-lines', 'lines', '2'),
+    P('lines', 'title-lines-tab', '--ga-title-lines-tab', '--ga-side-title-lines-tab', 'lines', ''),
+    P('lines', 'title-lines-mob', '--ga-title-lines-mob', '--ga-side-title-lines-mob', 'lines', ''),
+    P('lines', 'text-lines', '--ga-text-lines', '--ga-side-text-lines', 'lines', '2'),
+    P('lines', 'text-lines-tab', '--ga-text-lines-tab', '--ga-side-text-lines-tab', 'lines', ''),
+    P('lines', 'text-lines-mob', '--ga-text-lines-mob', '--ga-side-text-lines-mob', 'lines', ''),
+    P('lines', 'prop-lines', '--ga-prop-lines', '--ga-side-prop-lines', 'text', ''),
+    P('lines', 'prop-lines-tab', '--ga-prop-lines-tab', '--ga-side-prop-lines-tab', 'text', ''),
+    P('lines', 'prop-lines-mob', '--ga-prop-lines-mob', '--ga-side-prop-lines-mob', 'text', ''),
+    S('lines', 'row-equal', '--ga-side-row-equal', 'select', '1', { options: ONOFF }),
     S('thumb', 'show-thumb-tab', '--ga-side-show-thumb-tab', 'select', '1', { options: ONOFF }), S('thumb', 'show-thumb-mob', '--ga-side-show-thumb-mob', 'select', '1', { options: ONOFF }),
     S('thumb', 'empty-thumb', '--ga-side-empty-thumb', 'select', 'keep', { options: ['keep', 'collapse'] }),
     V('dim', 'dim-hex', '--ga-dim-hex', 'hex', '#000000'), V('dim', 'dim-opacity', '--ga-dim-opacity', 'num', '0.2'),
@@ -1126,7 +1380,16 @@ window.GA_forceSync = () => {
     'date-time': { AUTO: '원본 그대로', HIDE: '시간 숨김', '24H': '24시간 (14:30)', '12H': '12시간 (오후 2:30)' },
     'date-range-sep': { AUTO: '원본 그대로', ARROW: '→', TILDE: '~', DASH: '–' }
   };
+  GA_OPT_LABELS['thumb-bleed'] = GA_OPT_LABELS['thumb-bleed-tab'] = GA_OPT_LABELS['thumb-bleed-mob'] = GA_OPT_LABELS['stack-thumb-bleed'] = GA_OPT_LABELS['stack-thumb-bleed-tab'] = GA_OPT_LABELS['stack-thumb-bleed-mob'] = { '0': '카드 여백 안쪽', '1': '카드 테두리까지 가득' };
+  GA_OPT_LABELS['stack-empty-thumb'] = { keep: '같은 비율의 빈 박스 유지', collapse: '접기' };
+  GA_OPT_LABELS['row-equal'] = { '1': '같은 줄 카드 높이 맞춤', '0': '맞추지 않음' };
   GA_FIELDS.forEach(f => { if (GA_OPT_LABELS[f.key]) f.labels = GA_OPT_LABELS[f.key]; });
+  /* [2.2.0] 편집 항목의 기본값(def)은 GA_DEFAULTS 표에서 가져온다 (한 곳에서만 관리) */
+  GA_FIELDS.forEach(f => {
+    const dc = f.cover ? GA_DEFAULTS_FLAT[f.cover] : undefined, ds = f.side ? GA_DEFAULTS_FLAT[f.side] : undefined;
+    if (dc !== undefined) f.defCover = dc; if (ds !== undefined) f.defSide = ds;
+    const d = ds !== undefined ? ds : dc; if (d !== undefined) f.def = d;
+  });
   const GA_FIELD_BY_KEY = {}; GA_FIELDS.forEach(f => { GA_FIELD_BY_KEY[f.key] = f; });
   const gaFieldVars = f => [f.cover, f.side].filter(Boolean);
 
@@ -1153,6 +1416,7 @@ window.GA_forceSync = () => {
     if (wrap) { while (wrap.firstChild) core.appendChild(wrap.firstChild); wrap.remove(); }
     const flow = core.querySelector(':scope > .ga_flowThumb_t7m');
     if (flow) flow.remove();
+    core.querySelectorAll('.ga_clamp_l4n').forEach(gaUnclamp); delete core.dataset.gaRowMin;
     ['ga_thumbPos_right', 'ga_thumbPos_left', 'ga_thumbPos_top', 'ga_thumbPos_bottom', 'ga_thumbPos_hidden'].forEach(c => core.classList.remove(c));
     ['padding-left', 'padding-right', 'min-height', 'background-image', 'background-size', 'background-position'].forEach(p => core.style.removeProperty(p));
     const tw = gaThumbOf(core);
@@ -1188,6 +1452,8 @@ window.GA_forceSync = () => {
     version: '1.0.0',
     schema() { return GA_FIELDS.map(f => Object.assign({}, f, { options: f.options ? f.options.slice() : undefined })); },
     snapshot() { return gaClone(GA_BASE); },
+    defaults() { return gaClone(GA_DEFAULTS); },
+    defaultOf(cssVar) { return Object.prototype.hasOwnProperty.call(GA_DEFAULTS_FLAT, cssVar) ? GA_DEFAULTS_FLAT[cssVar] : ''; },
     warnings() { return GA_WARNINGS.slice(); },
     rescan: gaRescan, forceSync: gaForceSync,
     common: {
@@ -1219,9 +1485,12 @@ window.GA_forceSync = () => {
         const cs = getComputedStyle(document.documentElement), lines = [];
         GA_FIELDS.forEach(f => gaFieldVars(f).forEach(v => {
           let cur = cs.getPropertyValue(v).trim();
-          const base = GA_BASE ? GA_BASE.vars[v] : '';
+          /* [2.2.0] 기본값 표와 다른 값만 출력한다. opts.vsLoad=true 면 예전처럼 '열었을 때 값'과 비교한다. */
+          const norm = s => String(s).replace(/\s+/g, '').replace(/^"|"$/g, '').toLowerCase();
+          const hasDef = Object.prototype.hasOwnProperty.call(GA_DEFAULTS_FLAT, v);
+          const base = opts.vsLoad ? (GA_BASE ? GA_BASE.vars[v] : '') : (hasDef ? GA_DEFAULTS_FLAT[v] : '');
           if (opts.full) { if (cur === '') cur = String(f.def); if (cur === '') return; }
-          else { if (cur === '') return; if (cur === base && !f.always) return; }
+          else { if (cur === '') return; if (norm(cur) === norm(base) && (opts.vsLoad ? !f.always : true)) return; }
           lines.push('    ' + v + ': ' + gaQuote(v, cur) + ';');
         }));
         return ':root {\n' + lines.join('\n') + '\n  }';
