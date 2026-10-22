@@ -208,31 +208,33 @@
     if (previous) previous.style.setProperty('margin-bottom', '0px');
 
     inst.panel.querySelectorAll('.notion-callout-block').forEach(callout => {
-      setStyle(callout, {
-        display: css('calloutDisplay', 'block'),
-        'margin-top': '0px',
-        'margin-bottom': '0px'
-      });
+  if (callout.dataset.ceOwner === 'card') return;   // ← 추가된 줄: 콜카드가 이미 처리한 콜아웃은 건너뜀
 
-      const content = callout.querySelector('[class*="CalloutBlock-module"][class*="content"]') || callout.firstElementChild?.firstElementChild || callout;
-      setStyle(content, {
-        background: css('calloutBg', 'transparent'),
-        border: css('calloutBorder', 'none'),
-        'border-radius': css('calloutRadius', '20px'),
-        'box-shadow': css('calloutShadow', 'none'),
-        padding: css('calloutPad', '22px'),
-        'box-sizing': 'border-box'
-      });
+  setStyle(callout, {
+    display: css('calloutDisplay', 'block'),
+    'margin-top': '0px',
+    'margin-bottom': '0px'
+  });
 
-      callout.querySelectorAll('.notion-sub_sub_header-block, .notion-sub_sub_header-block h4').forEach(title => {
-        setStyle(title, {
-          'font-family': css('calloutTitleFamily', 'inherit'),
-          'font-size': css('calloutTitleSize', 'inherit'),
-          'font-weight': css('calloutTitleWeight', 'inherit'),
-          color: css('calloutTitleColor', 'inherit'),
-          'line-height': '1.35'
-        });
-      });
+  const content = callout.querySelector('[class*="CalloutBlock-module"][class*="content"]') || callout.firstElementChild?.firstElementChild || callout;
+  setStyle(content, {
+    background: css('calloutBg', 'transparent'),
+    border: css('calloutBorder', 'none'),
+    'border-radius': css('calloutRadius', '20px'),
+    'box-shadow': css('calloutShadow', 'none'),
+    padding: css('calloutPad', '22px'),
+    'box-sizing': 'border-box'
+  });
+
+  callout.querySelectorAll('.notion-sub_sub_header-block, .notion-sub_sub_header-block h4').forEach(title => {
+    setStyle(title, {
+      'font-family': css('calloutTitleFamily', 'inherit'),
+      'font-size': css('calloutTitleSize', 'inherit'),
+      'font-weight': css('calloutTitleWeight', 'inherit'),
+      color: css('calloutTitleColor', 'inherit'),
+      'line-height': '1.35'
+    });
+  });
 
       Array.from(callout.querySelectorAll('.notion-text-block')).forEach(desc => {
         if (desc.closest('.notion-sub_sub_header-block')) return;
