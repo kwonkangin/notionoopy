@@ -171,6 +171,9 @@
 //   URL 이동(현재 창, NEW 새 창, 링크 걸린 글자의 href)은 직전 빌드에서 실제 페이지로 확인함.
 // - 미확인: 갤러리 아이템, mailto: tel: / 내부 경로 / javascript: 차단 동작(실제 페이지),
 //   Chrome(크로미움 계열) 외 브라우저.
+// - 엔진 CSS 는 <head> 맨 앞에 @layer efc_btn 으로 넣는다. 레이어 안의 !important 는 레이어 밖의 !important 보다 우선하고,
+//   레이어끼리는 먼저 선언된 쪽이 이기므로 다른 CSS(토글 등)가 버튼 모양을 덮어쓰지 못한다.
+//   (Chrome/Edge 99+, Firefox 97+, Safari 15.4+. 그보다 오래된 브라우저는 엔진 CSS 가 무시된다.)
 // =========================================================
 
 
@@ -201,7 +204,8 @@
     ].join('\n');
     function efc_injectStyle() {
         if (document.getElementById(STYLE_ID)) return;
-        var st = document.createElement('style'); st.id = STYLE_ID; st.textContent = CSS_TEXT; document.head.appendChild(st);
+        var st = document.createElement('style'); st.id = STYLE_ID; st.textContent = '@layer efc_btn{' + CSS_TEXT + '}';
+        document.head.insertBefore(st, document.head.firstChild);
     }
     function efc_injectFontAwesome() {
         if (document.getElementById(FA_ID)) return;
