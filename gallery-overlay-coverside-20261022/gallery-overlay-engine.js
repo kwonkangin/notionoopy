@@ -816,7 +816,7 @@ if (matched) {
   }
   if (targetCfg.hideTabs) {
     const hideTabsTarget = block.querySelector('.css-ey93bd') || (block.querySelector('[role="tablist"]') ? block.querySelector('[role="tablist"]').parentElement : null);
-    if (hideTabsTarget) { hideTabsTarget.style.setProperty('display', 'none', 'important'); gaRememberHidden(block, hideTabsTarget); }
+    if (hideTabsTarget) { hideTabsTarget.style.setProperty('display', 'none', 'important'); gaRememberHidden(block, hideTabsTarget); let up = hideTabsTarget; while (up.parentElement && up.parentElement !== block && Array.from(up.parentElement.children).every(function(c) { return c === up || getComputedStyle(c).display === 'none'; })) up = up.parentElement; if (up !== hideTabsTarget) { up.style.setProperty('display', 'none', 'important'); gaRememberHidden(block, up); } }
     else if (tabEls.length > 0) gaWarn('hide-tabs-target', 'hideTabs 대상을 찾지 못해 탭을 숨기지 못했습니다.', block);
   }
 }
