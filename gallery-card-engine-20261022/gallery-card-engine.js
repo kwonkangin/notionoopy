@@ -314,8 +314,17 @@ function build(card){
   }catch(e){}
 }
 
-function cards(){return document.querySelectorAll('.notion-gallery-view .notion-collection-item');}
-function run(){
+function cards(){return Array.from(document.querySelectorAll('.notion-gallery-view .notion-collection-item')).filter(function(c){return !c.closest('.ga_overlay_u4b');});}
+function release(){
+  var hit=0;
+  document.querySelectorAll('.ga_overlay_u4b .notion-collection-item[data-ga-card]').forEach(function(card){
+    cleanup(card);card.removeAttribute('data-ga-card');card.__gaSig=null;
+    if(card.parentElement)card.parentElement.removeAttribute('data-ga-grid');
+    var t=getTile(card);if(t)t.removeAttribute('data-ga-tile');hit++;
+  });
+  if(hit&&window.GA_forceSync)window.GA_forceSync();
+}
+function run(){try{release();}catch(e){}
   try{
     cards().forEach(function(card){
       var tile=getTile(card);if(!tile)return;
