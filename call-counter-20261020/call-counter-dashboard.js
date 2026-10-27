@@ -4,9 +4,9 @@
  
 // =========================================================
 // call-counter-dashboard.js
-// 버전: 1.0.0
+// 버전: 1.2.0
 // 설명: call-counter의 설정을 팝업 창에서 실시간으로 미리 보고, 최종 적용 코드를 만들어 주는 콘솔용 대시보드
-// 의존성: call-counter.js v4.0.0 이상 (CallCounterEngine.dashboard API 1.0.0)
+// 의존성: call-counter.js v4.1.0 이상 (CallCounterEngine.dashboard API 1.1.0, pieces API 필수)
 // ---------------------------------------------------------
 // [개요]
 //  - 노션(Oopy) 페이지에서 콘솔로 실행하는 편집 도구이다. 실행하면 별도 팝업 창(690x980)이 열린다.
@@ -18,12 +18,14 @@
 //  1. 대시보드를 적용할 페이지를 연다. (PC 브라우저 전용)
 //  2. 팝업 차단을 허용한다.
 //  3. 개발자 도구 콘솔에 이 파일의 전체 코드를 붙여 넣고 실행한다.
-//  4. 팝업 창에서 편집 범위를 고르고 값을 바꾼다. 페이지의 숫자를 클릭해서 마커를 고를 수도 있다.
+//  4. 실행하면 항상 사이트 공통 일괄 설정으로 시작한다. 대상 선택 없이 값을 바꿀 수 있다.
+//     카드·마커 예외를 편집할 때만 편집 범위를 바꾸고 대상을 고른다.
 //  5. "최종적용 코드 출력하기"를 눌러 나온 CSS, 카드 토큰, 마커를 노션의 해당 위치에 붙여 넣는다.
 //
 // [편집 범위]
 //  사이트 공통   :root CSS 변수(--counter-*_q7X)를 편집한다. 모든 카운터의 기본값이 된다.
-//                맨 위 "기본 모양" 섹션에서 숫자 기본 크기(NS)·굵기(NW)와 기본 정렬(TA)을 정한다.
+//                기본 화면에서 접두 1·접두 2·숫자·접미 1·접미 2를 모두 표시하고 각각 크기·굵기·색을 일괄 지정한다.
+//                숫자 크기(NS)·굵기(NW)·색(NTC)은 "일괄 설정 · 숫자", 기본 정렬(TA)은 "설정 · 정렬"에서 정한다.
 //                숫자 기본 크기를 비우면 노션 기본 크기를 따른다. 기본 정렬은 왼쪽(L)이다.
 //  카드          콜아웃 또는 컬럼 하나에 대한 [% call-counter :: ... %] 토큰 값을 편집한다.
 //                그 카드 안의 모든 마커에 적용된다. 항목마다 "개별 지정"을 켠 것만 토큰에 들어간다.
@@ -37,8 +39,9 @@
 //  노션 원문의 토큰·@ 설정은 바뀌지 않으므로, 영구 적용하려면 노션에서도 지워야 한다.
 //
 // [설정 항목]  call-counter 엔진의 schema()에서 읽어 자동으로 만든다.
-//  기본 모양     숫자 크기·굵기, 정렬
-//  접두·접미     접두 크기·굵기, 접미 크기·굵기, 부분 사이 간격
+//  위치별 일괄   접두 1, 접두 2, 숫자, 접미 1, 접미 2의 크기·굵기·색. 모두 항상 표시한다.
+//  정렬          L/C/R 기본 정렬
+//  접두·접미     접두 그룹 크기·굵기·색, 접미 그룹 크기·굵기·색, 부분 사이 간격
 //  라벨·텍스트   라벨 크기·굵기, 텍스트 크기·굵기
 //  숫자 표시     숫자 색, 양수·음수 색 구분, 콤마, 소수 자릿수, 큰 수 줄임
 //  재생          카운트업 시간, 가속 방식, 화면에 다시 들어오면 재생
@@ -47,13 +50,13 @@
 //  접두·접미의 글자와 마커 자체는 노션에서 수정한다. 이 대시보드는 스타일만 편집한다.
 //
 // [설정 점검]
-//  시험값을 넣어서 공통, 카드, 마커 편집이 모든 마커에 반영되는지 확인한다. 끝나면 편집 상태를 원래대로 되돌린다.
-//  결과는 항목마다 "공통: 적용 / 개별 지정 우선 / 실패, 카드 편집, 마커 편집"으로 표시된다. 개별 지정 우선은 정상 동작이다.
-//  엔진이 값을 반영했는지 확인하는 것이며, 화면에 보이는지는 직접 확인해야 한다.
+//  시험값을 넣어서 공통·마커의 설정값이 엔진으로 전달되는지 확인한다. 끝나면 실제 API의 임시 편집을 복원한다.
+//  결과는 "공통 설정값: 적용 / 개별 지정 우선 / 실패, 마커 설정값"으로 표시된다. 바깥 토큰도 개별 지정 우선으로 판정한다.
+//  config 설정값 전달 점검이며 실제 외형·조각/그룹 간 우선순위·카드 편집을 모두 검증하는 테스트는 아니다. 화면은 별도로 확인한다.
 //
 // [주요 기능]
 //  - 페이지 클릭 선택: 켜 두면 숫자를 클릭해서 마커를 고르고, 소속 카드도 함께 선택된다. 링크 이동은 막힌다.
-//    공통 모드에서 숫자를 클릭하면 마커 모드로 전환된다.
+//    페이지 숫자를 클릭해도 현재 편집 범위는 바뀌지 않는다. 일괄 편집 모드를 유지한다.
 //  - 되돌리기/다시 실행: 최대 100단계.
 //  - 원본 복원: 현재 편집 범위(공통, 선택 카드, 선택 마커)만 시작 상태로 되돌린다.
 //  - 눈 버튼: 누르고 있는 동안 웹사이트 시작 상태를 보여 주고, 떼면 편집 상태로 돌아온다.
@@ -82,24 +85,88 @@
 //  CallCounterEngine.dashboard.common.read / apply / restore / css
 //  CallCounterEngine.dashboard.counters.list / read / apply / restore / token
 //  CallCounterEngine.dashboard.scopes.list / read / apply / restore / token
-//  CallCounterEngine.rescan (선택)
+//  CallCounterEngine.dashboard.pieces.list (선택 마커 최종 조각 스타일·출처·계산값 읽기)
+//  CallCounterEngine.replay / rescan (선택)
 //  엔진에 필수 API가 없으면 실행하지 않고 콘솔에 오류를 남긴다.
 //
 // [알려진 제한]
 //  - 접두·접미의 글자 자체와 마커 추가·삭제는 지원하지 않는다. 노션에서 수정한다.
 //  - 카드 편집에서 개별 지정하지 않은 항목은 사이트 공통 값을 보여 준다. 바깥 카드의 토큰이 있으면 실제 값은 다를 수 있다.
-//  - 카드 목록에는 마커가 들어 있는 콜아웃·컬럼만 나온다.
-//  - 카운트업 시간, 가속 방식, 다시 재생은 카드가 화면에 들어올 때 확인된다. 다시 재생하는 버튼은 없다.
+//  - 카드 목록에는 마커가 들어 있는 가까운 콜아웃·컬럼과 바깥 컨테이너도 나온다.
+//  - 카운트업 시간, 가속 방식, 다시 재생은 카드가 화면에 들어올 때 확인된다. "선택 그룹 다시 재생" 버튼으로도 확인할 수 있다.
 //  - 노션 원문의 토큰은 엔진이 읽은 값 기준이다. 노션에서 토큰을 고친 뒤에는 새로고침한다.
 //  - 팝업이 차단되면 실행되지 않는다. PC 전용이다.
-//  - 검증 범위: 가상 환경(가짜 DOM과 엔진 API를 흉내 낸 가짜 엔진)에서 55개 시나리오를 확인했다.
+//  - 검증 범위: v1.0.0은 가상 환경에서 55개 시나리오를 확인했다.
+//    v1.2.0은 별도 가짜 DOM·가짜 엔진 API로 28개 시나리오를 확인했다.
 //    실제 노션 화면과 실제 엔진에 연결한 동작은 직접 확인해야 한다.
+//
+// [일괄 설정 기본 화면 v1.2.0]
+//  마커나 조각을 먼저 선택할 필요 없이 다음 다섯 위치를 모두 표시한다.
+//    접두 1 크기·굵기·색
+//    접두 2 크기·굵기·색
+//    숫자   크기·굵기·색
+//    접미 1 크기·굵기·색
+//    접미 2 크기·굵기·색
+//  사이트 공통 모드에서 입력하면 같은 위치 조각 전체의 CSS 기본값이 된다.
+//  접두·접미가 없는 마커에는 해당 위치 설정이 눈에 보이지 않는다. 다른 마커나 나중에 추가한 마커에는 적용된다.
+//  "접두 위치 추가", "접미 위치 추가" 버튼으로 접두 3, 접미 3 등을 추가한다.
+//  페이지에 이미 더 많은 위치의 마커·설정이 있으면 schema를 읽어 해당 위치도 표시한다.
+//  위치별 조각 선택 버튼으로 다른 설정을 숨기는 방식은 사용하지 않는다.
+//  위치 바로가기 버튼은 해당 섹션으로 스크롤할 뿐, 다른 위치의 설정을 숨기지 않는다.
+//
+// [범위별 적용]
+//  사이트 공통: 같은 위치 조각 전체의 CSS 기본값. 기본 실행 모드이며 대상 선택이 필요 없다.
+//  카드: 선택 카드 안 같은 위치 조각 전체의 토큰 설정. 개별 예외용이다.
+//  마커: 선택한 숫자 하나의 위치별 @ 설정. 개별 예외용이다.
+//  어떤 모드에서도 다섯 위치의 입력란은 동시에 보인다.
+//  공통 모드에서는 "개별 지정" 토글이 필요 없어 숨긴다. 카드·마커에서는 켠 항목만 직접 지정한다.
+//  화면의 숫자를 클릭해도 공통에서 마커 모드로 자동 전환하지 않는다.
+//  "개별 예외 대상 선택" 버튼을 누르면 카드·마커 선택 목록으로 이동한다.
+//
+// [그룹값과 위치별 값]
+//  PS/PW/PC는 접두 그룹 크기·굵기·색, SS/SW/SC는 접미 그룹 크기·굵기·색이다.
+//  PREFIX1_SIZE/WEIGHT/COLOR, PREFIX2_SIZE/WEIGHT/COLOR 등은 위치별 값이다.
+//  SUFFIX1_SIZE/WEIGHT/COLOR, SUFFIX2_SIZE/WEIGHT/COLOR 등도 같은 규칙이다.
+//  숫자는 NS/NW/NTC를 사용한다.
+//  위치별 값이 있으면 그룹값보다 우선한다. 각 설정 키 안에서는 마커 @ > 가까운 토큰 > 바깥 토큰 > 공통 CSS 순서이다.
+//  위치별 크기·굵기·색을 비우면 그룹값 또는 노션 상속으로 돌아간다.
+//  카드·마커의 개별 지정을 끄면 null을 적용해 그 계층의 지정을 제거한다. 위 계층에 같은 키가 있으면 그 값을 따른다.
+//  공통값을 바꿨다고 카드·마커의 예외를 자동 삭제하지 않는다. 우선 지정된 대상은 알림으로 표시한다.
+//
+// [CSS와 마커 출력]
+//  PREFIX1_SIZE  → --counter-prefix-1-size_q7X
+//  PREFIX2_COLOR → --counter-prefix-2-color_q7X
+//  SUFFIX1_WEIGHT → --counter-suffix-1-weight_q7X
+//  숫자는 기존 --counter-number-size_q7X / --counter-number-weight_q7X / --counter-number-color_q7X.
+//  모든 위치의 공통 설정은 공통 :root CSS 블록 하나에 함께 출력된다.
+//  카드·마커 예외는 해당 토큰·마커와 변경 목록으로 출력된다.
+//  슬롯·프리셋·되돌리기·눈 버튼·가져오기는 같은 설정 객체에 위치별 키를 포함해 보존한다.
+//  기존 v1.0.0/v1.1.0 저장 키와 JSON schema를 유지한다.
+//
+// [미리보기 정보]
+//  마커를 선택하면 위치별 설정 아래에 선택 마커의 최종 설정·출처·브라우저 계산 스타일을 표시한다.
+//  대상 선택이 없어도 공통 설정을 편집할 수 있다. 선택은 시각적 결과 확인 또는 개별 예외를 위한 것이다.
+//  선택한 마커에 해당 위치가 없으면 그 사실을 안내하지만 공통 설정 입력은 막지 않는다.
+//
+// [검증과 제한 추가]
+//  가짜 DOM·가짜 엔진 API로 미선택 상태 다섯 위치 크기·굵기·색 편집, 공통 CSS 출력,
+//  접두/접미 위치 추가, 페이지 클릭 시 범위 유지, 카드·마커 예외, 슬롯·프리셋,
+//  되돌리기·다시 실행, 점검 후 복원, 동적 CSS 가져오기, 오류 롤백을 확인했다(28건).
+//  실제 call-counter v4.1.0과 노션·우피에 연결한 시각적 결과는 아직 확인하지 않았다.
+//
+// [v1.2.0 변경]
+//  - 조각 선택 종속 화면을 폐기하고 위치별 일괄 설정을 기본 화면 맨 앞에 배치.
+//  - 실행할 때 항상 사이트 공통 모드. 대상 미선택 상태에서도 다섯 위치 편집 가능.
+//  - 카드·마커 개별 예외와 기존 저장·복원·출력 기능 유지.
+//  - 그룹 기본색 PC/SC와 위치 추가 버튼, 최종 계산 스타일 표시 추가.
+//  - 바깥 토큰 우선 판정, 가져오기 실패 시 롤백, 설정 점검 이후 실제 임시 편집 복원 보완.
+//  - 엔진 v4.1.0/API 1.1.0 필요. 저장 키 call-counter-dashboard-v1-* 유지.
 // =========================================================
 
 (function callCounterDashboardV1(){
 'use strict';
 const W=window,D=document,E=W.CallCounterEngine,A=E&&E.dashboard;
-if(!A||typeof A.schema!=='function'||!A.common||!A.counters||!A.scopes){console.error('[counter dashboard] 대시보드 API가 있는 call-counter v4 이상이 필요합니다.');return;}
+if(!A||typeof A.schema!=='function'||!A.common||!A.counters||!A.scopes||!A.pieces){console.error('[counter dashboard] 조각 API가 있는 call-counter v4.1.0 이상이 필요합니다.');return;}
 if(W.__callCounterDash&&W.__callCounterDash.destroy)W.__callCounterDash.destroy();
 const P=W.open('','CallCounterDashboard','width=690,height=980,resizable=yes,scrollbars=yes');
 if(!P){console.error('[counter dashboard] 팝업을 허용하고 다시 실행하세요.');return;}
@@ -138,11 +205,18 @@ function auditValue(f,cur){
 /*PURE-END*/
 
 const Q=(s,r=R)=>[...r.querySelectorAll(s)],STORE='call-counter-dashboard-v1';
-const SCHEMA=A.schema(),FIELD={};SCHEMA.forEach(f=>{FIELD[f.key]=f;});
-const GROUPS=[['기본 모양',['NS','NW','TA']],['접두·접미',['PS','PW','SS','SW','SP']],['라벨·텍스트',['LS','LW','TS','TW']],['숫자 표시',['NTC','SIGN_COLOR','COMMA','DECIMAL','ABBR']],['재생',['DURATION','EASE','REPLAY']]];
+let SCHEMA=A.schema();const FIELD={};SCHEMA.forEach(f=>{FIELD[f.key]=f;});
+function getField(key){
+ if(FIELD[key])return FIELD[key];
+ const m=/^(PREFIX|SUFFIX)([1-9]\d*)_(SIZE|WEIGHT|COLOR)$/.exec(key);if(!m)return null;
+ return FIELD[key]={key,css:'--counter-'+m[1].toLowerCase()+'-'+m[2]+'-'+m[3].toLowerCase()+'_q7X',type:m[3].toLowerCase(),defaultValue:'',piece:true};
+}
+function updateSchema(){SCHEMA=A.schema();SCHEMA.forEach(f=>FIELD[f.key]=f);}
+
+const GROUPS=[['정렬',['TA']],['접두·접미 그룹 기본값',['PS','PW','PC','SS','SW','SC','SP']],['라벨·텍스트',['LS','LW','TS','TW']],['숫자 표시',['SIGN_COLOR','COMMA','DECIMAL','ABBR']],['재생',['DURATION','EASE','REPLAY']]];
 const UIM={
  NS:{label:'숫자 크기'},NW:{label:'숫자 굵기'},TA:{label:'정렬'},
- PS:{label:'접두 크기'},PW:{label:'접두 굵기'},SS:{label:'접미 크기'},SW:{label:'접미 굵기'},SP:{label:'접두·숫자·접미 사이 간격',min:0,max:2,step:0.05},
+ PS:{label:'접두 그룹 크기'},PW:{label:'접두 그룹 굵기'},PC:{label:'접두 그룹 색'},SS:{label:'접미 그룹 크기'},SW:{label:'접미 그룹 굵기'},SC:{label:'접미 그룹 색'},SP:{label:'접두·숫자·접미 사이 간격',min:0,max:2,step:0.05},
  LS:{label:'라벨 크기'},LW:{label:'라벨 굵기'},TS:{label:'텍스트 크기'},TW:{label:'텍스트 굵기'},
  NTC:{label:'숫자 색'},SIGN_COLOR:{label:'양수·음수 색 구분'},COMMA:{label:'콤마'},DECIMAL:{label:'소수 자릿수'},ABBR:{label:'큰 수 줄임'},
  DURATION:{label:'카운트업 시간',min:0,max:6000,step:100},EASE:{label:'가속 방식'},REPLAY:{label:'화면에 다시 들어오면 재생'}
@@ -156,14 +230,14 @@ const COND={
  SP:'접두나 접미가 있는 마커에서만 보입니다.',
  LS:'숫자 블록 다음의 첫 글 블록(라벨)에 적용됩니다.',LW:'숫자 블록 다음의 첫 글 블록(라벨)에 적용됩니다.',
  TS:'라벨 뒤에 이어지는 글 블록(텍스트)에 적용됩니다.',TW:'라벨 뒤에 이어지는 글 블록(텍스트)에 적용됩니다.',
- NTC:'비우면 노션 기본 글자색입니다.',SIGN_COLOR:'숫자가 양수면 파랑, 음수면 빨강으로 표시합니다. 켜면 숫자 색(NTC)보다 우선합니다.',
+ NTC:'비우면 노션 기본 글자색입니다.',SIGN_COLOR:'양수 파랑·음수 빨강. 마커·토큰의 직접 숫자색은 자동색보다 우선하고 공통 CSS의 숫자색은 자동색보다 약합니다.',
  COMMA:'AUTO는 입력한 형식을 따릅니다. 카운트업 중과 최종 숫자에 모두 적용됩니다.',DECIMAL:'AUTO는 입력한 소수 자릿수를 따릅니다.',
  ABBR:'KR은 1만 이상, EN은 1,000 이상의 큰 수만 줄입니다.',
  DURATION:'카드가 화면에 들어올 때 재생됩니다. 바꾼 뒤 화면 밖으로 나갔다 다시 들어오면 확인할 수 있습니다.',
  EASE:'카운트업 속도 변화입니다. 재생할 때 확인됩니다.',REPLAY:'켜면 화면을 벗어날 때 0으로 되돌렸다가 다시 들어오면 재생합니다.'
 };
-const KEYWORDS=[['','비움 (노션 기본)'],['H1','H1 제목 크기'],['H2','H2 제목 크기'],['H3','H3 제목 크기'],['H4','H4 제목 크기'],['TEXT','TEXT 본문 크기'],['CUSTOM','직접 입력']];
-const WEIGHTS=[['','비움 (노션 기본)'],['100','100'],['200','200'],['300','300'],['400','400 보통'],['500','500'],['600','600'],['700','700 굵게'],['800','800'],['900','900']];
+const KEYWORDS=[['','비움 (그룹값 또는 노션 상속)'],['H1','H1 제목 크기'],['H2','H2 제목 크기'],['H3','H3 제목 크기'],['H4','H4 제목 크기'],['TEXT','TEXT 본문 크기'],['CUSTOM','직접 입력']];
+const WEIGHTS=[['','비움 (그룹값 또는 노션 상속)'],['100','100'],['200','200'],['300','300'],['400','400 보통'],['500','500'],['600','600'],['700','700 굵게'],['800','800'],['900','900']];
 const OPT={
  COMMA:[['AUTO','입력 형식 따름 (AUTO)'],['TRUE','항상 표시'],['FALSE','표시 안 함']],
  DECIMAL:[['AUTO','입력 자릿수 따름 (AUTO)']].concat([0,1,2,3,4,5,6,7,8].map(n=>[String(n),n+'자리'])),
@@ -174,7 +248,9 @@ const TYPE_KIND={size:'size',weight:'weight',align:'align',color:'color',bool:'b
 
 const readLS=(key,fb)=>{try{const v=W.localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){return fb;}};
 let prefs=Object.assign({light:false,pick:true,mode:'common',full:false},readLS(STORE+'-preferences',{}));
+prefs.mode='common'; // 실행할 때는 항상 일괄 설정으로 시작한다.
 let slots=readLS(STORE+'-slots',[]),presets=readLS(STORE+'-presets',[]);if(!Array.isArray(slots))slots=[];if(!Array.isArray(presets))presets=[];
+let prefixCount=2,suffixCount=2;const slotSections={};
 let closed=false,peeking=false,selScope='',selCounter='',scopeRecs=[],counterRecs=[],model={common:{},scopes:{},counters:{}},hist=[],hi=0,histTimer=null,toastTimer=null,hover=null,peekSaved=null;
 
 const highStyle=D.createElement('style');highStyle.textContent='[data-ce-counter-selected]{outline:3px dashed #ff6b35!important;outline-offset:3px!important}[data-ce-counter-hover]{outline:2px solid #ff6b35aa!important;outline-offset:2px!important}';D.head.appendChild(highStyle);
@@ -191,8 +267,9 @@ const style=elem('style',null,R);style.textContent=`
 .field{min-width:0;padding:10px 0;border-bottom:1px dashed var(--bd)}.field:last-child{border-bottom:0}.label{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;font-weight:650;margin-bottom:6px}.var{font:10px monospace;color:var(--mu);margin-bottom:5px;overflow-wrap:anywhere}.controls{width:100%;min-width:0}.txt,.num,select,textarea{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:7px 8px;outline:none;min-width:0}.txt{width:100%}.num{width:78px;flex:none}select{max-width:100%}.controls input[type=range]{flex:1;min-width:40px;accent-color:var(--ac)}.controls .txt{flex:1}.badinput{border-color:#ef4444!important}.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}.pair .controls{flex-wrap:wrap;gap:5px}.pair .controls input[type=range]{min-width:65px}.pair .num{width:65px}.colorrow{display:grid;grid-template-columns:38px minmax(80px,.9fr) minmax(140px,1.7fr) 28px;align-items:center;gap:8px;width:100%}.colorchip{width:38px;height:34px;padding:0;border:1px solid var(--bd);border-radius:5px;background:none}.alpha{display:flex;gap:4px;align-items:center;min-width:0}.alpha input{width:100%;min-width:20px;accent-color:var(--ac)}.percent{font-size:10px;color:var(--mu);width:31px}
 .switch{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:400;cursor:pointer}.switch input{position:absolute;opacity:0;width:1px;height:1px}.track{position:relative;width:34px;height:19px;border-radius:20px;background:var(--bd);flex:none}.track:before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;border-radius:50%;background:white}.switch input:checked+.track{background:var(--ac)}.switch input:checked+.track:before{transform:translateX(15px)}.switch input:disabled+.track{opacity:.4}.switch input:focus-visible+.track{outline:2px solid var(--ac);outline-offset:2px}.list{max-height:155px;overflow:auto;border:1px solid var(--bd);border-radius:6px;margin-top:8px}.item{display:flex;gap:8px;padding:7px 9px;border-bottom:1px solid var(--bd);cursor:pointer}.item.active{border-left:3px solid var(--ac);background:#ff6b3515}.item:hover{background:#ff6b3510}.item .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.no{color:var(--mu);min-width:22px}textarea{width:100%;height:95px;resize:vertical;font:12px/1.45 monospace;color:#10b981}.warnings{font-size:11px;color:#d89827;white-space:pre-wrap;margin:7px 0}.preset{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--bd)}.preset span{flex:1}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);max-width:95%;background:var(--ac);color:white;padding:9px 15px;border-radius:20px;z-index:99}.minibtn{position:fixed;bottom:15px;right:15px;width:46px;height:46px;border-radius:50%;background:#ff6b35;color:white;font-size:22px}.eye{touch-action:none}.peek .body{pointer-events:none;opacity:.6}
 .seg{display:flex;gap:5px}.seg button{min-width:46px}.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.warnings button{margin-top:6px}.item.warn{color:#d89827}`;
+style.textContent+=' .slotnav{display:flex;gap:6px;flex-wrap:wrap}.slotnav button.on{color:var(--ac);border-color:var(--ac)}.slotsection{scroll-margin-top:15px}.sectionnote{font-size:11px;color:var(--mu);margin-bottom:8px}';
 const app=elem('div',null,R,{class:'app'+(prefs.light?' light':'')});
-const hd=elem('div',null,app,{class:'hd'}),top=elem('div',null,hd,{class:'top'});elem('div','Call Counter Dashboard v1.0',top,{class:'ttl'});const tb=elem('div',null,top,{class:'row'});
+const hd=elem('div',null,app,{class:'hd'}),top=elem('div',null,hd,{class:'top'});elem('div','Call Counter Dashboard v1.2',top,{class:'ttl'});const tb=elem('div',null,top,{class:'row'});
 switcher(tb,'다크 / 라이트',prefs.light,v=>{prefs.light=v;app.classList.toggle('light',v);savePrefs();});
 button('−',tb,()=>{app.classList.add('hidden');mini.classList.remove('hidden');},'최소화').className='ib';button('×',tb,closeUI).className='ib';
 const bar=elem('div',null,hd,{class:'toolbar'}),undo=button('↶',bar,()=>historyStep(-1),'되돌리기'),redo=button('↷',bar,()=>historyStep(1),'다시 실행');
@@ -207,12 +284,21 @@ const pv=elem('div',null,app,{class:'pv'}),pvtop=elem('div',null,pv,{class:'pvto
 const body=elem('div',null,app,{class:'body'});
 function section(title,parent=body){const s=elem('section',null,parent,{class:'sec'});s.dataset.title=title;elem('h2',title,s);return s;}
 
-const selSec=section('1. 대상 선택');switcher(selSec,'페이지 클릭 선택 · 켜면 숫자를 클릭해 마커를 고르고 링크 이동을 막음',prefs.pick,v=>{prefs.pick=v;clearHover();savePrefs();});
-const nav=elem('div',null,selSec,{class:'toolbar'});button('↻',nav,()=>{E.rescan&&E.rescan();refresh();syncUI();},'다시 스캔');button('선택 해제',nav,()=>choose(''));const count=elem('span','',nav,{class:'hint'});
+const bulkNote=section('기본 편집 · 위치별 일괄 설정');
+elem('div','사이트 공통이 기본입니다. 대상 선택 없이 아래 접두 1·접두 2·숫자·접미 1·접미 2의 크기·굵기·색을 모두 설정할 수 있습니다. 같은 위치의 조각 전체가 CSS 기본값을 사용합니다. 카드·마커 모드는 개별 예외용입니다.',bulkNote,{class:'hint'});
+const addBar=elem('div',null,bulkNote,{class:'toolbar'});
+button('접두 위치 추가',addBar,()=>addSlot('prefix'));
+button('접미 위치 추가',addBar,()=>addSlot('suffix'));
+button('개별 예외 대상 선택',addBar,()=>selSec.scrollIntoView({block:'start',behavior:'smooth'}));
+const selSec=section('대상 선택 · 개별 예외 / 미리보기');switcher(selSec,'페이지 클릭 선택 · 켜면 숫자를 클릭해 마커를 고르고 링크 이동을 막음',prefs.pick,v=>{prefs.pick=v;clearHover();savePrefs();});
+const nav=elem('div',null,selSec,{class:'toolbar'});button('↻',nav,()=>{E.rescan&&E.rescan();refresh();syncUI();},'다시 스캔');button('선택 해제',nav,()=>choose(''));button('선택 그룹 다시 재생',nav,()=>{if(!selCounter)throw new Error('마커를 선택하세요.');if(E.replay)E.replay(selCounter);});const count=elem('span','',nav,{class:'hint'});
 elem('div','카드 (콜아웃·컬럼 단위, 토큰 설정)',selSec,{class:'label'});const scopeList=elem('div',null,selSec,{class:'list'});
 elem('div','마커 (숫자 하나)',selSec,{class:'label'});const counterList=elem('div',null,selSec,{class:'list'});
+const slotNav=elem('div',null,body,{class:'slotnav toolbar'});
 const settingsWrap=elem('div',null,body);
+const slotWrap=elem('div',null,settingsWrap);
 const entries=[];
+
 
 function numberControl(row,m,unitList,fixedUnit,onSubmit,ranges){
  const slider=elem('input',null,row,{type:'range',min:m.min,max:m.max,step:m.step||1});
@@ -267,16 +353,43 @@ function buildField(f,parent){
  entry.block=elem('div',null,box,{class:'warnings hidden'});entry.blockText=elem('div','',entry.block);button('개별 지정 해제하고 공통값 확인',entry.block,()=>releaseOwn(entry),'해당 카드·마커의 이 항목 지정을 임시로 풀어 공통값을 화면에서 확인합니다. 노션 원문은 바뀌지 않습니다.');
  return entry;
 }
-const placed={};
+const placed={NS:1,NW:1,NTC:1};
+function slotKeys(kind,n){return kind==='number'?['NS','NW','NTC']:['SIZE','WEIGHT','COLOR'].map(a=>kind.toUpperCase()+n+'_'+a);}
+function addSlotFields(kind,n){
+ const id=kind==='number'?'number':kind+':'+n;if(slotSections[id])return;
+ const title=kind==='number'?'숫자':(kind==='prefix'?'접두 ':'접미 ')+n;
+ const sec=section('일괄 설정 · '+title,slotWrap);sec.classList.add('slotsection');
+ sec.dataset.slot=id;slotSections[id]=sec;
+ elem('div',kind==='number'?'모든 마커의 숫자 기본 모양. 크기를 비우면 노션 기본 크기입니다.':title+' 위치가 있는 마커에만 적용됩니다. 비우면 접두·접미 그룹 기본값을 따릅니다. 글자와 기호를 구분하지 않습니다.',sec,{class:'sectionnote'});
+ slotKeys(kind,n).forEach((key,i)=>{
+  const f=getField(key);UIM[key]={label:title+' '+['크기','굵기','색'][i]};
+  const e=buildField(f,sec);e.slot={kind,index:n,id,attr:['size','weight','color'][i]};entries.push(e);
+ });
+}
+function orderSlots(){
+ const order=[];for(let i=1;i<=prefixCount;i++)order.push('prefix:'+i);order.push('number');for(let i=1;i<=suffixCount;i++)order.push('suffix:'+i);
+ order.forEach(id=>{if(slotSections[id])slotWrap.appendChild(slotSections[id]);});
+ slotNav.replaceChildren();order.forEach(id=>{const sec=slotSections[id];if(sec)button(id==='number'?'숫자':id.replace('prefix:','접두 ').replace('suffix:','접미 '),slotNav,()=>{sec.scrollIntoView({block:'start',behavior:'smooth'});});});
+}
+function ensureSlots(){
+ updateSchema();Object.values(FIELD).forEach(f=>{const m=/^(PREFIX|SUFFIX)([1-9]\d*)_/.exec(f.key);if(m){if(m[1]==='PREFIX')prefixCount=Math.max(prefixCount,Number(m[2]));else suffixCount=Math.max(suffixCount,Number(m[2]));}});
+ for(let i=1;i<=prefixCount;i++)addSlotFields('prefix',i);addSlotFields('number',0);for(let i=1;i<=suffixCount;i++)addSlotFields('suffix',i);
+ orderSlots();
+}
+function addSlot(kind){if(kind==='prefix')prefixCount++;else suffixCount++;ensureSlots();syncValues(true);filterSettings();}
+ensureSlots();
 GROUPS.forEach(([g,keys])=>{const sec=section('설정 · '+g,settingsWrap);keys.forEach(k=>{if(FIELD[k]){entries.push(buildField(FIELD[k],sec));placed[k]=1;}});});
-const rest=SCHEMA.filter(f=>!placed[f.key]);if(rest.length){const sec=section('설정 · 기타',settingsWrap);rest.forEach(f=>entries.push(buildField(f,sec)));}
+const rest=SCHEMA.filter(f=>!placed[f.key]&&!f.piece&&!/^(PREFIX|SUFFIX)\d+_/.test(f.key));if(rest.length){const sec=section('설정 · 기타',settingsWrap);rest.forEach(f=>entries.push(buildField(f,sec)));}
+body.insertBefore(slotNav,selSec);body.insertBefore(settingsWrap,selSec); // 기본 화면은 대상 선택보다 일괄 설정을 먼저 보여 준다.
+
+
 
 const auditSec=section('설정 점검');
-elem('div','시험값을 넣어서 사이트 공통, 카드, 마커 편집이 모든 마커에 반영되는지 확인하고 끝나면 편집 상태를 원래대로 되돌립니다. 눈에 보이는지는 직접 확인하세요.',auditSec,{class:'hint'});
+elem('div','공통·마커 설정값이 엔진으로 전달되는지 확인하고 실제 임시 편집을 복원합니다. 화면 외형·조각/그룹 상속 전체나 카드 편집을 검증하는 테스트는 아닙니다.',auditSec,{class:'hint'});
 button('설정 점검 실행',auditSec,runAudit).className='primary';
 const auditOut=elem('div',null,auditSec,{class:'list'});auditOut.style.maxHeight='none';
 
-const notes=section('지원 범위');elem('div','접두·접미의 글자와 마커 자체는 노션에서 수정하고, 이 대시보드는 크기·굵기·간격 같은 스타일을 편집합니다. 노션 원문은 수정하지 않으며, 새로고침하면 임시 편집이 사라집니다. 사이트 공통 값은 카드 토큰과 마커 개별 설정(@)보다 약합니다. 카운트업 관련 설정은 카드가 화면에 다시 들어올 때 확인됩니다.',notes,{class:'warnings'});
+const notes=section('지원 범위');elem('div','접두·접미의 글자와 마커 자체는 노션에서 수정하고, 이 대시보드는 위치별 일괄 스타일과 개별 예외를 편집합니다. 노션 원문은 수정하지 않으며, 새로고침하면 임시 편집이 사라집니다. 사이트 공통 값은 카드 토큰과 마커 개별 설정(@)보다 약합니다. 카운트업 관련 설정은 카드가 화면에 다시 들어올 때 확인됩니다.',notes,{class:'warnings'});
 
 const outputs=section('최종 적용 코드');button('최종적용 코드 출력하기',outputs,()=>{outputPanel.classList.toggle('hidden');renderOutputs();}).className='primary';
 const outputPanel=elem('div',null,outputs,{class:'hidden'}),opts=elem('div',null,outputPanel,{class:'toolbar'});
@@ -295,7 +408,7 @@ function savePrefs(){try{W.localStorage.setItem(STORE+'-preferences',JSON.string
 function saveStorage(key,data){try{W.localStorage.setItem(key,JSON.stringify(data));return true;}catch(e){message('저장소 쓰기 실패. JSON으로 내보내세요.',true);return false;}}
 function message(text,error=false){toast.textContent=text;toast.style.background=error?'#bb3434':'';toast.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.add('hidden'),2600);if(error){live.className='live bad';live.textContent=text;}}
 
-function commonRead(){const c=A.common.read()||{};return {values:c.values||c,explicit:c.explicit||{}};}
+function commonRead(){const c=A.common.read()||{},values=Object.assign({},c.values||c);Object.values(FIELD).forEach(f=>{if(values[f.key]===undefined)values[f.key]=f.defaultValue;});return {values,explicit:c.explicit||{}};}
 function scopeState(id){const d=A.scopes.read(id),own={};Object.keys(d.token||{}).forEach(k=>{own[k]=d.token[k];});Object.keys(d.edit||{}).forEach(k=>{if(d.edit[k]===null)delete own[k];else own[k]=d.edit[k];});return {own,data:d};}
 function counterState(id){const d=A.counters.read(id),own=Object.assign({},d.marker||{});Object.keys(d.edit||{}).forEach(k=>{if(d.edit[k]===null)delete own[k];else own[k]=d.edit[k];});return {own,data:d};}
 function scopeOfCounter(rec){
@@ -317,10 +430,11 @@ function submitField(entry,value){
 }
 function currentShown(f){
  const cm=commonRead();
- if(prefs.mode==='card'&&selScope){const st=scopeState(selScope);return has(st.own,f.key)?st.own[f.key]:cm.values[f.key];}
- if(prefs.mode==='counter'&&selCounter){const st=counterState(selCounter);return has(st.own,f.key)?st.own[f.key]:st.data.config[f.key];}
- return cm.values[f.key];
+ if(prefs.mode==='counter'&&selCounter){const st=counterState(selCounter);return has(st.own,f.key)?st.own[f.key]:st.data.config[f.key]||'';}
+ if(prefs.mode==='card'&&selScope){const st=scopeState(selScope);if(has(st.own,f.key))return st.own[f.key];const sr=scopeRecs.find(s=>s.id===selScope);const cr=counterRecs.find(c=>sr&&sr.element&&sr.element.contains(c.element));if(cr){const d=A.counters.read(cr.id);return d.config[f.key]||cm.values[f.key]||'';}}
+ return cm.values[f.key]||'';
 }
+
 function toggleOwn(f,on){
  if(prefs.mode==='common')return;
  if(prefs.mode==='card'){if(!selScope)throw new Error('카드를 선택하세요.');}
@@ -344,22 +458,17 @@ function resetKey(f){
 function afterEdit(){renderOutputs();updateMeta();syncValues(false);clearTimeout(histTimer);histTimer=setTimeout(flushHistory,350);}
 function emptyModel(){return {common:{},scopes:{},counters:{}};}
 function applyModel(next){
- const old=copy(model);model=copy(next);const missing=[];
- try{
-  A.common.restore();if(Object.keys(model.common).length)A.common.apply(copy(model.common));
-  const liveS=new Set(A.scopes.list().map(x=>x.id)),liveC=new Set(A.counters.list().map(x=>x.id));
-  for(const id of new Set([...Object.keys(old.scopes),...Object.keys(model.scopes)])){
-   if(!liveS.has(id)){missing.push(id);continue;}
-   A.scopes.restore(id);const p=model.scopes[id];if(p&&Object.keys(p).length)A.scopes.apply(id,copy(p));
-  }
-  for(const id of new Set([...Object.keys(old.counters),...Object.keys(model.counters)])){
-   if(!liveC.has(id)){missing.push(id);continue;}
-   A.counters.restore(id);const p=model.counters[id];if(p&&Object.keys(p).length)A.counters.apply(id,copy(p));
-  }
- }catch(e){model=old;throw e;}
- refresh();syncUI();
- if(missing.length)message('대상이 없는 항목 '+missing.length+'개는 건너뛰었습니다.',true);
+ const old=copy(model),missing=[];
+ function put(m){
+  A.common.restore();if(Object.keys(m.common).length)A.common.apply(copy(m.common));
+  const ls=new Set(A.scopes.list().map(x=>x.id)),lc=new Set(A.counters.list().map(x=>x.id));
+  for(const id of new Set([...Object.keys(old.scopes),...Object.keys(next.scopes)])){if(!ls.has(id)){missing.push(id);continue;}A.scopes.restore(id);if(m.scopes[id]&&Object.keys(m.scopes[id]).length)A.scopes.apply(id,copy(m.scopes[id]));}
+  for(const id of new Set([...Object.keys(old.counters),...Object.keys(next.counters)])){if(!lc.has(id)){missing.push(id);continue;}A.counters.restore(id);if(m.counters[id]&&Object.keys(m.counters[id]).length)A.counters.apply(id,copy(m.counters[id]));}
+ }
+ try{put(next);model=copy(next);}catch(e){try{put(old);}catch(rb){console.error('복원 실패',rb);}model=old;throw e;}
+ refresh();syncUI();if(missing.length)message('대상이 없는 항목 '+new Set(missing).size+'개는 건너뛰었습니다.',true);
 }
+
 function stateString(){return JSON.stringify(model);}
 function flushHistory(){clearTimeout(histTimer);histTimer=null;const s=stateString();if(hist[hi]===s)return;hist=hist.slice(0,hi+1);hist.push(s);if(hist.length>100)hist.shift();hi=hist.length-1;updateMeta();}
 function commitModel(next){flushHistory();const old=copy(model);try{applyModel(next);flushHistory();}catch(e){try{applyModel(old);}catch(err){console.error('복원 실패',err);}throw e;}}
@@ -374,41 +483,21 @@ function restoreScope(){
 function invalidate(){if(!P.confirm('임시 편집을 모두 무효화하고 웹사이트 시작 상태로 복원할까요? 저장 슬롯은 유지됩니다.'))return;commitModel(emptyModel());hist=[stateString()];hi=0;message('웹사이트 시작 상태로 복원했습니다.');}
 
 function runAudit(){
- flushHistory();const saved=copy(model);refresh();
- const ids=counterRecs.map(r=>r.id),rows=[];
- try{
-  A.common.restore();scopeRecs.forEach(s=>A.scopes.restore(s.id));counterRecs.forEach(c=>A.counters.restore(c.id));
-  const cm0=commonRead().values;
-  SCHEMA.forEach(f=>{
-   const m=UIM[f.key]||{label:f.key},test=auditValue(f,cm0[f.key]);
-   if(test===undefined){rows.push({m,skip:true});return;}
-   const c={ok:0,blocked:0,fail:0},s={ok:0,fail:0},k={ok:0,fail:0};
-   A.common.apply({[f.key]:test});
-   ids.forEach(id=>{const d=A.counters.read(id),st=counterState(id);if(sameVal(d.config[f.key],test))c.ok++;else if(has(st.own,f.key)||scopeHasOwn(id,f.key))c.blocked++;else c.fail++;});
-   A.common.apply({[f.key]:null});
-   scopeRecs.forEach(sr=>{
-    const test2=auditValue(f,A.counters.list().length?A.counters.read(A.counters.list()[0].id).config[f.key]:cm0[f.key]);
-    A.scopes.apply(sr.id,{[f.key]:test2});
-    const inScope=counterRecs.filter(cr=>scopeOfCounter(cr)===sr.id&&!has(counterState(cr.id).own,f.key));
-    if(!inScope.length){s.ok++;}else if(inScope.every(cr=>sameVal(A.counters.read(cr.id).config[f.key],test2)))s.ok++;else s.fail++;
-    A.scopes.restore(sr.id);
-   });
-   ids.forEach(id=>{A.counters.apply(id,{[f.key]:test});if(sameVal(A.counters.read(id).config[f.key],test))k.ok++;else k.fail++;A.counters.restore(id);});
-   rows.push({m,c,s,k});
-  });
- }finally{try{applyModel(saved);}catch(e){console.error(e);}}
- auditOut.replaceChildren();let bad=0;
- rows.forEach(r=>{
-  const fail=!r.skip&&(r.c.fail>0||r.s.fail>0||r.k.fail>0);if(fail)bad++;
-  const txt=r.skip?'– '+r.m.label+': 점검 제외':(fail?'⚠ ':'✓ ')+r.m.label+' — 공통: 적용 '+r.c.ok+' · 개별 지정 우선 '+r.c.blocked+' · 실패 '+r.c.fail+' / 카드 편집: '+r.s.ok+'/'+(r.s.ok+r.s.fail)+' / 마커 편집: '+r.k.ok+'/'+(r.k.ok+r.k.fail);
-  elem('div',txt,auditOut,{class:'item'+(fail?' warn':'')});
- });
- message(bad?'점검 결과 반영되지 않는 항목이 '+bad+'개 있습니다.':'점검 완료: 모든 항목이 반영됩니다. (개별 지정 우선은 정상 동작)',!!bad);
+ flushHistory();refresh();const ids=counterRecs.map(c=>c.id),fields=Object.values(FIELD),rows=[],snap={common:copy(A.common.read().edited||{}),scopes:{},counters:{}};
+ scopeRecs.forEach(s=>snap.scopes[s.id]=copy(A.scopes.read(s.id).edit||{}));counterRecs.forEach(c=>snap.counters[c.id]=copy(A.counters.read(c.id).edit||{}));
+ function restore(){A.common.restore();if(Object.keys(snap.common).length)A.common.apply(copy(snap.common));scopeRecs.forEach(s=>{A.scopes.restore(s.id);if(Object.keys(snap.scopes[s.id]).length)A.scopes.apply(s.id,copy(snap.scopes[s.id]));});counterRecs.forEach(c=>{A.counters.restore(c.id);if(Object.keys(snap.counters[c.id]).length)A.counters.apply(c.id,copy(snap.counters[c.id]));});}
+ try{const cm=commonRead().values;fields.forEach(f=>{const value=auditValue(f,cm[f.key]),r={label:UIM[f.key]?.label||f.key,ok:0,blocked:0,fail:0,markers:0};if(value===undefined)return;
+  try{A.common.apply({[f.key]:value});ids.forEach(id=>{const d=A.counters.read(id);if(sameVal(d.config[f.key],value))r.ok++;else if(has(counterState(id).own,f.key)||scopeHasOwn(id,f.key))r.blocked++;else r.fail++;});}finally{A.common.apply({[f.key]:has(snap.common,f.key)?snap.common[f.key]:null});}
+  ids.forEach(id=>{try{const d=A.counters.apply(id,{[f.key]:value});if(sameVal(d.config[f.key],value))r.markers++;else r.fail++;}catch(e){r.fail++;}finally{A.counters.restore(id);if(Object.keys(snap.counters[id]).length)A.counters.apply(id,copy(snap.counters[id]));}});rows.push(r);
+ });}finally{restore();refresh();syncUI();}
+ auditOut.replaceChildren();let bad=0;rows.forEach(r=>{if(r.fail)bad++;elem('div',(r.fail?'⚠ ':'✓ ')+r.label+' — 공통 설정값: 적용 '+r.ok+' · 개별 지정 우선 '+r.blocked+' · 실패 '+r.fail+' / 마커 설정값: '+r.markers+'/'+ids.length,auditOut,{class:'item'+(r.fail?' warn':'')});});
+ message('설정값 전달 점검 완료 · 실패 '+bad+'개. 실제 외형·조각 그룹 상속은 별도 확인하세요.',!!bad);
 }
-function scopeHasOwn(counterId,key){const rec=counterRecs.find(c=>c.id===counterId),sid=scopeOfCounter(rec);if(!sid)return false;try{return has(scopeState(sid).own,key);}catch(e){return false;}}
+
+function scopeHasOwn(counterId,key){const rec=counterRecs.find(c=>c.id===counterId);if(!rec)return false;return scopeRecs.some(s=>s.element&&s.element.contains(rec.element)&&has(scopeState(s.id).own,key));}
 
 function refresh(){
- counterRecs=A.counters.list();scopeRecs=A.scopes.list();
+ counterRecs=A.counters.list();scopeRecs=A.scopes.list();ensureSlots();
  if(selCounter&&!counterRecs.some(r=>r.id===selCounter)){selCounter='';}
  if(selScope&&!scopeRecs.some(r=>r.id===selScope)){selScope='';}
  renderLists();updateMeta();
@@ -417,7 +506,7 @@ function renderLists(){
  scopeList.replaceChildren();counterList.replaceChildren();
  scopeRecs.forEach((s,i)=>{
   const row=elem('div',null,scopeList,{class:'item'+(s.id===selScope?' active':''),role:'button',tabindex:'0',title:s.id});
-  const n=counterRecs.filter(c=>scopeOfCounter(c)===s.id).length;
+  const n=counterRecs.filter(c=>s.element&&s.element.contains(c.element)).length;
   elem('span',String(i+1),row,{class:'no'});elem('span',s.id==='page'?'페이지 (카드 밖)':s.title,row,{class:'name'});elem('span',n+'개',row,{class:'hint'});
   row.onclick=guarded(()=>chooseScope(s.id));row.onkeydown=guarded(e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();chooseScope(s.id);}});
  });
@@ -441,7 +530,8 @@ function choose(id,scroll=true){
 }
 function chooseScope(id){
  if(peeking)return;flushHistory();selScope=id||'';
- const first=counterRecs.find(c=>scopeOfCounter(c)===selScope);
+ const sr=scopeRecs.find(s=>s.id===selScope);
+ const first=counterRecs.find(c=>sr&&sr.element&&sr.element.contains(c.element));
  if(first){selCounter=first.id;if(first.element&&first.element.scrollIntoView)first.element.scrollIntoView({block:'center',behavior:'smooth'});}
  markSelected();renderLists();syncUI();
 }
@@ -455,6 +545,7 @@ function syncValues(write=true){
  counterRecs.forEach(c=>{try{cStates[c.id]=counterState(c.id);}catch(e){}});
  entries.forEach(e=>{
   const f=e.f,key=f.key;
+  e.own.parentNode.classList.toggle('hidden',mode==='common');
   if(mode==='common'){
    const edited=has(model.common,key);
    e.ctl.set(cm.values[key]);e.ctl.disable(false);e.own.disabled=true;e.own.checked=false;
@@ -478,6 +569,12 @@ function syncValues(write=true){
    e.ctl.set(own?st.own[key]:(st?st.data.config[key]:cm.values[key]));e.ctl.disable(!st||!own);e.own.disabled=!st;e.own.checked=own;
    e.source.className='source '+(own?'own':'common');
    e.source.textContent=!st?'마커를 선택하세요. 공통값을 보여 줍니다.':own?'마커 개별 지정(@): '+st.own[key]:'카드·공통값 따름: '+st.data.config[key];
+  }
+  if(e.slot){
+   const raw=mode==='common'?cm.values[key]:mode==='card'?(selScope?sStates[selScope]?.own[key]:undefined):(selCounter?cStates[selCounter]?.own[key]:undefined);
+   if(raw===undefined)e.ctl.set('');
+   if(mode==='common')e.source.textContent='공통 '+(e.slot.kind==='number'?'숫자':(e.slot.kind==='prefix'?'접두 ':'접미 ')+e.slot.index)+' 기본값: '+(cm.values[key]||'그룹값 또는 노션 상속')+(has(model.common,key)?' (편집 중)':'');
+   if(selCounter){try{const part=A.pieces.list(selCounter).find(p=>p.id===e.slot.id);if(part)e.source.textContent+='\n선택 마커 최종: '+(part.values[e.slot.attr]||'노션 상속')+' · 출처 '+part.sources[e.slot.attr]+' · 계산 '+part.computed[e.slot.attr];else e.source.textContent+='\n선택 마커에는 이 위치가 없습니다. 설정은 같은 위치가 있는 다른 마커에 적용됩니다.';}catch(err){}}
   }
   if(!write&&e.hint.textContent){}else e.hint.textContent='';
  });
@@ -517,8 +614,8 @@ function storagePayload(){return {schema:'call-counter-dashboard-1',page:W.locat
 function validateModel(v){
  if(!v||typeof v!=='object')throw new Error('설정 구조가 잘못됐습니다.');
  const out=emptyModel(),okVal=x=>x===null||['string','number','boolean'].includes(typeof x);
- Object.entries(v.common||{}).forEach(([k,x])=>{if(!FIELD[k]||x===null||!okVal(x))throw new Error('공통 설정 오류: '+k);out.common[k]=String(x);});
- ['scopes','counters'].forEach(bucket=>Object.entries(v[bucket]||{}).forEach(([id,p])=>{out[bucket][id]={};Object.entries(p||{}).forEach(([k,x])=>{if(!FIELD[k]||!okVal(x))throw new Error((bucket==='scopes'?'카드':'마커')+' 설정 오류: '+k);out[bucket][id][k]=x===null?null:String(x);});}));
+ Object.entries(v.common||{}).forEach(([k,x])=>{if(!getField(k)||x===null||!okVal(x))throw new Error('공통 설정 오류: '+k);out.common[k]=String(x);});
+ ['scopes','counters'].forEach(bucket=>Object.entries(v[bucket]||{}).forEach(([id,p])=>{out[bucket][id]={};Object.entries(p||{}).forEach(([k,x])=>{if(!getField(k)||!okVal(x))throw new Error((bucket==='scopes'?'카드':'마커')+' 설정 오류: '+k);out[bucket][id][k]=x===null?null:String(x);});}));
  return out;
 }
 function saveSlot(){flushHistory();const name=P.prompt('저장 슬롯 이름',new Date().toLocaleString());if(name===null)return;const s={id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),name:name.trim()||'임시저장',payload:storagePayload()};const next=[s,...slots].slice(0,30);if(!saveStorage(STORE+'-slots',next)){saveStatus.textContent='저장 실패 · 기존 슬롯 유지';return;}slots=next;renderSlots();saveStatus.textContent='저장: '+new Date(s.payload.time).toLocaleString();message('공통·카드·마커 편집을 함께 저장했습니다.');}
@@ -529,18 +626,19 @@ function deleteSlot(){const s=slots.find(x=>x.id===slotsSelect.value);if(!s)retu
 function importData(){
  const text=importText.value.trim();if(!text)throw new Error('코드를 붙여넣으세요.');
  if(text.startsWith('{')){loadPayload(JSON.parse(text));return;}
- const r=parseCssImport(text,SCHEMA);if(r.unknown.length)throw new Error('미지원 변수: '+r.unknown.join(', '));if(!Object.keys(r.patch).length)throw new Error('지원하는 call-counter 변수가 없습니다.');
+ for(const m of text.matchAll(/--counter-(prefix|suffix)-([1-9]\d*)-(size|weight|color)_q7X/g))getField(m[1].toUpperCase()+m[2]+'_'+m[3].toUpperCase());
+ const r=parseCssImport(text,Object.values(FIELD));if(r.unknown.length)throw new Error('미지원 변수: '+r.unknown.join(', '));if(!Object.keys(r.patch).length)throw new Error('지원하는 call-counter 변수가 없습니다.');
  const next=copy(model);if(importReset.checked)next.common={};Object.assign(next.common,r.patch);commitModel(next);
 }
 function currentPresetData(){
- if(prefs.mode==='common'){const cm=commonRead(),d={};SCHEMA.forEach(f=>{d[f.key]=String(cm.values[f.key]==null?'':cm.values[f.key]);});return d;}
+ if(prefs.mode==='common'){const cm=commonRead(),d={};Object.values(FIELD).forEach(f=>{d[f.key]=String(cm.values[f.key]==null?'':cm.values[f.key]);});return d;}
  if(prefs.mode==='card'){if(!selScope)throw new Error('카드를 선택하세요.');return copy(scopeState(selScope).own);}
  if(!selCounter)throw new Error('마커를 선택하세요.');return copy(counterState(selCounter).own);
 }
 function savePreset(){const name=presetName.value.trim();if(!name)throw new Error('이름을 입력하세요.');const data=currentPresetData();presets=presets.filter(p=>p.name!==name||p.mode!==prefs.mode);presets.unshift({name,mode:prefs.mode,data});saveStorage(STORE+'-presets',presets);renderPresets();}
 function applyPreset(p){
  const next=copy(model);
- Object.keys(p.data).forEach(k=>{if(!FIELD[k])throw new Error('잘못된 프리셋 값: '+k);});
+ Object.keys(p.data).forEach(k=>{if(!getField(k))throw new Error('잘못된 프리셋 값: '+k);});
  if(p.mode==='common')Object.entries(p.data).forEach(([k,v])=>{next.common[k]=v;});
  else if(p.mode==='card'){if(!selScope)throw new Error('카드를 선택하세요.');next.scopes[selScope]=Object.assign({},next.scopes[selScope]||{},p.data);}
  else if(p.mode==='counter'){if(!selCounter)throw new Error('마커를 선택하세요.');next.counters[selCounter]=Object.assign({},next.counters[selCounter]||{},p.data);}
@@ -557,12 +655,12 @@ eye.addEventListener('pointerdown',guarded(peekStart));eye.addEventListener('key
 function clearHover(){if(hover&&hover.removeAttribute)hover.removeAttribute('data-ce-counter-hover');hover=null;}
 function counterFromTarget(t){const span=t&&t.closest?t.closest('.cc-counter'):null;if(!span)return null;return counterRecs.find(r=>r.element===span)||null;}
 function onHover(e){if(peeking||!prefs.pick)return;const r=counterFromTarget(e.target),el=r&&r.element;if(el===hover)return;clearHover();if(el){hover=el;if(!el.hasAttribute('data-ce-counter-selected'))el.setAttribute('data-ce-counter-hover','');}}
-function onPick(e){if(peeking||!prefs.pick)return;counterRecs=A.counters.list();scopeRecs=A.scopes.list();const r=counterFromTarget(e.target);if(!r)return;e.preventDefault();e.stopImmediatePropagation();if(prefs.mode==='common')prefs.mode='counter';choose(r.id,false);app.classList.remove('hidden');mini.classList.add('hidden');P.focus();}
+function onPick(e){if(peeking||!prefs.pick)return;counterRecs=A.counters.list();scopeRecs=A.scopes.list();const r=counterFromTarget(e.target);if(!r)return;e.preventDefault();e.stopImmediatePropagation();choose(r.id,false);app.classList.remove('hidden');mini.classList.add('hidden');P.focus();}
 W.addEventListener('click',onPick,true);D.addEventListener('mouseover',onHover,true);
 const resize=()=>{if(!closed&&!peeking){syncValues(false);updateMeta();}};W.addEventListener('resize',resize);
 function closeUI(){if(P.confirm('현재 미리보기를 유지하고 종료할까요?\n원래 사이트로 복원하려면 취소 후 무효화를 사용하세요.')){destroy();P.close();}}
 function destroy(){if(closed)return;if(peeking)peekEnd();closed=true;[histTimer,toastTimer].forEach(clearTimeout);W.removeEventListener('click',onPick,true);D.removeEventListener('mouseover',onHover,true);W.removeEventListener('resize',resize);clearHover();D.querySelectorAll('[data-ce-counter-selected]').forEach(n=>n.removeAttribute('data-ce-counter-selected'));highStyle.remove();if(W.__callCounterDash&&W.__callCounterDash.window===P)delete W.__callCounterDash;}
-P.addEventListener('beforeunload',destroy);W.__callCounterDash={version:'1.0.0',window:P,destroy,select:id=>choose(id)};
+P.addEventListener('beforeunload',destroy);W.__callCounterDash={version:'1.2.0',window:P,destroy,select:id=>choose(id)};
 refresh();renderSlots();renderPresets();syncUI();hist=[stateString()];hi=0;
-console.log('[counter dashboard v1] 사이트 공통·카드·마커 편집, 설정 점검. 저장본은 자동 적용하지 않습니다.');
+console.log('[counter dashboard v1.2] 사이트 공통·카드·마커 편집, 설정 점검. 저장본은 자동 적용하지 않습니다.');
 })();
