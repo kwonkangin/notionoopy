@@ -5,7 +5,7 @@
 
 
 // =========================================================
-// call-slide.js · v1.6.1 · 대시보드 연결 API / 비율·BLEED 실시간 / 미리보기 창 / 우피 클래스 이름 독립
+// call-slide.js · v1.7.0 · 글자 스타일(타이틀 1~4 / 본문 / 코드뱃지) / 코드뱃지 색 유지 / 대시보드 API 1.2.0
 // 목적: 노션/우피 상위 콜아웃의 직속 하위 콜아웃을 가로 슬라이더로 표시한다.
 // 필수: core.js v1.2.0 이상. 로드 순서: core.js → call-slide.js → call-card.js
 // 기존 변수명·클래스명·CSS 변수 접미사는 유지한다. 새 기능에 필요한 이름만 추가했다.
@@ -38,6 +38,32 @@
 //  FR / FIT_RADIUS         비움        기존 호환용으로 읽기만 함. 화면 반영 없음
 //  길이 값에는 px, %, em, rem, vw, vh 같은 단위를 적는다. 예: W 360px
 //  짧은 이름이 긴 이름보다 우선한다. 키의 소문자는 대문자로 정규화한다.
+//
+// [글자 스타일: 타이틀 1~4 / 일반 텍스트 / 코드뱃지]  v1.7.0
+//  TC(글자색)는 더 이상 슬라이드 항목 전체에 색을 강제하지 않는다. 글자를 역할로 나누어 역할별로 적용한다.
+//  역할: 타이틀 1~4(.notion-header-block, .notion-sub_header-block, .notion-sub_sub_header-block, .notion-header_4-block)
+//        일반 텍스트(위 제목과 이미지·아이콘을 제외한 슬라이드 안의 블록: 본문, 인용, 목록 등)
+//        코드뱃지(인라인 코드: monospace 인라인 스타일의 span/a, 그리고 code 요소)
+//  짧은 토큰 / 긴 토큰 / 기본값
+//  H1S H1W H1C / H1_SIZE H1_WEIGHT H1_COLOR     타이틀 1 크기·굵기·색
+//  H2S H2W H2C / H2_SIZE H2_WEIGHT H2_COLOR     타이틀 2
+//  H3S H3W H3C / H3_SIZE H3_WEIGHT H3_COLOR     타이틀 3
+//  H4S H4W H4C / H4_SIZE H4_WEIGHT H4_COLOR     타이틀 4
+//  BDS BDW BDC / BODY_SIZE BODY_WEIGHT BODY_COLOR   일반 텍스트
+//  CBS CBW CBC / BADGE_SIZE BADGE_WEIGHT BADGE_COLOR   코드뱃지
+//  CBK / BADGE_KEEP_COLOR                       코드뱃지 원래 글자색 유지 (기본 1)
+//  크기: 비움/NONE이면 노션 원본. 숫자(px) 또는 px, em, rem, %, vw, vh. 굵기: 비움/NONE이면 원본. 100~900, NORMAL, BOLD.
+//  색: AUTO, WHITE, BLACK, #hex. 역할 색이 AUTO이면 TC를 따르고, TC도 AUTO이면 원본 색이다.
+//  우선순위: 슬라이더 토큰 > 공통 CSS > 엔진 기본값 (각 항목마다).
+//  CSS 변수: --slide-h1-size_f4G 같은 형식이다. 전체 목록은 dashboard.schema()에서 읽는다.
+//  - 크기·굵기는 역할 요소에 지정하고 하위 요소는 상속하게 한다. 중첩 요소에서 배율이 겹쳐 곱해지지 않는다.
+//  - 굵기는 b, strong, 인라인 font-weight 요소를 건드리지 않는다. 본문 안의 강조가 사라지지 않게 하기 위해서이다.
+//  - 코드뱃지 색 규칙: BADGE_COLOR(CBC)를 지정하면 그 색. 아니면 CBK=1이면 원래 색 유지, CBK=0이면 TC를 따른다.
+//    CBK=1은 TC나 역할 색이 쓰일 때만 동작한다. 색을 읽는 시점은 화면에 붙은 직후이며 설정 변경 때도 다시 읽는다.
+//    노션의 다크/라이트 모드를 바꾸면 원래 색이 달라질 수 있어 새로고침이 필요할 수 있다.
+//  - 코드뱃지의 배경·테두리·패딩·모서리는 이 파일에서 바꾸지 않는다. code-badge.js가 담당한다.
+//  - 링크 뱃지(a)는 code-badge.js가 인라인 !important로 색을 고정한다. 이 경우 BADGE_COLOR 지정은 적용되지 않을 수 있고, 원본 유지는 그대로 동작한다.
+//  - 예: [% call-slide :: TC WHITE :: H1S 24px :: H1W 800 :: BDS 14px :: CBK 1 %]
 //
 // [이미지 캡션]
 //  OL 색 진하기 방향 시작 끝: 예) OL BLACK 0.4 B 0 75
@@ -91,9 +117,9 @@
 //  슬라이드 안의 call-card·plain 토큰으로 카드 외형을 바꾸지 않는다.
 //  core.js와 call-card.js를 수정할 필요는 없다. 순서는 반드시 core → slide → card로 둔다.
 //
-// [대시보드 API v1.1.0: window.CallSlideEngine.dashboard]
+// [대시보드 API v1.2.0: window.CallSlideEngine.dashboard]  (v1.1.0에 글자 스타일 19개 항목을 추가. 기존 항목은 그대로)
 //  list()                  슬라이더 목록: id, index, title, element
-//  schema()                21개 설정의 key, internal, token, longToken, css, defaultValue, type, requiresReload
+//  schema()                40개 설정의 key, internal, token, longToken, css, defaultValue, type, requiresReload
 //  read(id)                config(편집값), applied(실제 적용값), overrides, pending, runtime, edited
 //  apply(id, patch)        토큰 대응 항목만 임시 편집. 모든 인자를 먼저 검증. null=개별 지정 해제
 //  restore(id)             엔진 시작 때의 토큰 설정 복원. 공통 임시 편집은 유지
@@ -106,7 +132,9 @@
 //  preview                 미리보기 창 정보 { windowName, storageKey, active }
 //  API 인자 key:
 //    gap,width,mobileWidth,ratio,autoplay,interval,hoverPause,textColor,textAlign,imageMode,
-//    leftIcon,rightIcon,iconPosition,iconSize,iconGap,transition,overlayHover,swipeThreshold,bleed,radius,shadow
+//    leftIcon,rightIcon,iconPosition,iconSize,iconGap,transition,overlayHover,swipeThreshold,bleed,radius,shadow,
+//    h1Size,h1Weight,h1Color ~ h4Size,h4Weight,h4Color, bodySize,bodyWeight,bodyColor, badgeSize,badgeWeight,badgeColor,badgeKeepColor
+//    크기·굵기를 비우려면 'NONE'을 넣는다(빈 문자열은 지정 없음과 구분되지 않는다). badgeKeepColor는 true/false 또는 1/0.
 //  iconSize/iconGap/transition/overlayHover/swipeThreshold는 common에서만 변경한다. 기존 토큰은 없다.
 //  API 숫자 길이=px. interval 숫자=초, transition/overlayHover 숫자=ms. 문자열 단위 지정도 가능.
 //  read()의 interval은 '3000ms', swipeThreshold는 '36px', autoplay/hoverPause는 true/false이다.
@@ -146,6 +174,12 @@
 //  이미지 블록 안에 캡션이 아닌 다른 글자가 있으면 캡션으로 잘못 볼 수 있다. (현재 우피 구조에서는 해당 없음)
 //  v1.6.1의 클래스 이름 독립 처리는 가상 환경 단위 테스트로 확인했다. 실제 노션 화면에서의 BG·FULL·글자색·캡션 동작은 확인 필요.
 //
+// [v1.7.0 변경]
+//  - TC가 코드뱃지 글자까지 덮어쓰던 문제를 고쳤다. 원인: 뱃지는 code 요소가 아니라 인라인 스타일이 붙은 span/a였고, 기존 예외는 code만 제외했다.
+//  - 글자 스타일 19개 항목 추가(타이틀 1~4, 일반 텍스트, 코드뱃지의 크기·굵기·색과 뱃지 색 유지). 슬라이드 항목에 직접 color를 지정하지 않는다.
+//  - 대시보드 API 1.2.0. 대시보드(call-slide-dashboard.js)도 새 항목 라벨을 가진 버전으로 함께 교체해야 한다.
+//  - 기존 토큰·CSS 변수·기존 항목의 동작은 그대로이다.
+//
 // [v1.6.1 변경 및 검증]
 //  - 우피가 클래스 이름을 바꿔도 동작하도록, 콜아웃 내용·블록 영역 CSS와 코드를 자체 클래스 기반으로 바꿨다.
 //  - 이미지 캡션 탐색을 구조 기반으로 바꿨다. 캡션을 못 찾으면 OL·URL이 무시되고 캡션 글자가 보이던 문제 방지.
@@ -170,7 +204,7 @@
   }
 
   if (global.CallSlideEngine) { console.warn('[call-slide] 중복 로드를 건너뜁니다.'); return; }
-  var VERSION_r1Z = '1.6.1';
+  var VERSION_r1Z = '1.7.0';
   var liveSliders_d1A = [];
   var STYLE_ID_s4P = 'engine-call-slide-style-v12';
   var MOBILE_BREAKPOINT_h2V = 640;
@@ -178,6 +212,161 @@
   var sliderCount_d5R = 0;
   var NO_IMAGE_BG_COLOR_q7T = '#4a4a4a';
   var EDGE_OVERSCAN_h9L = 2;
+
+  /* v1.7.0: 글자 스타일 - 타이틀 1~4 / 일반 텍스트 / 코드뱃지. FIELD 표와 같은 순서: key, internal, token, longToken, css, default, type, requiresReload */
+  var TEXT_ROWS_k1 = [
+    ['h1Size','h1Size_t7K','H1S','H1_SIZE','--slide-h1-size_f4G','','tsize',false],
+    ['h1Weight','h1Weight_t7K','H1W','H1_WEIGHT','--slide-h1-weight_h5J','','tweight',false],
+    ['h1Color','h1Color_t7K','H1C','H1_COLOR','--slide-h1-color_k6L','AUTO','color',false],
+    ['h2Size','h2Size_t7K','H2S','H2_SIZE','--slide-h2-size_m7N','','tsize',false],
+    ['h2Weight','h2Weight_t7K','H2W','H2_WEIGHT','--slide-h2-weight_n8P','','tweight',false],
+    ['h2Color','h2Color_t7K','H2C','H2_COLOR','--slide-h2-color_p9Q','AUTO','color',false],
+    ['h3Size','h3Size_t7K','H3S','H3_SIZE','--slide-h3-size_q1R','','tsize',false],
+    ['h3Weight','h3Weight_t7K','H3W','H3_WEIGHT','--slide-h3-weight_r2S','','tweight',false],
+    ['h3Color','h3Color_t7K','H3C','H3_COLOR','--slide-h3-color_s3T','AUTO','color',false],
+    ['h4Size','h4Size_t7K','H4S','H4_SIZE','--slide-h4-size_t4U','','tsize',false],
+    ['h4Weight','h4Weight_t7K','H4W','H4_WEIGHT','--slide-h4-weight_u5V','','tweight',false],
+    ['h4Color','h4Color_t7K','H4C','H4_COLOR','--slide-h4-color_v6W','AUTO','color',false],
+    ['bodySize','bodySize_t7K','BDS','BODY_SIZE','--slide-body-size_w7X','','tsize',false],
+    ['bodyWeight','bodyWeight_t7K','BDW','BODY_WEIGHT','--slide-body-weight_x8Y','','tweight',false],
+    ['bodyColor','bodyColor_t7K','BDC','BODY_COLOR','--slide-body-color_y9Z','AUTO','color',false],
+    ['badgeSize','badgeSize_t7K','CBS','BADGE_SIZE','--slide-badge-size_z1A','','tsize',false],
+    ['badgeWeight','badgeWeight_t7K','CBW','BADGE_WEIGHT','--slide-badge-weight_a2B','','tweight',false],
+    ['badgeColor','badgeColor_t7K','CBC','BADGE_COLOR','--slide-badge-color_b3C','AUTO','color',false],
+    ['badgeKeepColor','badgeKeepColor_t7K','CBK','BADGE_KEEP_COLOR','--slide-badge-keep-color_c4D','1','bool',false]
+  ];
+  var TEXT_ROLES_k1 = ['h1', 'h2', 'h3', 'h4', 'body'];
+  var HEADING_SEL_k1 = {
+    h1: '.notion-header-block',
+    h2: '.notion-sub_header-block,.notion-subheader-block',
+    h3: '.notion-sub_sub_header-block,.notion-subsubheader-block',
+    h4: '.notion-header_4-block,.notion-header4-block'
+  };
+  /* 코드뱃지: code-badge.js가 다루는 인라인 코드(span/a, monospace 인라인 스타일)와 일반 code 요소. 다른 파일의 클래스에는 의존하지 않는다. */
+  var BADGE_SEL_k1 = 'code,span[data-token-index][style*="monospace" i],a.notion-link-token[style*="monospace" i]';
+  var BADGE_LIST_k1 = BADGE_SEL_k1.split(',');
+
+  function textSize_k2(value_a) {
+    var s_a = String(value_a == null ? '' : value_a).trim();
+    if (!s_a || /^(NONE|AUTO|INHERIT)$/i.test(s_a)) return '';
+    if (/^\d+(\.\d+)?$/.test(s_a)) s_a += 'px';
+    return (/^\d+(\.\d+)?(px|em|rem|%|vw|vh)$/i.test(s_a) && parseFloat(s_a) > 0) ? s_a : '';
+  }
+
+  function textWeight_k3(value_a) {
+    var s_a = String(value_a == null ? '' : value_a).trim(), u_a = s_a.toUpperCase(), n_a;
+    if (!s_a || /^(NONE|AUTO|INHERIT)$/.test(u_a)) return '';
+    if (u_a === 'NORMAL') return '400';
+    if (u_a === 'BOLD') return '700';
+    n_a = Number(s_a);
+    return (isFinite(n_a) && n_a >= 100 && n_a <= 900) ? String(Math.round(n_a)) : '';
+  }
+
+  function readTextField_k4(row_a, raw_a) {
+    var type_a = row_a[6];
+    if (type_a === 'tsize') return textSize_k2(raw_a);
+    if (type_a === 'tweight') return textWeight_k3(raw_a);
+    if (type_a === 'color') return normalizeColor_h8A(raw_a);
+    if (type_a === 'bool') return parseBool_d8H(raw_a, true);
+    return raw_a;
+  }
+
+  function roleAttrNames_k8() {
+    var out_a = [];
+    TEXT_ROLES_k1.forEach(function (r_a) { ['sz', 'wt', 'co'].forEach(function (p_a) { out_a.push(p_a + '-' + r_a); }); });
+    return out_a.concat(['bz', 'bw', 'bco', 'bk']);
+  }
+
+  function buildRoleCss_k1X() {
+    var P_a = '.slide-item_s4P', B_a = '.slide-blocks_s4P', css_a = '';
+    var badgeIn_a = BADGE_LIST_k1.join(','), badgeDesc_a = BADGE_LIST_k1.map(function (x_a) { return x_a + ' *'; }).join(',');
+    /* :where()는 우선순위를 0으로 만든다. 코드뱃지·역할 표시 요소를 제외한 하위 요소만 대상으로 한다. */
+    var NB_a = ':not(:where(' + badgeIn_a + ')):not(:where(' + badgeDesc_a + ')):not(:where([data-slide-role]))';
+    var NBW_a = NB_a + ':not(:where(b,strong,[style*="font-weight" i]))';
+    function badgeRule_a(attr_a, decl_a, desc_a) {
+      return BADGE_LIST_k1.map(function (sel_a) { return P_a + '[' + attr_a + '] ' + B_a + ' ' + sel_a + (desc_a ? ' *' : ''); }).join(',') + '{' + decl_a + '}';
+    }
+    TEXT_ROLES_k1.forEach(function (r_a) {
+      var role_a = P_a + ' ' + B_a + ' [data-slide-role="' + r_a + '"]';
+      css_a += P_a + '[data-slide-sz-' + r_a + '] ' + B_a + ' [data-slide-role="' + r_a + '"]{font-size:var(--slide-live-sz-' + r_a + '_s4P)!important}';
+      css_a += P_a + '[data-slide-sz-' + r_a + '] ' + B_a + ' [data-slide-role="' + r_a + '"] *' + NB_a + '{font-size:inherit!important}';
+      css_a += P_a + '[data-slide-wt-' + r_a + '] ' + B_a + ' [data-slide-role="' + r_a + '"]{font-weight:var(--slide-live-wt-' + r_a + '_s4P)!important}';
+      css_a += P_a + '[data-slide-wt-' + r_a + '] ' + B_a + ' [data-slide-role="' + r_a + '"] *' + NBW_a + '{font-weight:inherit!important}';
+      css_a += P_a + '[data-slide-co-' + r_a + '] ' + B_a + ' [data-slide-role="' + r_a + '"]{color:var(--slide-live-co-' + r_a + '_s4P)!important}';
+      css_a += P_a + '[data-slide-co-' + r_a + '] ' + B_a + ' [data-slide-role="' + r_a + '"] *' + NB_a + '{color:inherit!important}';
+    });
+    css_a += badgeRule_a('data-slide-bz', 'font-size:var(--slide-live-bz_s4P)!important');
+    css_a += badgeRule_a('data-slide-bz', 'font-size:inherit!important', true);
+    css_a += badgeRule_a('data-slide-bw', 'font-weight:var(--slide-live-bw_s4P)!important');
+    css_a += badgeRule_a('data-slide-bw', 'font-weight:inherit!important', true);
+    css_a += badgeRule_a('data-slide-bco', 'color:var(--slide-live-bco_s4P)!important');
+    css_a += badgeRule_a('data-slide-bco', 'color:inherit!important', true);
+    css_a += P_a + '[data-slide-bk] ' + B_a + ' [data-slide-badge]{color:var(--slide-badge-orig_s4P,currentColor)!important}';
+    css_a += P_a + '[data-slide-bk] ' + B_a + ' [data-slide-badge] *{color:inherit!important}';
+    return css_a;
+  }
+
+  function markTextRoles_k5(wrap_a) {
+    Array.prototype.forEach.call(wrap_a.querySelectorAll('[data-slide-role]'), function (el_a) { el_a.removeAttribute('data-slide-role'); });
+    ['h1', 'h2', 'h3', 'h4'].forEach(function (role_a) {
+      Array.prototype.forEach.call(wrap_a.querySelectorAll(HEADING_SEL_k1[role_a]), function (el_a) { el_a.setAttribute('data-slide-role', role_a); });
+    });
+    Array.prototype.forEach.call(wrap_a.children, function (child_a) {
+      if (child_a.hasAttribute('data-slide-role')) return;
+      if (child_a.classList.contains('slide-icon_s4P') || child_a.classList.contains('notion-image-block')) return;
+      if (!String(child_a.textContent || '').trim()) return;
+      child_a.setAttribute('data-slide-role', 'body');
+    });
+  }
+
+  /* 코드뱃지의 원래 글자색을 읽어 둔다. 자체 색이 없는 뱃지가 부모의 TC를 상속하는 문제를 막기 위해서이며, 색 속성을 지운 직후에 읽는다. */
+  function markBadges_k6(wrap_a) {
+    Array.prototype.forEach.call(wrap_a.querySelectorAll(BADGE_SEL_k1), function (el_a) {
+      var outer_a = el_a.parentElement && el_a.parentElement.closest ? el_a.parentElement.closest(BADGE_SEL_k1) : null;
+      if (outer_a && wrap_a.contains(outer_a)) return;
+      var color_a = '';
+      el_a.setAttribute('data-slide-badge', '1');
+      if (el_a.isConnected) { try { color_a = global.getComputedStyle(el_a).color || ''; } catch (e_a) { color_a = ''; } }
+      if (color_a) el_a.style.setProperty('--slide-badge-orig_s4P', color_a);
+      else el_a.style.removeProperty('--slide-badge-orig_s4P');
+    });
+  }
+
+  function applyTextRoles_k7(item_a, wrap_a, s_a) {
+    roleAttrNames_k8().forEach(function (n_a) {
+      item_a.removeAttribute('data-slide-' + n_a);
+      item_a.style.removeProperty('--slide-live-' + n_a + '_s4P');
+    });
+    Array.prototype.forEach.call(wrap_a.querySelectorAll('[data-slide-badge]'), function (el_a) {
+      el_a.removeAttribute('data-slide-badge');
+      el_a.style.removeProperty('--slide-badge-orig_s4P');
+    });
+    markTextRoles_k5(wrap_a);
+
+    var tc_a = s_a.textColor_j8C, tcOn_a = !!tc_a && tc_a !== 'AUTO', anyColor_a = tcOn_a;
+    TEXT_ROLES_k1.forEach(function (r_a) { var c_a = s_a[r_a + 'Color_t7K']; if (c_a && c_a !== 'AUTO') anyColor_a = true; });
+    var badgeColor_a = s_a.badgeColor_t7K, badgeExplicit_a = !!badgeColor_a && badgeColor_a !== 'AUTO';
+    var keep_a = s_a.badgeKeepColor_t7K !== false;
+    if (anyColor_a && !badgeExplicit_a && keep_a) markBadges_k6(wrap_a);
+
+    function put_a(name_a, value_a) {
+      item_a.setAttribute('data-slide-' + name_a, '1');
+      item_a.style.setProperty('--slide-live-' + name_a + '_s4P', value_a);
+    }
+    TEXT_ROLES_k1.forEach(function (r_a) {
+      var size_a = s_a[r_a + 'Size_t7K'], weight_a = s_a[r_a + 'Weight_t7K'], color_a = s_a[r_a + 'Color_t7K'];
+      var eff_a = (color_a && color_a !== 'AUTO') ? color_a : (tcOn_a ? tc_a : '');
+      if (size_a) put_a('sz-' + r_a, size_a);
+      if (weight_a) put_a('wt-' + r_a, weight_a);
+      if (eff_a) put_a('co-' + r_a, eff_a);
+    });
+    if (s_a.badgeSize_t7K) put_a('bz', s_a.badgeSize_t7K);
+    if (s_a.badgeWeight_t7K) put_a('bw', s_a.badgeWeight_t7K);
+    if (badgeExplicit_a) put_a('bco', badgeColor_a);
+    else if (keep_a) { if (anyColor_a) item_a.setAttribute('data-slide-bk', '1'); }
+    else if (tcOn_a) put_a('bco', tc_a);
+  }
+
 
 
   function injectStyle_a7F() {
@@ -471,14 +660,7 @@
         'box-sizing:border-box!important;' +
       '}' +
 
-      '.slide-item_s4P[data-slide-text-color] .slide-blocks_s4P *:not(code):not(code *){' +
-        'color:inherit!important;' +
-      '}' +
-
-      '.slide-item_s4P[data-slide-text-color] .slide-blocks_s4P code,' +
-      '.slide-item_s4P[data-slide-text-color] .slide-blocks_s4P code *{' +
-        'color:revert!important;' +
-      '}' +
+      buildRoleCss_k1X() +
 
       '.slide-bg-content_s4P .slide-blocks_s4P{' +
         'min-height:100%;' +
@@ -686,7 +868,7 @@
     var intervalRaw_s9W = pick_b7R('ITV', 'INTERVAL', cssValue_b6N('--slide-interval_h9L', '3s'));
     var intervalMs_v1P = /^\d+(\.\d+)?$/.test(String(intervalRaw_s9W).trim()) ? parseFloat(intervalRaw_s9W) * 1000 : cssTimeMs_c2W(intervalRaw_s9W, '3s');
 
-    return {
+    var out_t1 = {
       gap_z2L: pick_b7R('GAP', 'GAP', cssValue_b6N('--slide-gap_k7M', '20px')),
       width_f8D: pick_b7R('W', 'WIDTH', cssValue_b6N('--slide-width_p4R', '400px')),
       mobileWidth_r6A: pick_b7R('MW', 'MOBILE_WIDTH', cssValue_b6N('--slide-mobile-width_v2Q', '280px')),
@@ -710,6 +892,10 @@
       shadow_m7P: pick_b7R('SH', 'SHADOW', cssValue_b6N('--slide-shadow_s8H', 'none')),
       fitRadius_y3M: pick_b7R('FR', 'FIT_RADIUS', '')
     };
+    TEXT_ROWS_k1.forEach(function (row_a) {
+      out_t1[row_a[1]] = readTextField_k4(row_a, pick_b7R(row_a[2], row_a[3], cssValue_b6N(row_a[4], row_a[5])));
+    });
+    return out_t1;
   }
 
   function findCallout_j1Q(block_f5D) {
@@ -862,12 +1048,14 @@
 
     var color_c7D = settings_a7H.textColor_j8C;
 
+    /* v1.7.0: 슬라이드 항목 전체에 색을 강제하지 않는다. 역할(타이틀·본문)별 요소에만 적용하고 코드뱃지는 따로 처리한다. */
+    slideItem_q1P.style.removeProperty('color');
     if (color_c7D !== 'AUTO') {
-      slideItem_q1P.style.setProperty('color', color_c7D, 'important');
       slideItem_q1P.setAttribute('data-slide-text-color', color_c7D);
     } else {
       slideItem_q1P.removeAttribute('data-slide-text-color');
     }
+    applyTextRoles_k7(slideItem_q1P, blocksWrap_b1K, settings_a7H);
   }
 
   function applyBg_q3J(slide_t4M, cardBox_h8A, blocksWrap_b1K, imageBlock_w9R, info_y5F, settings_a7H) {
@@ -1766,6 +1954,17 @@
     }
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(handleResize_r3).observe(viewport_s6W);
     else global.addEventListener('resize', handleResize_r3);
+    /* v1.7.0: 코드뱃지 원래 색은 화면에 붙은 뒤에만 읽을 수 있어서, 삽입 직후와 잠시 뒤에 글자 스타일을 다시 적용한다. */
+    function reapplyTextStyles_k9() {
+      slideLinks_q5H.forEach(function (entry_k9) {
+        var co_k9 = entry_k9.item_z1F.querySelector('.slide-card_s4P');
+        var wr_k9 = co_k9 && findBlocksWrap_l3F(findCardBox_k9M(co_k9));
+        if (!wr_k9) return;
+        applyTextStyle_v4H(entry_k9.item_z1F, wr_k9, settings_b8C);
+      });
+    }
+    requestAnimationFrame(reapplyTextStyles_k9);
+    setTimeout(reapplyTextStyles_k9, 400);
     installSliderRecord_d2B(parentCallout_x5J, shell_z9A, params_t7K, settings_b8C, {
       refresh: function () {
         applyBleedLive_b4();
@@ -1848,7 +2047,7 @@
     ['bleed','bleed_q2R','BLEED','BLEED','--slide-bleed_b7E','NONE','bleed',false],
     ['radius','radius_j5K','BX','RADIUS','--slide-radius_r4C','16px','length',false],
     ['shadow','shadow_m7P','SH','SHADOW','--slide-shadow_s8H','none','shadow',false]
-  ].map(function(f_a){return {key:f_a[0],internal:f_a[1],token:f_a[2],longToken:f_a[3],css:f_a[4],defaultValue:f_a[5],type:f_a[6],requiresReload:f_a[7]};});
+  ].concat(TEXT_ROWS_k1).map(function(f_a){return {key:f_a[0],internal:f_a[1],token:f_a[2],longToken:f_a[3],css:f_a[4],defaultValue:f_a[5],type:f_a[6],requiresReload:f_a[7]};});
   var commonOriginal_d4D = {};
   var commonEdited_d5E = {};
   var commonStyle_d6F = null;
@@ -1863,6 +2062,20 @@
       throw new Error(f_a.key+': true/false 또는 ON/OFF를 입력하세요.');
     }
     var s_a=String(v_a).trim(),n_a;
+    if(f_a.type==='tsize'){
+      if(!s_a||/^(NONE|AUTO|INHERIT)$/i.test(s_a))return 'NONE';
+      if(/^\d+(\.\d+)?$/.test(s_a))s_a+='px';
+      if(!/^\d+(\.\d+)?(px|em|rem|%|vw|vh)$/i.test(s_a)||parseFloat(s_a)<=0)throw new Error(f_a.key+': 글자 크기는 px/em/rem/%/vw/vh 단위의 양수여야 합니다.');
+      return s_a;
+    }
+    if(f_a.type==='tweight'){
+      if(!s_a||/^(NONE|AUTO|INHERIT)$/i.test(s_a))return 'NONE';
+      if(/^NORMAL$/i.test(s_a))return '400';
+      if(/^BOLD$/i.test(s_a))return '700';
+      n_a=Number(s_a);
+      if(!isFinite(n_a)||n_a<100||n_a>900)throw new Error(f_a.key+': 굵기는 100~900, NORMAL, BOLD만 지원합니다.');
+      return String(Math.round(n_a));
+    }
     if(f_a.type==='length'||f_a.type==='positiveLength'){
       if(/^\d+(\.\d+)?$/.test(s_a))s_a+='px';
       if(!/^\d+(\.\d+)?(px|%|em|rem|vw|vh)$/i.test(s_a)||(f_a.type==='positiveLength'&&parseFloat(s_a)<=0))throw new Error(f_a.key+': 길이 값이 잘못되었습니다.');
@@ -1988,7 +2201,7 @@
     return '[% '+parts_a.join(' :: ')+' %]';
   }
   function commonRead_f1S(){
-    var values_a={},explicit_a={};FIELD_d3C.forEach(function(f_a){explicit_a[f_a.key]=cssValue_b6N(f_a.css,'');values_a[f_a.key]=f_a.type==='icon'&&/^NONE$/i.test(explicit_a[f_a.key])?'':(explicit_a[f_a.key]||f_a.defaultValue);});
+    var values_a={},explicit_a={};FIELD_d3C.forEach(function(f_a){explicit_a[f_a.key]=cssValue_b6N(f_a.css,'');values_a[f_a.key]=(f_a.type==='icon'||f_a.type==='tsize'||f_a.type==='tweight')&&/^NONE$/i.test(explicit_a[f_a.key])?'':(explicit_a[f_a.key]||f_a.defaultValue);});
     return {values:values_a,explicit:explicit_a,edited:clone_d7G(commonEdited_d5E),note:'CSS 공통값보다 토큰이 우선합니다. IMG/BLEED/RT 변경은 새로고침 후 적용됩니다.'};
   }
   function commonApply_f2T(patch_a){
@@ -2064,7 +2277,7 @@
 
   global.CallSlideEngine = {
     version:VERSION_r1Z,
-    dashboard:{apiVersion:'1.1.0',preview:{windowName:PREVIEW_NAME_p1,storageKey:PREVIEW_KEY_p2,active:!!previewData_p3},list:list_e4M,read:read_e5N,apply:apply_e7P,restore:restore_e8Q,token:token_e9R,
+    dashboard:{apiVersion:'1.2.0',preview:{windowName:PREVIEW_NAME_p1,storageKey:PREVIEW_KEY_p2,active:!!previewData_p3},list:list_e4M,read:read_e5N,apply:apply_e7P,restore:restore_e8Q,token:token_e9R,
       schema:function(){return clone_d7G(FIELD_d3C);},
       common:{read:commonRead_f1S,apply:commonApply_f2T,restore:commonRestore_f4V,css:css_f5W},
       diagnose:function(){var rows_a=list_e4M().map(function(x_a){var r_a=read_e5N(x_a.id);return {id:x_a.id,count:r_a.runtime.count,canMove:r_a.runtime.canMove,pending:r_a.pending.join(','),owner:resolve_e3L(x_a.id).callout.dataset.ceOwner};});console.table(rows_a);return rows_a;}
