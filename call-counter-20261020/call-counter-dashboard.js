@@ -1,3 +1,7 @@
+//  <!-- 콜카운터 call-counter 디자인 -->
+// <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/call-counter-20261020/call-counter.js" defer></script>
+
+
 // =========================================================
 // call-counter-dashboard.js
 // 버전: 1.0.0
