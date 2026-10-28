@@ -1,8 +1,19 @@
+//  <!-- 콜슬라이드 call-slide 디자인 -->
+// <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/call-slide-20261017/call-slide.js" defer></script>
+
+
+
+//  <!-- 콜슬라이드 call-slide 제작 AI 20261028 up -->
+// https://www.perplexity.ai/search/97ddb236-d70c-467d-9e80-d9a9450482d7
+
+
+
 // =========================================================
 // call-slide-dashboard.js
-// 버전: 1.1.0
+// 버전: 1.2.0
 // 설명: call-slide 슬라이더의 설정을 팝업 창에서 실시간으로 미리 보고, 최종 적용 코드를 만들어 주는 콘솔용 대시보드
 // 의존성: call-slide.js v1.5.x 이상 (CallSlideEngine.dashboard API 1.0.0)
+//         타이틀·본문·코드뱃지 글자 스타일은 call-slide.js v1.7.0 이상(API 1.2.0)에서 나타난다. 이전 엔진에서는 해당 영역이 숨겨진다.
 //         미리보기 창은 call-slide.js v1.6.0 이상(API 1.1.0)에서 사용할 수 있다.
 // ---------------------------------------------------------
 // [개요]
@@ -33,7 +44,10 @@
 // [설정 항목]  call-slide 엔진의 schema()에서 읽어 자동으로 만든다.
 //  크기·간격   카드 폭(PC/모바일), 카드 간격, 카드 비율
 //  재생        자동 재생, 재생 간격, 마우스 올리면 정지, 스와이프 거리, 이동 애니메이션 시간
-//  글자        글자 위치(TA, 3x3), 글자색
+//  글자        글자 위치(TA, 3x3), 글자색(TC)
+//  타이틀 1~4  글자 크기, 굵기, 색 (v1.2.0). 비우면 노션 원본, 색 AUTO는 글자색(TC)을 따른다.
+//  일반 텍스트 글자 크기, 굵기, 색 (v1.2.0)
+//  코드뱃지    글자 크기, 굵기, 색, 원래 글자색 유지 (v1.2.0). 색 우선순위: 개별 색 > 원래 색 유지 > 글자색(TC)
 //  이미지      이미지 모드, 오버레이 사라지는 시간
 //  화살표      화살표 위치, 왼쪽·오른쪽 아이콘, 버튼 크기·간격
 //  외형        카드 모서리, 카드 그림자(프리셋·슬라이더·직접 입력), 화면 끝까지 확장
@@ -95,7 +109,7 @@
 //  - 화살표 아이콘은 Font Awesome이 로드된 페이지에서만 모양이 바뀐다.
 //  - 노션 원문의 토큰은 엔진이 읽은 값 기준이다. 노션에서 토큰을 고친 뒤에는 새로고침한다.
 //  - 팝업이 차단되면 실행되지 않는다. PC 전용이다.
-//  - 검증 범위: 가상 환경(가짜 DOM과 가짜 엔진)에서 38개 시나리오를 확인했다.
+//  - 검증 범위: v1.1.0은 가상 환경(가짜 DOM과 가짜 엔진)에서 38개 시나리오를 확인했다. v1.2.0은 실제 크롬에서 call-slide v1.7.0과 함께 확인했다.
 //    실제 노션 화면에서의 동작, 특히 미리보기 창과 비율·BLEED 실시간 전환은 직접 확인해야 한다.
 // =========================================================
 
@@ -106,7 +120,7 @@ if(!A||typeof A.schema!=='function'||!A.common){console.error('[slide dashboard]
 if(W.__callSlideDash&&W.__callSlideDash.destroy)W.__callSlideDash.destroy();
 const P=W.open('','CallSlideDashboard','width=690,height=980,resizable=yes,scrollbars=yes');
 if(!P){console.error('[slide dashboard] 팝업을 허용하고 다시 실행하세요.');return;}
-const PD=P.document;PD.open();PD.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>Call Slide Dashboard v1.1</title></head><body></body></html>');PD.close();
+const PD=P.document;PD.open();PD.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>Call Slide Dashboard v1.2</title></head><body></body></html>');PD.close();
 PD.documentElement.style.cssText='width:100%;height:100%;margin:0;overflow:hidden';PD.body.style.cssText='width:100%;height:100%;margin:0;overflow:hidden';
 const host=PD.createElement('div');host.style.cssText='display:block;width:100%;height:100%;overflow:hidden';PD.body.appendChild(host);const R=host.attachShadow({mode:'open'});
 
@@ -128,6 +142,7 @@ function toApi(f,v){
  if(f.type==='threshold'){const n=parseFloat(v);return Number.isFinite(n)?n+'px':v;}
  if(f.type==='ratio')return ratioText(v);
  if(f.type==='color'){const c=colorChoice(v);return c==='CUSTOM'?String(v):c;}
+ if(f.type==='tsize'||f.type==='tweight')return v===''?'NONE':String(v);
  return typeof v==='string'?v:String(v);
 }
 function sameVal(f,a,b){const n=x=>String(toApi(f,x)).replace(/\s/g,'').toLowerCase();return n(a)===n(b);}
@@ -147,7 +162,12 @@ function auditValue(f,cur){
   case 'iconPosition':return String(cur).toUpperCase()==='BR'?'BL':'BR';
   case 'leftIcon':return String(cur)==='fa-solid fa-chevron-left'?'fa-solid fa-angle-left':'fa-solid fa-chevron-left';
   case 'rightIcon':return String(cur)==='fa-solid fa-chevron-right'?'fa-solid fa-angle-right':'fa-solid fa-chevron-right';
-  default:return T[f.key];
+  case 'badgeKeepColor':return !isBool(cur);
+  default:
+   if(/^(h[1-4]|body|badge)Size$/.test(f.key))return String(cur)==='23px'?'31px':'23px';
+   if(/^(h[1-4]|body|badge)Weight$/.test(f.key))return String(cur)==='300'?'500':'300';
+   if(/^(h[1-4]|body|badge)Color$/.test(f.key))return String(cur).toLowerCase()==='#123456'?'#654321':'#123456';
+   return T[f.key];
  }
 }
 /*PURE-END*/
@@ -156,7 +176,7 @@ const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const Q=(s,r=R)=>[...r.querySelectorAll(s)],STORE='ce-slide-dashboard-v1';
 const SCHEMA=A.schema(),FIELD={};SCHEMA.forEach(f=>{FIELD[f.key]=f;});
 const PV=A.preview&&A.preview.storageKey?A.preview:null;
-const GROUPS=['크기·간격','재생','글자','이미지','화살표','외형'];
+const GROUPS=['크기·간격','재생','글자','타이틀 1','타이틀 2','타이틀 3','타이틀 4','일반 텍스트','코드뱃지','이미지','화살표','외형'];
 const UIM={
  width:{label:'카드 폭 (PC)',group:'크기·간격',min:200,max:800,step:10},
  mobileWidth:{label:'카드 폭 (모바일, 화면 640px 이하)',group:'크기·간격',min:180,max:400,step:5},
@@ -203,7 +223,24 @@ const OPT={
 const RATIOS=[['AUTO','자동 (AUTO)'],['1:1','1:1'],['4:5','4:5'],['3:4','3:4'],['16:9','16:9'],['CUSTOM','직접 입력']];
 const COLORS=[['AUTO','자동 (AUTO)'],['WHITE','흰색 (WHITE)'],['BLACK','검정 (BLACK)'],['CUSTOM','직접 입력 (#hex)']];
 const SHADOWS={NONE:'none',WEAK:'0 1px 3px rgba(0,0,0,0.08)',NORMAL:'0 4px 12px rgba(0,0,0,0.12)',STRONG:'0 8px 24px rgba(0,0,0,0.18)'};
-const KIND={length:'len',positiveLength:'len',time:'time',interval:'time',threshold:'thr',bool:'bool',color:'color',align:'align',position:'select',mode:'select',ratio:'ratio',bleed:'select',icon:'icon',shadow:'shadow'};
+const KIND={length:'len',positiveLength:'len',time:'time',interval:'time',threshold:'thr',bool:'bool',color:'color',tsize:'tsize',tweight:'tweight',align:'align',position:'select',mode:'select',ratio:'ratio',bleed:'select',icon:'icon',shadow:'shadow'};
+
+/* v1.2.0: 글자 스타일(call-slide v1.7.0 이상). 엔진 schema에 해당 항목이 없으면 화면에 나타나지 않는다. */
+const TEXT_UI=[['h1','타이틀 1'],['h2','타이틀 2'],['h3','타이틀 3'],['h4','타이틀 4'],['body','일반 텍스트'],['badge','코드뱃지']];
+const COLOR_OPTS={};
+const WEIGHT_OPTS=[['NONE','노션 원본'],['100','100 · 가장 가늘게'],['200','200'],['300','300 · 가늘게'],['400','400 · 보통'],['500','500'],['600','600'],['700','700 · 굵게'],['800','800'],['900','900 · 가장 굵게']];
+TEXT_UI.forEach(([r,name])=>{
+ UIM[r+'Size']=Object.assign({label:name+' · 글자 크기',group:name},r.charAt(0)==='h'?{min:8,max:120,step:1}:{min:8,max:60,step:1});
+ UIM[r+'Weight']={label:name+' · 글자 굵기',group:name};
+ UIM[r+'Color']={label:name+' · 글자색',group:name};
+ COND[r+'Size']='"노션 원본"이면 노션이 정한 크기를 씁니다. em·%는 위쪽 글자 크기를 기준으로 합니다.';
+ COND[r+'Weight']='굵게 표시한 부분(b, strong)은 건드리지 않습니다.';
+ COND[r+'Color']=r==='badge'?'자동이면 아래 "원래 글자색 유지"를 따릅니다. 링크가 걸린 뱃지는 code-badge.js가 색을 고정해 적용되지 않을 수 있습니다.':'자동이면 위의 글자색(TC)을 따릅니다. TC도 자동이면 노션 원본 색입니다.';
+ COLOR_OPTS[r+'Color']=[['AUTO',r==='badge'?'자동 (원래 색 유지 설정을 따름)':'글자색(TC)을 따름'],['WHITE','흰색 (WHITE)'],['BLACK','검정 (BLACK)'],['CUSTOM','직접 입력 (#hex)']];
+});
+UIM.badgeKeepColor={label:'코드뱃지 · 원래 글자색 유지',group:'코드뱃지'};
+COND.badgeKeepColor='켜면 글자색(TC)이나 타이틀·본문 색을 써도 코드뱃지는 원래 색을 유지합니다. 끄면 글자색(TC)을 따릅니다. 위의 코드뱃지 글자색을 지정하면 그 색이 우선합니다.';
+COND.textColor='타이틀·본문의 기본 글자색입니다. 코드뱃지는 아래 "코드뱃지" 설정을 따릅니다.';
 
 const readLS=(key,fb)=>{try{const v=W.localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){return fb;}};
 let prefs=Object.assign({light:false,pick:true,mode:'slider',full:false,long:false,pvAuto:true},readLS(STORE+'-preferences',{}));
@@ -225,7 +262,7 @@ const style=elem('style',null,R);style.textContent=`
 .switch{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:400;cursor:pointer}.switch input{position:absolute;opacity:0;width:1px;height:1px}.track{position:relative;width:34px;height:19px;border-radius:20px;background:var(--bd);flex:none}.track:before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;border-radius:50%;background:white}.switch input:checked+.track{background:var(--ac)}.switch input:checked+.track:before{transform:translateX(15px)}.switch input:disabled+.track{opacity:.4}.switch input:focus-visible+.track{outline:2px solid var(--ac);outline-offset:2px}.list{max-height:155px;overflow:auto;border:1px solid var(--bd);border-radius:6px;margin-top:8px}.item{display:flex;gap:8px;padding:7px 9px;border-bottom:1px solid var(--bd);cursor:pointer}.item.active{border-left:3px solid var(--ac);background:#ff6b3515}.item:hover{background:#ff6b3510}.item .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.no{color:var(--mu);min-width:22px}textarea{width:100%;height:95px;resize:vertical;font:12px/1.45 monospace;color:#10b981}.warnings{font-size:11px;color:#d89827;white-space:pre-wrap;margin:7px 0}.preset{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--bd)}.preset span{flex:1}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);max-width:95%;background:var(--ac);color:white;padding:9px 15px;border-radius:20px;z-index:99}.minibtn{position:fixed;bottom:15px;right:15px;width:46px;height:46px;border-radius:50%;background:#ff6b35;color:white;font-size:22px}.eye{touch-action:none}.peek .body{pointer-events:none;opacity:.6}
 .agrid{display:grid;grid-template-columns:repeat(3,40px);gap:5px}.agrid button{padding:6px 0}.agrid button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.warnings button{margin-top:6px}`;
 const app=elem('div',null,R,{class:'app'+(prefs.light?' light':'')});
-const hd=elem('div',null,app,{class:'hd'}),top=elem('div',null,hd,{class:'top'});elem('div','Call Slide Dashboard v1.1',top,{class:'ttl'});const tb=elem('div',null,top,{class:'row'});
+const hd=elem('div',null,app,{class:'hd'}),top=elem('div',null,hd,{class:'top'});elem('div','Call Slide Dashboard v1.2',top,{class:'ttl'});const tb=elem('div',null,top,{class:'row'});
 switcher(tb,'다크 / 라이트',prefs.light,v=>{prefs.light=v;app.classList.toggle('light',v);savePrefs();});
 button('−',tb,()=>{app.classList.add('hidden');mini.classList.remove('hidden');},'최소화').className='ib';button('×',tb,closeUI).className='ib';
 const bar=elem('div',null,hd,{class:'toolbar'}),undo=button('↶',bar,()=>historyStep(-1),'되돌리기'),redo=button('↷',bar,()=>historyStep(1),'다시 실행');
@@ -262,12 +299,24 @@ function makeControl(f,m,box,row,submit){
  if(kind==='len'){const c=numberControl(row,m,['px','%','em','rem','vw','vh'],'',submit);return {set(v){const s=lenSplit(v);c.set(s?s.n:NaN,s&&s.u);},disable:c.disable};}
  if(kind==='time'){const unit=f.type==='interval'?'s':'ms',c=numberControl(row,m,null,unit,submit);return {set(v){c.set(timeVal(v,unit,unit));},disable:c.disable};}
  if(kind==='thr'){const c=numberControl(row,m,null,'px',submit);return {set(v){c.set(parseFloat(v));},disable:c.disable};}
+ if(kind==='tsize'){
+  const sel=elem('select',null,row,{'aria-label':m.label});[['NONE','노션 원본'],['CUSTOM','직접 지정']].forEach(([v,t])=>elem('option',t,sel,{value:v}));
+  const panel=elem('div',null,row,{class:'controls hidden'});let last='';
+  const num=numberControl(panel,m,['px','em','rem','%','vw','vh'],'',v=>{last=v;submit(v);});
+  sel.onchange=guarded(()=>{panel.classList.toggle('hidden',sel.value!=='CUSTOM');if(sel.value==='NONE')submit('NONE');else submit(last||'16px');});
+  return {set(v){const s=String(v==null?'':v).trim(),p=s&&!/^none$/i.test(s)?lenSplit(s):null;sel.value=p?'CUSTOM':'NONE';panel.classList.toggle('hidden',!p);if(p){last=s;num.set(p.n,p.u);}},disable(x){sel.disabled=x;num.disable(x);}};
+ }
+ if(kind==='tweight'){
+  const sel=elem('select',null,row,{'aria-label':m.label});WEIGHT_OPTS.forEach(([v,t])=>elem('option',t,sel,{value:v}));
+  sel.onchange=guarded(()=>submit(sel.value));
+  return {set(v){const s=String(v==null?'':v).trim()||'NONE';if(!WEIGHT_OPTS.some(o=>o[0]===s))elem('option',s,sel,{value:s});sel.value=s;},disable(x){sel.disabled=x;}};
+ }
  if(kind==='bool'){const l=elem('label',null,row,{class:'switch'}),i=elem('input',null,l,{type:'checkbox',role:'switch','aria-label':m.label});elem('span',null,l,{class:'track','aria-hidden':'true'});elem('span','켜기',l);i.onchange=guarded(()=>submit(i.checked));return {set(v){i.checked=isBool(v);},disable(x){i.disabled=x;}};}
  if(kind==='select'){const sel=elem('select',null,row,{'aria-label':m.label});OPT[f.key].forEach(([v,t])=>elem('option',t,sel,{value:v}));sel.onchange=guarded(()=>submit(sel.value));return {set(v){const s=String(v).toUpperCase();if(!OPT[f.key].some(o=>o[0]===s))elem('option',s,sel,{value:s});sel.value=s;},disable(x){sel.disabled=x;}};}
  if(kind==='align'){const grid=elem('div',null,row,{class:'agrid'}),btns={};['TL','TC','TR','CL','CC','CR','BL','BC','BR'].forEach(c=>{btns[c]=elem('button',c,grid,{type:'button',title:c});btns[c].onclick=guarded(()=>{if(!peeking)submit(c);});});return {set(v){Object.keys(btns).forEach(c=>btns[c].classList.toggle('on',c===String(v).toUpperCase()));},disable(x){Object.values(btns).forEach(b=>{b.disabled=x;});}};}
  if(kind==='icon'){const input=elem('input',null,row,{class:'txt',type:'text',spellcheck:'false',placeholder:'Font Awesome 클래스. 비우면 기본 화살표'});input.oninput=guarded(()=>submit(input.value));return {set(v){if(R.activeElement!==input)input.value=v==null?'':String(v);},disable(x){input.disabled=x;}};}
  if(kind==='ratio'||kind==='color'){
-  const opts=kind==='ratio'?RATIOS:COLORS,sel=elem('select',null,row,{'aria-label':m.label});opts.forEach(([v,t])=>elem('option',t,sel,{value:v}));
+  const opts=kind==='ratio'?RATIOS:(COLOR_OPTS[f.key]||COLORS),sel=elem('select',null,row,{'aria-label':m.label});opts.forEach(([v,t])=>elem('option',t,sel,{value:v}));
   const picker=kind==='color'?elem('input',null,row,{type:'color',class:'colorchip','aria-label':m.label}):null;
   const input=elem('input',null,row,{class:'txt',type:'text',spellcheck:'false',placeholder:kind==='ratio'?'예: 4:5, 16/9':'#hex'});
   const show=()=>{const custom=sel.value==='CUSTOM';input.classList.toggle('hidden',!custom);if(picker)picker.classList.toggle('hidden',!custom);};
@@ -306,7 +355,7 @@ function buildField(f,parent){
  if(f.token){entry.block=elem('div',null,box,{class:'warnings hidden'});entry.blockText=elem('div','',entry.block);button('토큰 해제하고 공통값 확인',entry.block,()=>releaseTokens(entry),'해당 슬라이더의 이 항목 토큰을 임시로 풀어 공통값을 화면에서 확인합니다. 노션 원문은 바뀌지 않습니다.');}
  return entry;
 }
-GROUPS.forEach(g=>{const sec=section('설정 · '+g,settingsWrap);SCHEMA.filter(f=>(UIM[f.key]||{}).group===g).sort((a,b)=>Object.keys(UIM).indexOf(a.key)-Object.keys(UIM).indexOf(b.key)).forEach(f=>entries.push(buildField(f,sec)));});
+GROUPS.forEach(g=>{const fs=SCHEMA.filter(f=>(UIM[f.key]||{}).group===g).sort((a,b)=>Object.keys(UIM).indexOf(a.key)-Object.keys(UIM).indexOf(b.key));if(!fs.length)return;const sec=section('설정 · '+g,settingsWrap);fs.forEach(f=>entries.push(buildField(f,sec)));});
 
 const previewSec=section('미리보기 창');
 elem('div','이미지 모드처럼 현재 화면에 바로 반영되지 않는 설정은 새 창에서 페이지를 다시 불러와 확인합니다. 현재 창은 그대로 유지되고, 새 창에만 임시 설정이 적용됩니다.',previewSec,{class:'hint'});
@@ -548,8 +597,8 @@ W.addEventListener('click',onPick,true);D.addEventListener('mouseover',onHover,t
 const resize=()=>{if(!closed&&!peeking){syncValues(false);updateMeta();}};W.addEventListener('resize',resize);
 function closeUI(){if(P.confirm('현재 미리보기를 유지하고 종료할까요?\n원래 사이트로 복원하려면 취소 후 무효화를 사용하세요.')){destroy();P.close();}}
 function destroy(){if(closed)return;if(peeking)peekEnd();closed=true;[histTimer,toastTimer,previewTimer].forEach(clearTimeout);W.removeEventListener('click',onPick,true);D.removeEventListener('mouseover',onHover,true);W.removeEventListener('resize',resize);clearHover();D.querySelectorAll('[data-ce-slide-selected]').forEach(n=>n.removeAttribute('data-ce-slide-selected'));highStyle.remove();if(W.__callSlideDash&&W.__callSlideDash.window===P)delete W.__callSlideDash;}
-P.addEventListener('beforeunload',destroy);W.__callSlideDash={version:'1.1.0',window:P,destroy,select:id=>choose(id)};
+P.addEventListener('beforeunload',destroy);W.__callSlideDash={version:'1.2.0',window:P,destroy,select:id=>choose(id)};
 refresh();renderSlots();renderPresets();syncUI();hist=[stateString()];hi=0;
-console.log('[slide dashboard v1.1] 사이트 공통·선택 슬라이더 편집, 미리보기 창, 설정 점검. 저장본은 자동 적용하지 않습니다.');
+console.log('[slide dashboard v1.2] 사이트 공통·선택 슬라이더 편집, 미리보기 창, 설정 점검. 저장본은 자동 적용하지 않습니다.');
 })();
  

@@ -1,9 +1,3 @@
-//  <!-- 콜슬라이드 call-slide 디자인 -->
-// <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/call-slide-20261017/call-slide.js" defer></script>
-
-
-
-
 // =========================================================
 // call-slide.js · v1.7.0 · 글자 스타일(타이틀 1~4 / 본문 / 코드뱃지) / 코드뱃지 색 유지 / 대시보드 API 1.2.0
 // 목적: 노션/우피 상위 콜아웃의 직속 하위 콜아웃을 가로 슬라이더로 표시한다.
