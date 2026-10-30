@@ -423,26 +423,53 @@ function getChildBlocks(runtime) {
     return true;
   }
 
-  function run() {
-    try {
-      const runtime = getRuntime();
-      if (!runtime) return;
+function replaceTextNodes(map) {
+  const skip = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE', 'PRE']);
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let n;
+  while ((n = w.nextNode())) {
+    if (!n.nodeValue.includes('{%')) continue;
+    const p = n.parentElement;
+    if (!p || skip.has(p.tagName) || p.closest('#' + POLICY.OUTPUT_ID)) continue;
+    nodes.push(n);
+  }
+  nodes.forEach(node => {
+    node.nodeValue = node.nodeValue.replace(/\{%\s*([^%]+?)\s*%\}/g, (m, k) => {
+      const key = k.trim();
+      const v = map[key] ?? map[normalizeKey(key)];
+      if (v && !isEmptyValue(v)) return String(v.value);
+      const b = POLICY.EMPTY_BEHAVIOR;
+      if (b === 'empty') return '';
+      if (b === 'fallback') return POLICY.EMPTY_FALLBACK_TEXT || '';
+      if (b === 'per_key') return POLICY.EMPTY_BY_KEY[key] ?? POLICY.EMPTY_BY_KEY[normalizeKey(key)] ?? POLICY.EMPTY_FALLBACK_TEXT ?? m;
+      return m;
+    });
+  });
+  return nodes.length;
+}
 
-      const tokenBlocks = getTokenBlocks(runtime);
-      if (!tokenBlocks.length) return;
+function run() {
+  try {
+    const runtime = getRuntime();
+    if (!runtime) return;
 
-      const map = buildMap(runtime);
+    const map = buildMap(runtime);
+    const tokenBlocks = getTokenBlocks(runtime);
 
+    if (tokenBlocks.length) {
       ensureStyle();
       removeOldRender();
       hideOriginalTokenBlocks(tokenBlocks);
-
-      const ok = renderMergedOutput(tokenBlocks, map);
-      if (ok) log('rendered', { tokenBlocks, map });
-    } catch (e) {
-      console.error('[merge] failed', e);
+      renderMergedOutput(tokenBlocks, map);
     }
+
+    const cnt = replaceTextNodes(map);
+    log('rendered', { tokenBlocks, cnt });
+  } catch (e) {
+    console.error('[merge] failed', e);
   }
+}
 
 function boot() {
   let timer = null, running = false;
