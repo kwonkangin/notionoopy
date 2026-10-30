@@ -24,16 +24,24 @@
  *  - 속성명에 공백이 있으면 그대로 쓰거나 밑줄로 바꿔 쓸 수 있다. ( {% 작성자_Author %} )
  *  - 특수 키: {% page_title %}  (페이지 제목)
  *
- * [다중값 속성 옵션]  multi_select, relation, rollup, person, file 등 값이 여러 개인 속성
- *  - 옵션 구분자는 ::  (여러 개를 이어서 쓸 수 있다)
+ * [옵션]  옵션 구분자는 ::  (여러 개를 이어서 쓸 수 있다)
+ *  - {% 속성 :: top %}          토큰이 든 텍스트 블록 전체를 페이지 제목 바로 위로 이동
+ *                               (위로 올릴 토큰은 별도 블록에 단독으로 적을 것)
+ *  [다중값 속성] multi_select, relation, rollup, person, file 등
  *  - {% 속성 %}                 값마다 개별 <span>, 사이 공백 1칸 (기본)
  *  - {% 속성 :: gap=2 %}        값 사이 공백 2칸 (gap은 1 또는 2)
  *  - {% 속성 :: join %}         개별 요소 없이 한 덩어리 텍스트
  *  - {% 속성 :: 2 %}            2번째 값만 출력 (번호는 1부터)
  *  - {% 속성 :: nosplit %}      뱃지(인라인 코드) 안에서도 값을 한 뱃지로 유지
- *  - {% 속성 :: join :: gap=2 %}  옵션 조합
+ *  - {% 속성 :: top :: gap=2 %} 옵션 조합
  *  - 개별 <span>에는 data-fill-item="인덱스" 속성이 붙는다. (JS 접근용 식별자)
- *  - 값이 하나뿐이거나 단일 속성(텍스트, 날짜 등)은 옵션과 관계없이 텍스트로 치환된다.
+ *  - 값이 하나뿐이거나 단일 속성(텍스트, 날짜 등)은 다중값 옵션과 관계없이 텍스트로 치환된다.
+ *
+ * [제목 위로 이동 (top)]
+ *  - 대상: 토큰이 속한 .notion-text-block (없으면 [data-block-id]). 표 안의 블록은 이동하지 않는다.
+ *  - 위치: h1.page-title 을 감싼 .notion-page-block 바로 앞. 여러 블록이면 본문 순서대로 쌓인다.
+ *  - 이동한 블록에는 data-fill-top="1" 이 붙고, 이후 실행에서 이미 제목 앞이면 건드리지 않는다.
+ *  - 제목 요소가 아직 없으면 다음 실행에서 다시 시도한다.
  *
  * [뱃지 분리]
  *  - 토큰을 인라인 코드(`...`)로 감싸 뱃지로 표시하는 경우, 다중값은 값마다
@@ -76,9 +84,11 @@
  *  - 한 토큰이 여러 텍스트 노드로 쪼개지면(일부만 서식 적용 등) 치환되지 않는다.
  *  - 뱃지 분리는 복제한 컨테이너의 속성(data-ecb-key 등)을 그대로 복사한다.
  *    뱃지 생성 스크립트가 중복 키를 문제 삼으면 조정이 필요하다.
+ *  - top 이동 후 React/Oopy가 해당 영역을 다시 그리면 위치가 초기화될 수 있다. (감시 시간 내 재이동)
  *  - SPA 이동 시 데이터 일치 검증은 아직 없다.
  *
  * [버전]
+ *  v3.3 (2026-10-31) :: top 옵션 추가 (토큰 블록을 제목 위로 이동).
  *  v3.2 (2026-10-30) 뱃지(인라인 코드) 안 다중값을 값마다 뱃지로 분리, :: nosplit 추가,
  *                    gap을 NBSP로 변경(flex 컨테이너에서 공백이 사라지는 문제 해결).
  *  v3.1 (2026-10-30) 다중값 속성 개별 <span> 출력, :: 옵션(join, 번호, gap) 추가.
@@ -259,12 +269,13 @@
   function parseToken(raw) {
     const parts = raw.split('::').map(s => s.trim());
     const key = parts.shift();
-    const opt = { join: false, nosplit: false, index: 0, gap: 1 };
+    const opt = { join: false, nosplit: false, top: false, index: 0, gap: 1 };
     parts.forEach(p => {
       const g = p.match(/^gap\s*=\s*(\d+)$/i);
       const lower = p.toLowerCase();
       if (lower === 'join') opt.join = true;
       else if (lower === 'nosplit') opt.nosplit = true;
+      else if (lower === 'top') opt.top = true;
       else if (/^\d+$/.test(p)) opt.index = parseInt(p, 10);
       else if (g) opt.gap = Math.min(2, Math.max(1, parseInt(g[1], 10)));
     });
@@ -280,7 +291,7 @@
 
     if (!v.items) {
       const s = String(v.value);
-      return { text: inButton && UNSAFE_URL.test(s) ? '' : s };
+      return { text: inButton && UNSAFE_URL.test(s) ? '' : s, top: opt.top };
     }
     let items = v.items;
     if (opt.index) items = items.slice(opt.index - 1, opt.index);
@@ -289,9 +300,16 @@
     const gap = gapText(opt.gap);
     if (opt.join || inButton) {
       const s = items.join(gap);
-      return { text: inButton && UNSAFE_URL.test(s) ? '' : s };
+      return { text: inButton && UNSAFE_URL.test(s) ? '' : s, top: opt.top };
     }
-    return { items, gap, opt };
+    return { items, gap, opt, top: opt.top };
+  }
+
+  function markTop(el) {
+    if (!el) return;
+    const b = el.closest('.notion-text-block') || el.closest('[data-block-id]');
+    if (!b || b.closest('table')) return;
+    b.setAttribute('data-fill-top', '1');
   }
 
   function replaceTextNodes(map, codeIds) {
@@ -310,9 +328,10 @@
     const missing = new Set();
     targets.forEach(node => {
       const src = node.nodeValue;
+      const host = node.parentElement;
       const inButton = src.includes('[$');
       const frag = document.createDocumentFragment();
-      let buf = '', last = 0, multi = false;
+      let buf = '', last = 0, multi = false, wantTop = false;
       const flush = () => {
         if (buf) { frag.appendChild(document.createTextNode(buf)); buf = ''; }
       };
@@ -322,6 +341,7 @@
         last = m.index + m[0].length;
         const r = resolveToken(m[0], m[1], map, inButton);
         if (r.missing) missing.add(r.missing);
+        if (r.top) wantTop = true;
         if (r.items) {
           flush();
           multi = true;
@@ -346,6 +366,7 @@
       } else {
         node.nodeValue = buf;
       }
+      if (wantTop) markTop(host);
     });
     return { count: targets.length, missing: [...missing] };
   }
@@ -386,6 +407,27 @@
     return count;
   }
 
+  function moveToTop() {
+    const marked = [...document.querySelectorAll('[data-fill-top]')];
+    if (!marked.length) return 0;
+    const h1 = document.querySelector('h1.page-title');
+    const titleBlock = h1 && (h1.closest('.notion-page-block') || h1);
+    if (!titleBlock || !titleBlock.parentNode) return 0;
+
+    marked.sort((a, b) =>
+      (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+
+    let moved = 0;
+    marked.forEach(b => {
+      const done = b.parentNode === titleBlock.parentNode &&
+        (b.compareDocumentPosition(titleBlock) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (done) return;
+      titleBlock.parentNode.insertBefore(b, titleBlock);
+      moved++;
+    });
+    return moved;
+  }
+
   function run() {
     try {
       const rt = getRuntime();
@@ -393,7 +435,8 @@
       const map = buildMap(rt);
       const res = replaceTextNodes(map, collectCodeBlockIds(rt.rm));
       const chips = splitChips();
-      if (res.count || chips) log('replaced', res, 'chips split:', chips);
+      const moved = moveToTop();
+      if (res.count || chips || moved) log('replaced', res, 'chips split:', chips, 'moved to top:', moved);
     } catch (e) {
       console.error('[merge] failed', e);
     }
