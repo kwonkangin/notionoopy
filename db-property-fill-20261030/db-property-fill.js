@@ -257,7 +257,7 @@
     return { key, opt };
   }
 
-  const gapText = n => (n >= 2 ? ' \u00A0' : ' ');
+    const gapText = n => (n >= 2 ? '\u00A0\u00A0' : '\u00A0');
 
   function resolveToken(match, raw, map, inButton) {
     const { key, opt } = parseToken(raw);
