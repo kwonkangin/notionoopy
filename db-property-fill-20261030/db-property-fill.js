@@ -19,12 +19,23 @@
  *  - 화면(DOM)의 텍스트 노드만 제자리에서 치환하므로 인라인 코드, 굵게 등
  *    기존 서식이 그대로 유지된다. (innerHTML, CSS 주입 없음)
  *
- * [사용]
+ * [기본 사용]
  *  - 노션:  {% 작성자 Author %}  {% Published On %}  {% 분류장치 필터 %}
  *  - 속성명에 공백이 있으면 그대로 쓰거나 밑줄로 바꿔 쓸 수 있다. ( {% 작성자_Author %} )
  *  - 특수 키: {% page_title %}  (페이지 제목)
- *  - Oopy 설정 > Head 에 삽입:
- *      <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@커밋SHA/db-property-fill-20261030/db-property-fill.js" defer></script>
+ *
+ * [다중값 속성 옵션]  multi_select, relation, rollup, person, file 등 값이 여러 개인 속성
+ *  - 옵션 구분자는 ::  (여러 개를 이어서 쓸 수 있다)
+ *  - {% 속성 %}                 값마다 개별 <span>, 사이 공백 1칸 (기본)
+ *  - {% 속성 :: gap=2 %}        값 사이 공백 2칸 (gap은 1 또는 2)
+ *  - {% 속성 :: join %}         개별 요소 없이 한 덩어리 텍스트
+ *  - {% 속성 :: 2 %}            2번째 값만 출력 (번호는 1부터)
+ *  - {% 속성 :: join :: gap=2 %}  옵션 조합
+ *  - 개별 <span>에는 data-fill-item="인덱스" 속성이 붙는다. (JS 접근용 식별자)
+ *  - 값이 하나뿐이거나 단일 속성(텍스트, 날짜 등)은 옵션과 관계없이 텍스트로 치환된다.
+ *
+ * [Oopy 설정 > Head 에 삽입]
+ *  <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@커밋SHA/db-property-fill-20261030/db-property-fill.js" defer></script>
  *
  * [선택 설정] 이 스크립트보다 먼저 선언
  *  window.MERGE_POLICY = {
@@ -58,15 +69,11 @@
  *  - SPA 이동 시 데이터 일치 검증은 아직 없다.
  *
  * [버전]
- *  v3 (2026-10-30)  블록 렌더러 제거, DOM 텍스트 치환으로 통일.
- *                   표/컬럼 내 토큰 지원, 서식 유지, 무한 루프 방지, 코드 블록 제외.
+ *  v3.1 (2026-10-30) 다중값 속성 개별 <span> 출력, :: 옵션(join, 번호, gap) 추가.
+ *  v3   (2026-10-30) 블록 렌더러 제거, DOM 텍스트 치환으로 통일.
+ *                    표/컬럼 내 토큰 지원, 서식 유지, 무한 루프 방지, 코드 블록 제외.
  * ---------------------------------------------------------------
  */
-
-
-
-
-/* notion-oopy-merge-renderer v3 : DOM 텍스트 노드 치환 전용 */
 (function () {
   if (window.__NOTION_MERGE_V3__) return;
   window.__NOTION_MERGE_V3__ = true;
@@ -76,7 +83,7 @@
     OBSERVE_MS: 15000,
     MAX_RUNS: 30,
     DEBUG: false,
-    EMPTY_BEHAVIOR: 'keep', // keep | empty | fallback | per_key
+    EMPTY_BEHAVIOR: 'keep',
     EMPTY_FALLBACK_TEXT: '미입력',
     EMPTY_BY_KEY: {}
   };
@@ -171,35 +178,30 @@
         }
       });
     });
-    return out.join(', ');
+    return out;
   }
 
   function formatFiles(raw) {
-    if (!Array.isArray(raw)) return '';
+    if (!Array.isArray(raw)) return [];
     return raw.filter(i => Array.isArray(i) && i[0] && i[0] !== ',' && i[0] !== '‣')
-      .map(i => i[0]).join(', ');
+      .map(i => i[0]);
   }
 
   function formatValue(raw, type, rm) {
-    switch (type) {
-      case 'date':
-      case 'relation':
-      case 'rollup':
-      case 'person':
-        return formatMentions(raw, rm);
-      case 'file':
-      case 'files':
-        return formatFiles(raw);
-      case 'unique_id':
-        return raw && typeof raw === 'object' && !Array.isArray(raw)
-          ? `${raw.prefix || ''}${raw.number ?? ''}`.trim() : plain(raw);
-      case 'checkbox':
-        return raw ? 'true' : 'false';
-      case 'number':
-        return raw == null ? '' : plain(raw) || String(raw);
-      default:
-        return plain(raw);
-    }
+    let items = null;
+    if (['date', 'relation', 'rollup', 'person'].includes(type)) items = formatMentions(raw, rm);
+    else if (type === 'file' || type === 'files') items = formatFiles(raw);
+    else if (type === 'multi_select') items = plain(raw).split(',').map(s => s.trim()).filter(Boolean);
+    if (items) return { items, value: items.join(', ') };
+
+    let value;
+    if (type === 'unique_id') {
+      value = raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? `${raw.prefix || ''}${raw.number ?? ''}`.trim() : plain(raw);
+    } else if (type === 'checkbox') value = raw ? 'true' : 'false';
+    else if (type === 'number') value = raw == null ? '' : plain(raw) || String(raw);
+    else value = plain(raw);
+    return { items: null, value };
   }
 
   function buildMap({ rm, page, schema }) {
@@ -208,12 +210,12 @@
     Object.entries(props).forEach(([id, raw]) => {
       const s = schema[id];
       if (!s?.name) return;
-      const v = { value: formatValue(raw, s.type, rm), type: s.type };
+      const v = Object.assign({ type: s.type }, formatValue(raw, s.type, rm));
       map[s.name] = v;
       map[normalizeKey(s.name)] = v;
     });
     const title = plain(props.title) || document.title || '';
-    map.page_title = { value: title, type: 'title' };
+    map.page_title = { value: title, items: null, type: 'title' };
     return map;
   }
 
@@ -242,6 +244,42 @@
   const TOKEN_RE = /\{%\s*([^%]+?)\s*%\}/g;
   const UNSAFE_URL = /^\s*(javascript|data|vbscript):/i;
 
+  function parseToken(raw) {
+    const parts = raw.split('::').map(s => s.trim());
+    const key = parts.shift();
+    const opt = { join: false, index: 0, gap: 1 };
+    parts.forEach(p => {
+      const g = p.match(/^gap\s*=\s*(\d+)$/i);
+      if (p.toLowerCase() === 'join') opt.join = true;
+      else if (/^\d+$/.test(p)) opt.index = parseInt(p, 10);
+      else if (g) opt.gap = Math.min(2, Math.max(1, parseInt(g[1], 10)));
+    });
+    return { key, opt };
+  }
+
+  const gapText = n => (n >= 2 ? ' \u00A0' : ' ');
+
+  function resolveToken(match, raw, map, inButton) {
+    const { key, opt } = parseToken(raw);
+    const v = map[key] ?? map[normalizeKey(key)];
+    if (!v || isEmpty(v)) return { text: emptyReplacement(match, key), missing: key };
+
+    if (!v.items) {
+      const s = String(v.value);
+      return { text: inButton && UNSAFE_URL.test(s) ? '' : s };
+    }
+    let items = v.items;
+    if (opt.index) items = items.slice(opt.index - 1, opt.index);
+    if (!items.length) return { text: emptyReplacement(match, key), missing: key };
+
+    const gap = gapText(opt.gap);
+    if (opt.join || inButton) {
+      const s = items.join(gap);
+      return { text: inButton && UNSAFE_URL.test(s) ? '' : s };
+    }
+    return { items, gap };
+  }
+
   function replaceTextNodes(map, codeIds) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const targets = [];
@@ -257,15 +295,41 @@
 
     const missing = new Set();
     targets.forEach(node => {
-      const inButton = node.nodeValue.includes('[$');
-      node.nodeValue = node.nodeValue.replace(TOKEN_RE, (match, raw) => {
-        const key = raw.trim();
-        const v = map[key] ?? map[normalizeKey(key)];
-        if (!v || isEmpty(v)) { missing.add(key); return emptyReplacement(match, key); }
-        const val = String(v.value);
-        if (inButton && UNSAFE_URL.test(val)) return '';
-        return val;
-      });
+      const src = node.nodeValue;
+      const inButton = src.includes('[$');
+      const frag = document.createDocumentFragment();
+      let buf = '', last = 0, multi = false;
+      const flush = () => {
+        if (buf) { frag.appendChild(document.createTextNode(buf)); buf = ''; }
+      };
+
+      for (const m of src.matchAll(TOKEN_RE)) {
+        buf += src.slice(last, m.index);
+        last = m.index + m[0].length;
+        const r = resolveToken(m[0], m[1], map, inButton);
+        if (r.missing) missing.add(r.missing);
+        if (r.items) {
+          flush();
+          multi = true;
+          r.items.forEach((t, i) => {
+            if (i) frag.appendChild(document.createTextNode(r.gap));
+            const sp = document.createElement('span');
+            sp.setAttribute('data-fill-item', String(i));
+            sp.textContent = t;
+            frag.appendChild(sp);
+          });
+        } else {
+          buf += r.text;
+        }
+      }
+      buf += src.slice(last);
+
+      if (multi) {
+        flush();
+        node.parentNode.replaceChild(frag, node);
+      } else {
+        node.nodeValue = buf;
+      }
     });
     return { count: targets.length, missing: [...missing] };
   }
