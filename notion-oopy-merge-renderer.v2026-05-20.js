@@ -283,13 +283,18 @@
     return map;
   }
 
-  function getChildBlocks(runtime) {
-    const { rm, pageId } = runtime;
-    return Object.values(rm.block)
-      .map(x => x.value)
-      .filter(Boolean)
-      .filter(v => v.parent_id === pageId);
-  }
+function getChildBlocks(runtime) {
+  const { rm, pageId } = runtime;
+  const out = [];
+  const walk = id => {
+    const b = rm.block[id]?.value;
+    if (!b) return;
+    if (id !== pageId) out.push(b);
+    (b.content || []).forEach(walk);
+  };
+  walk(pageId);
+  return out;
+}
 
   function getTokenBlocks(runtime) {
     return getChildBlocks(runtime)
@@ -300,7 +305,7 @@
           : '';
         return { id: block.id, type: block.type, text };
       })
-      .filter(block => block.text && block.text.includes('{%'));
+      .filter(block => block.text && block.text.includes('{%') && !block.text.includes('[$'));
   }
 
   function resolveTokenValue(key, rawToken, map) {
