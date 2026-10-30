@@ -444,17 +444,26 @@ function getChildBlocks(runtime) {
     }
   }
 
-  function boot() {
-    run();
-    setTimeout(run, POLICY.RENDER_DELAY);
-
-    const observer = new MutationObserver(() => {
-      run();
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => observer.disconnect(), POLICY.OBSERVE_MS);
-  }
+function boot() {
+  let timer = null, running = false;
+  const safeRun = () => {
+    if (running) return;
+    running = true;
+    observer.disconnect();
+    try { run(); } finally {
+      running = false;
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+  };
+  const observer = new MutationObserver(() => {
+    clearTimeout(timer);
+    timer = setTimeout(safeRun, 250);
+  });
+  safeRun();
+  setTimeout(safeRun, POLICY.RENDER_DELAY);
+  observer.observe(document.body, { childList: true, subtree: true });
+  setTimeout(() => { observer.disconnect(); clearTimeout(timer); }, POLICY.OBSERVE_MS);
+}
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
