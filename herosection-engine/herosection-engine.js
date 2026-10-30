@@ -1,3 +1,58 @@
+/*!
+ * 히어로 섹션 엔진 (Hero Section Engine)  v9
+ * ---------------------------------------------------------------------------
+ * 용도
+ *   노션 데이터베이스(페이지 속성)에 입력한 값을 읽어, 우피(Oopy) 페이지 상단에
+ *   히어로 섹션(단일 배너 / 캐러셀)을 자동으로 만들어 준다.
+ *   짝이 되는 CSS: herosection-engine.css (이 파일만 교체해도 동작하며, CSS는 별도 관리)
+ *
+ * v9 주요 변경
+ *   1) 데이터 읽기: 화면(DOM)이 아니라 페이지에 포함된 __NEXT_DATA__ JSON에서 직접 읽는다.
+ *      → 속성 그룹이 접혀 있거나 '속성 N개 더 보기' 뒤에 숨겨져 있어도 동작한다.
+ *      → JSON을 읽지 못하면 기존 DOM 읽기 방식으로 자동 전환(예비 경로).
+ *   2) 자가복구: MutationObserver를 유지하여, 우피/노션이 화면을 다시 그려
+ *      히어로가 지워지거나 속성 영역이 다시 나타나도 즉시 복원한다.
+ *   3) 우피 내부 페이지 이동 대응: 경로가 바뀌면 이전 히어로를 제거하고 상태를 초기화,
+ *      새 페이지의 원본 HTML을 받아 같은 방식으로 처리한다.
+ *   4) 노출여부 판정: '전체관리' 그룹의 '노출여부'가 '노출'일 때만 히어로를 만든다.
+ *      (비노출 / 값 없음이면 만들지 않고 속성 영역만 숨긴다)
+ *   5) 초기화 오류가 나도 스크립트 전체가 멈추지 않도록 try/catch 처리.
+ *
+ * 노션 속성 규칙
+ *   - 속성 그룹 이름:  [% 섹션 N :: hero %]   (N = 1, 2, 3 ... 슬라이드 1개 = 그룹 1개)
+ *                      [% 전체관리 :: hero %]  (페이지 전체 설정)
+ *   - 섹션 그룹 속성:  메인 타이틀 / 서브타이틀 / 버튼 / 배경이미지 / 배경이미지(모바일) /
+ *                      배경영상URL / 배경색 / 배경위치 / 배경배율 / 쉐도우색상 /
+ *                      쉐도우투명도 / 노출시간 / 가로정렬 / 세로정렬
+ *   - 전체관리 속성:   노출여부 / 용도(메인·서브) / 높이 / 넓이 / 타이틀 공개
+ *   - 텍스트 태그:     [% GA n :: hero | gap %]                     간격(n칸)
+ *                      [% ST full|line :: IC 아이콘 :: Ga n :: hero | button %]   버튼 스타일
+ *   - 메인 타이틀이 비어 있는 섹션 그룹은 슬라이드로 인식하지 않는다.
+ *
+ * 외부 제어 API
+ *   window.efhDashboardAPI  : 제목/아이콘/점 모양/자동재생/전환 방식 등을 코드로 변경
+ *   window.efhDebug         : init(), findHeaders(), getState(), buildJson(), version
+ *   전역 설정값             : efh_mobileBreakpoint_v1, efh_defaultSlideDuration_v1,
+ *                             efh_transitionStyle_v1, efh_transitionDirH_v1,
+ *                             efh_transitionDirV_v1, efh_contentMode_v1
+ *
+ * 적용 방법 (우피 + GitHub + jsDelivr)
+ *   - 우피 코드 삽입란의 JS 주소에 커밋 해시를 고정해서 사용한다.
+ *       .../notionoopy@<커밋해시>/herosection-engine/herosection-engine.js
+ *   - 코드를 수정해 커밋하면 새 커밋 해시로 주소를 바꿔야 반영된다.
+ *     (브랜치/별칭 주소는 CDN 캐시 때문에 반영이 늦을 수 있음)
+ *
+ * 점검 (브라우저 콘솔)
+ *   efhDebug.version              → 'v9'
+ *   efhDebug.getState()           → jsonStatus('ok'면 JSON 방식), decision('show'/'hide'/'none')
+ *
+ * 수정 이력
+ *   v9  JSON 직접 읽기, 자가복구, 우피 내부 이동 대응, 노출여부 판정, 오류 격리
+ *   v8  전환 방식 / 방향 / 콘텐츠 이동 방식 API 추가
+ * ---------------------------------------------------------------------------
+ */
+
+
 (function () {
   const EFH_LOG_PREFIX = '[히어로엔진]';
   const EFH_DECIDE_WAIT_MS = 4000;
@@ -311,7 +366,7 @@ contentOrder: []
 
     rows.forEach(function (row) {
       const fieldName = row.fieldName;
-      const val = efh_extractRowValue_q1a(row.valueEl);
+      const val = row.val || efh_extractRowValue_q1a(row.valueEl);
 
       if (/^메인\s*타이틀/.test(fieldName)) {
         if (val.text) data.mainTitle = pushTextItem('title', val.text);
@@ -694,9 +749,14 @@ contentOrder: []
     if (isCarousel) efh_startSlideRotation_v3m(container, slidesData.length);
   }
 
-  /* v9: 자가복구 구조 — 우피/노션이 화면을 다시 그려도 히어로와 속성숨김을 계속 복원한다 */
+  /* v9: 데이터 원본(__NEXT_DATA__ JSON)에서 직접 읽기 + 자가복구
+     - 노션 속성이 접힘/숨김이어도 값을 읽을 수 있다 (화면 DOM에 의존하지 않음)
+     - JSON을 못 읽으면 기존 DOM 방식으로 자동 전환
+     - 우피/노션이 화면을 다시 그려도 히어로와 속성숨김을 복원한다 */
+  window.__efhInitialPath_v3 = window.__efhInitialPath_v3 || location.pathname;
+
   function efh_newState_v2() {
-    return { path: location.pathname, firstSeen: 0, decision: '', metaGroup: null, last: null };
+    return { path: location.pathname, firstSeen: 0, decision: '', metaGroup: null, last: null, json: null, jsonStatus: '' };
   }
   window.__efhState_v2 = efh_newState_v2();
 
@@ -705,11 +765,132 @@ contentOrder: []
     window.__efhDecided_v1 = false;
   }
 
-  function efh_applyDecision_v2(found, state) {
-    found.headers.forEach(efh_hideGroup_h5e);
-    efh_hidePropertyArea_h6f(found.headers);
-    efh_applyTitlePublic_c9p(state.metaGroup);
-    if (state.decision !== 'show' || !state.last) return;
+  function efh_jsonGet_v3(obj, id) {
+    if (!obj || !id) return null;
+    if (obj[id]) return obj[id];
+    const n = String(id).replace(/-/g, '');
+    const k = Object.keys(obj).filter(function (x) { return x.replace(/-/g, '') === n; })[0];
+    return k ? obj[k] : null;
+  }
+
+  function efh_jsonUnwrap_v3(r) {
+    return r && r.value ? (r.value.value || r.value) : null;
+  }
+
+  function efh_jsonRichText_v3(arr) {
+    let text = '';
+    let href = '';
+    (arr || []).forEach(function (seg) {
+      text += seg[0] || '';
+      (seg[1] || []).forEach(function (f) { if (f[0] === 'a' && !href) href = f[1]; });
+    });
+    return { text: text, href: href };
+  }
+
+  function efh_oopyOrigin_v3() {
+    let origin = window.__efhOopyOrigin_v3 || 'https://oopy.lazyrockets.com';
+    const sample = document.querySelector('img[src*="/api/v2/notion/"]');
+    if (sample) {
+      try { origin = new URL(sample.src).origin; window.__efhOopyOrigin_v3 = origin; } catch (e) {}
+    }
+    return origin;
+  }
+
+  function efh_fileSrc_v3(file, pageId) {
+    if (!/^attachment:/.test(file.src)) return file.src;
+    const enc = encodeURIComponent;
+    if (/\.gif$/i.test(file.name || '')) {
+      return efh_oopyOrigin_v3() + '/api/v2/notion/fileUrl?src=' + enc(file.src) + '&name=' + enc(file.name || '') + '&blockId=' + pageId;
+    }
+    return efh_oopyOrigin_v3() + '/api/v2/notion/image?src=' + enc(file.src) + '&blockId=' + pageId + '&width=1920';
+  }
+
+  function efh_buildJson_v3(nd) {
+    const pp = nd && nd.props && nd.props.pageProps;
+    const rm = pp && pp.recordMap;
+    if (!rm || !pp.pageID) return null;
+    const page = efh_jsonUnwrap_v3(efh_jsonGet_v3(rm.block, pp.pageID));
+    const col = page ? efh_jsonUnwrap_v3(efh_jsonGet_v3(rm.collection, page.parent_id)) : null;
+    if (!page || !col || !page.properties) return null;
+
+    const schema = col.schema || {};
+    const propGroups = (col.format && col.format.property_groups) || [];
+    const groups = [];
+
+    propGroups.forEach(function (g) {
+      const rows = [];
+      (g.propertyIds || []).forEach(function (pid) {
+        const sc = schema[pid];
+        const raw = page.properties[pid];
+        if (!sc || !raw) return;
+        let val;
+        if (sc.type === 'file') {
+          const images = [];
+          raw.forEach(function (seg) {
+            const a = (seg[1] || []).filter(function (f) { return f[0] === 'a'; })[0];
+            if (a) images.push({ src: efh_fileSrc_v3({ src: a[1], name: seg[0] }, pp.pageID), alt: seg[0] || '' });
+          });
+          val = { text: images.map(function (im) { return im.alt; }).join(', '), href: '', images: images };
+        } else {
+          const rt = efh_jsonRichText_v3(raw);
+          val = { text: rt.text.trim(), href: rt.href, images: [] };
+        }
+        rows.push({ fieldName: String(sc.name || '').trim(), val: val });
+      });
+      groups.push({ title: g.title || '', rows: rows });
+    });
+
+    return groups.length ? { pageId: pp.pageID, groups: groups } : null;
+  }
+
+  function efh_readNextData_v3(root) {
+    try {
+      const el = root.getElementById('__NEXT_DATA__');
+      return el ? efh_buildJson_v3(JSON.parse(el.textContent)) : null;
+    } catch (e) {
+      console.warn(EFH_LOG_PREFIX, '__NEXT_DATA__ 해석 실패:', e);
+      return null;
+    }
+  }
+
+  function efh_ensureJson_v3(state) {
+    if (state.jsonStatus) return;
+    if (location.pathname === window.__efhInitialPath_v3) {
+      state.json = efh_readNextData_v3(document);
+      state.jsonStatus = state.json ? 'ok' : 'fail';
+      return;
+    }
+    state.jsonStatus = 'loading';
+    fetch(location.href, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const data = efh_readNextData_v3(doc);
+      if (window.__efhState_v2 !== state) return;
+      state.json = data;
+      state.jsonStatus = data ? 'ok' : 'fail';
+      efh_safeInit_v2();
+    }).catch(function () {
+      if (window.__efhState_v2 !== state) return;
+      state.jsonStatus = 'fail';
+      efh_safeInit_v2();
+    });
+  }
+
+  function efh_findHeadersQuiet_v3() {
+    return Array.prototype.filter.call(document.querySelectorAll('.css-17s9444'), function (h) {
+      return h.querySelector('.css-bh43vz');
+    });
+  }
+
+  function efh_buildSlides_v3(heroGroups, metaGroup) {
+    const usage = (metaGroup && /^서브|sub/i.test(metaGroup.usage)) ? 'sub' : 'main';
+    const meta = { heightRaw: metaGroup ? metaGroup.heightRaw : '', widthRaw: metaGroup ? metaGroup.widthRaw : '' };
+    const populatedGroups = heroGroups.filter(function (g) { return g.mainTitle; });
+    const isCarousel = populatedGroups.length >= 2;
+    const slidesData = isCarousel ? populatedGroups : [populatedGroups[0] || heroGroups[0]];
+    return { slidesData: slidesData, usage: usage, isCarousel: isCarousel, meta: meta };
+  }
+
+  function efh_renderOnce_v3(state) {
     let heroEl = document.querySelector('.efh_hero_r1f');
     if (!heroEl) {
       efh_ensureFontAwesome_c1a();
@@ -720,16 +901,67 @@ contentOrder: []
     if (heroEl) heroEl.setAttribute('data-efh-path', location.pathname);
   }
 
-  function efh_initHeroEngine_x1z() {
-    const existing = document.querySelector('.efh_hero_r1f');
-    const existingPath = existing ? existing.getAttribute('data-efh-path') : null;
-    if (existing && existingPath && existingPath !== location.pathname) {
-      existing.remove();
-      efh_resetState_v2();
+  /* ---- JSON 경로 ---- */
+  function efh_applyJson_v3(state) {
+    const headers = efh_findHeadersQuiet_v3();
+    if (headers.length) {
+      headers.forEach(function (h) { efh_hideGroup_h5e(h); });
+      efh_hidePropertyArea_h6f(headers);
     }
-    if (window.__efhState_v2.path !== location.pathname) efh_resetState_v2();
-    const state = window.__efhState_v2;
+    efh_applyTitlePublic_c9p(state.metaGroup);
+    if (state.decision !== 'show' || !state.last) return;
+    if (!document.querySelector('.efh_hero_r1f')) {
+      const waited = Date.now() - state.firstSeen;
+      if (!document.querySelector('.notion-page-block') && waited < 3000) return;
+    }
+    efh_renderOnce_v3(state);
+  }
 
+  function efh_initFromJson_v3(state) {
+    if (!state.firstSeen) state.firstSeen = Date.now();
+    if (!state.decision) {
+      const heroGroups = [];
+      let metaGroup = null;
+      state.json.groups.forEach(function (g) {
+        const m = g.title.match(/\[%\s*(.+?)\s*::\s*hero\s*%\]/);
+        if (!m) return;
+        const name = m[1].trim();
+        const data = efh_buildGroupData_h3c(g.rows, name);
+        if (/^섹션/.test(name)) heroGroups.push(data);
+        else if (name === '전체관리') metaGroup = data;
+      });
+      if (!heroGroups.length && !metaGroup) { state.decision = 'none'; return; }
+
+      const metaReady = !!(metaGroup && metaGroup.visibilityRowFound);
+      const visible = metaReady && efh_resolveVisibility_c9o(metaGroup.visibility) === true;
+      state.metaGroup = metaGroup;
+
+      if (!visible) {
+        state.decision = 'hide';
+        console.info(EFH_LOG_PREFIX, '히어로 비노출 (노출여부: ' + (metaReady ? '"' + metaGroup.visibility + '"' : '값 없음') + ')');
+      } else if (!heroGroups.length) {
+        state.decision = 'hide';
+        console.warn(EFH_LOG_PREFIX, '"섹션" 그룹을 찾지 못했습니다. 그룹 이름이 [% 섹션 N :: hero %] 형식인지 확인하세요.');
+      } else {
+        state.decision = 'show';
+        state.last = efh_buildSlides_v3(heroGroups, metaGroup);
+      }
+      window.__efhDecided_v1 = true;
+    }
+    if (state.decision === 'none') return;
+    efh_applyJson_v3(state);
+  }
+
+  /* ---- DOM 경로 (JSON을 못 읽을 때의 예비 방식) ---- */
+  function efh_applyDecision_v2(found, state) {
+    found.headers.forEach(function (h) { efh_hideGroup_h5e(h); });
+    efh_hidePropertyArea_h6f(found.headers);
+    efh_applyTitlePublic_c9p(state.metaGroup);
+    if (state.decision !== 'show' || !state.last) return;
+    efh_renderOnce_v3(state);
+  }
+
+  function efh_initFromDom_v3(state) {
     const found = efh_findAllHeaders_h1x();
     if (found.headers.length === 0) return;
 
@@ -770,17 +1002,28 @@ contentOrder: []
       state.last = null;
       console.warn(EFH_LOG_PREFIX, '"섹션" 그룹을 찾지 못했습니다. 그룹 이름이 [% 섹션 N :: hero %] 형식인지 확인하세요.');
     } else {
-      const usage = (metaGroup && /^서브|sub/i.test(metaGroup.usage)) ? 'sub' : 'main';
-      const meta = { heightRaw: metaGroup ? metaGroup.heightRaw : '', widthRaw: metaGroup ? metaGroup.widthRaw : '' };
-      const populatedGroups = heroGroups.filter(function (g) { return g.mainTitle; });
-      const isCarousel = populatedGroups.length >= 2;
-      const slidesData = isCarousel ? populatedGroups : [populatedGroups[0] || heroGroups[0]];
       state.decision = 'show';
-      state.last = { slidesData: slidesData, usage: usage, isCarousel: isCarousel, meta: meta };
+      state.last = efh_buildSlides_v3(heroGroups, metaGroup);
     }
 
     window.__efhDecided_v1 = true;
     efh_applyDecision_v2(found, state);
+  }
+
+  function efh_initHeroEngine_x1z() {
+    const existing = document.querySelector('.efh_hero_r1f');
+    const existingPath = existing ? existing.getAttribute('data-efh-path') : null;
+    if (existing && existingPath && existingPath !== location.pathname) {
+      existing.remove();
+      efh_resetState_v2();
+    }
+    if (window.__efhState_v2.path !== location.pathname) efh_resetState_v2();
+    const state = window.__efhState_v2;
+
+    efh_ensureJson_v3(state);
+    if (state.jsonStatus === 'loading') return;
+    if (state.jsonStatus === 'ok') efh_initFromJson_v3(state);
+    else efh_initFromDom_v3(state);
   }
 
   function efh_safeInit_v2() {
@@ -802,7 +1045,7 @@ contentOrder: []
 
     if (window.MutationObserver) {
       if (window.__efhObserver_v2) window.__efhObserver_v2.disconnect();
-      window.__efhObserver_v2 = new MutationObserver(efh_debounce_z1(efh_safeInit_v2, 150));
+      window.__efhObserver_v2 = new MutationObserver(efh_debounce_z1(efh_safeInit_v2, 100));
       window.__efhObserver_v2.observe(document.body, { childList: true, subtree: true });
     }
   }
@@ -914,6 +1157,8 @@ contentOrder: []
   window.efhDebug = {
     init: efh_initHeroEngine_x1z,
     findHeaders: efh_findAllHeaders_h1x,
-    version: 'v8'
+    getState: function () { return window.__efhState_v2; },
+    buildJson: efh_buildJson_v3,
+    version: 'v9'
   };
 })();

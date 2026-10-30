@@ -1,3 +1,15 @@
+//  <!--히어로 섹션 디자인 hero section design | Variables are each page-->
+//  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/herosection-engine/herosection-engine.css">
+//  <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@main/herosection-engine/herosection-engine.js" defer></script>
+//  <style>:root { --efh-contentSidePad_b13: 6vw !important; --efh-contentTextMaxWidth_b14: 700px !important; --efh-subtitleSize_a7: 20px !important; --efh-subtitleSizeMobile_c32: 16px !important; --efh-mainTitleSizeMobile_c25: 40px !important; --efh-mainTitleSizeTablet_c24: 40px !important; --efh-subHeightMobile_c42: 40vh !important;}</style>
+//  <script> (function () { function efhApplySavedSettings() { if (!window.efhDashboardAPI) { setTimeout(efhApplySavedSettings, 200); return; } window.efhDashboardAPI.setPageTitleVisible(true); window.efhDashboardAPI.setPageTitleAreaVisible(true); document.querySelectorAll(".efh_hero_r1f").forEach(function (h) { h.setAttribute("data-textshadow", "1"); }); window.efhDashboardAPI.setTitleVisible(true); window.efhDashboardAPI.setSubtitleVisible(true); window.efhDashboardAPI.setMobileBreakpoint("768"); window.efhDashboardAPI.setTransitionStyle("fade"); window.efhDashboardAPI.setDotShape("dot"); window.efhDashboardAPI.setAutoplay(true); window.efhDashboardAPI.setDefaultSlideDuration("6"); window.efhDashboardAPI.setScrollIcon("fa-solid fa-chevron-down"); document.querySelectorAll(".efh_scrollHint_g1d").forEach(function (el) { el.style.display = ""; }); window.efhDashboardAPI.setPauseIcons("fa-solid fa-circle-pause", "fa-solid fa-circle-play"); } efhApplySavedSettings(); })(); </script>
+
+
+//  <!-- 히어로 섹션 디자인 hero section design | Variables are each page 제작 AI -->
+// https://www.perplexity.ai/search/aadbb98b-e234-4953-b83a-b293f2ff8491
+
+
+
 /*
   ====================================================================
   히어로 대시보드 런처 v5
@@ -10,6 +22,7 @@
   - v8 엔진코드와 함께 사용하세요.
   ====================================================================
 */
+
 (function () {
   const hostWin = window;
   const dash = window.open('', 'EfhHeroDashboard', 'width=760,height=1020,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
