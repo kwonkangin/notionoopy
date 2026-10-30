@@ -30,9 +30,17 @@
  *  - {% 속성 :: gap=2 %}        값 사이 공백 2칸 (gap은 1 또는 2)
  *  - {% 속성 :: join %}         개별 요소 없이 한 덩어리 텍스트
  *  - {% 속성 :: 2 %}            2번째 값만 출력 (번호는 1부터)
+ *  - {% 속성 :: nosplit %}      뱃지(인라인 코드) 안에서도 값을 한 뱃지로 유지
  *  - {% 속성 :: join :: gap=2 %}  옵션 조합
  *  - 개별 <span>에는 data-fill-item="인덱스" 속성이 붙는다. (JS 접근용 식별자)
  *  - 값이 하나뿐이거나 단일 속성(텍스트, 날짜 등)은 옵션과 관계없이 텍스트로 치환된다.
+ *
+ * [뱃지 분리]
+ *  - 토큰을 인라인 코드(`...`)로 감싸 뱃지로 표시하는 경우, 다중값은 값마다
+ *    뱃지 컨테이너를 복제해 "값 하나 = 뱃지 하나"로 분리한다.
+ *  - 뱃지 컨테이너 판별: class에 "badge"가 있거나 inline style에 background가 있는 요소.
+ *  - 컨테이너 안에 개별 값 span 외의 요소/글자가 섞여 있으면 분리하지 않는다.
+ *  - 분리된 뱃지 사이는 NBSP(gap 1 = 1칸, gap 2 = 2칸)로 띄운다.
  *
  * [Oopy 설정 > Head 에 삽입]
  *  <script src="https://cdn.jsdelivr.net/gh/kwonkangin/notionoopy@커밋SHA/db-property-fill-20261030/db-property-fill.js" defer></script>
@@ -66,9 +74,13 @@
  * [한계]
  *  - __NEXT_DATA__ 기반이므로 노션 수정 후 Oopy 재배포(캐시 갱신)가 필요하다.
  *  - 한 토큰이 여러 텍스트 노드로 쪼개지면(일부만 서식 적용 등) 치환되지 않는다.
+ *  - 뱃지 분리는 복제한 컨테이너의 속성(data-ecb-key 등)을 그대로 복사한다.
+ *    뱃지 생성 스크립트가 중복 키를 문제 삼으면 조정이 필요하다.
  *  - SPA 이동 시 데이터 일치 검증은 아직 없다.
  *
  * [버전]
+ *  v3.2 (2026-10-30) 뱃지(인라인 코드) 안 다중값을 값마다 뱃지로 분리, :: nosplit 추가,
+ *                    gap을 NBSP로 변경(flex 컨테이너에서 공백이 사라지는 문제 해결).
  *  v3.1 (2026-10-30) 다중값 속성 개별 <span> 출력, :: 옵션(join, 번호, gap) 추가.
  *  v3   (2026-10-30) 블록 렌더러 제거, DOM 텍스트 치환으로 통일.
  *                    표/컬럼 내 토큰 지원, 서식 유지, 무한 루프 방지, 코드 블록 제외.
@@ -247,17 +259,19 @@
   function parseToken(raw) {
     const parts = raw.split('::').map(s => s.trim());
     const key = parts.shift();
-    const opt = { join: false, index: 0, gap: 1 };
+    const opt = { join: false, nosplit: false, index: 0, gap: 1 };
     parts.forEach(p => {
       const g = p.match(/^gap\s*=\s*(\d+)$/i);
-      if (p.toLowerCase() === 'join') opt.join = true;
+      const lower = p.toLowerCase();
+      if (lower === 'join') opt.join = true;
+      else if (lower === 'nosplit') opt.nosplit = true;
       else if (/^\d+$/.test(p)) opt.index = parseInt(p, 10);
       else if (g) opt.gap = Math.min(2, Math.max(1, parseInt(g[1], 10)));
     });
     return { key, opt };
   }
 
-    const gapText = n => (n >= 2 ? '\u00A0\u00A0' : '\u00A0');
+  const gapText = n => (n >= 2 ? '\u00A0\u00A0' : '\u00A0');
 
   function resolveToken(match, raw, map, inButton) {
     const { key, opt } = parseToken(raw);
@@ -277,7 +291,7 @@
       const s = items.join(gap);
       return { text: inButton && UNSAFE_URL.test(s) ? '' : s };
     }
-    return { items, gap };
+    return { items, gap, opt };
   }
 
   function replaceTextNodes(map, codeIds) {
@@ -315,6 +329,8 @@
             if (i) frag.appendChild(document.createTextNode(r.gap));
             const sp = document.createElement('span');
             sp.setAttribute('data-fill-item', String(i));
+            sp.setAttribute('data-fill-gap', r.gap.length >= 2 ? '2' : '1');
+            if (r.opt.nosplit) sp.setAttribute('data-fill-nosplit', '1');
             sp.textContent = t;
             frag.appendChild(sp);
           });
@@ -334,13 +350,50 @@
     return { count: targets.length, missing: [...missing] };
   }
 
+  function isChipBox(el) {
+    if (!el || el === document.body) return false;
+    const cls = typeof el.className === 'string' ? el.className : '';
+    const style = el.getAttribute('style') || '';
+    return /badge/i.test(cls) || /background/i.test(style);
+  }
+
+  function splitChips() {
+    const seen = new Set();
+    let count = 0;
+    document.querySelectorAll('[data-fill-item]').forEach(it => {
+      const box = it.parentElement;
+      if (!box || seen.has(box) || !isChipBox(box) || !box.parentNode) return;
+      seen.add(box);
+
+      const kids = [...box.childNodes];
+      const isItem = k => k.nodeType === 1 && k.hasAttribute('data-fill-item');
+      const items = kids.filter(isItem);
+      const onlyItems = kids.every(k =>
+        isItem(k) || (k.nodeType === 3 && !k.nodeValue.replace(/[\s\u00A0]/g, '')));
+      if (items.length < 2 || !onlyItems) return;
+      if (items.some(el => el.hasAttribute('data-fill-nosplit'))) return;
+
+      const gap = gapText(items[0].getAttribute('data-fill-gap') === '2' ? 2 : 1);
+      items.forEach((el, i) => {
+        const chip = box.cloneNode(false);
+        chip.appendChild(el);
+        box.parentNode.insertBefore(chip, box);
+        if (i < items.length - 1) box.parentNode.insertBefore(document.createTextNode(gap), box);
+      });
+      box.remove();
+      count++;
+    });
+    return count;
+  }
+
   function run() {
     try {
       const rt = getRuntime();
       if (!rt) return;
       const map = buildMap(rt);
       const res = replaceTextNodes(map, collectCodeBlockIds(rt.rm));
-      if (res.count) log('replaced', res);
+      const chips = splitChips();
+      if (res.count || chips) log('replaced', res, 'chips split:', chips);
     } catch (e) {
       console.error('[merge] failed', e);
     }
