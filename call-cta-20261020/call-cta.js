@@ -1,5 +1,5 @@
 // =========================================================
-// call-cta.js v1.1.0
+// call-cta.js v1.2.0
 // 노션·우피 CTA 토큰 엔진 / 접미사 _Q2tq / core.js v1.2.0 필요
 // ---------------------------------------------------------
 // [사용법]
@@ -9,13 +9,20 @@
 // 이 파일에는 <script> 태그가 없다. 코드 삽입란에서는 필요시 감싼다.
 //
 // [키 / 별칭 / 옛 이름]
-// MIN_HEIGHT/MH/SZ: SM, MD(기본), LG, FULL. PC 최소높이 240/360/480px/100vh
-// MIN_HEIGHT_MOBILE/MHM/SZM: AUTO(기본)=PC 프리셋 사용. 모바일 200/280/360px/100svh
+// MIN_HEIGHT/MH/SZ: SM, MD(기본), LG, FULL, AUTO(최소 높이 없음=내용만큼), 숫자·px·vh(예: 120, 120px, 30vh)
+//  프리셋은 PC 240/360/480px/100vh. 숫자는 px 0~3000, vh/svh 0~300
+// MIN_HEIGHT_MOBILE/MHM/SZM: AUTO(기본)=PC 값과 같게. 프리셋은 모바일 200/280/360px/100svh
+//  숫자·px·vh도 가능. 모바일만 최소 높이를 없애려면 0
 // WIDTH: FULL(기본), BODY / ALIGN_WIDTH/AW: CONTENT(기본), BOX
 // TEXT_ALIGN/TA: L,C(기본),R
 // PADDINGX/PADX/HP,SP: 내용 좌우 24px / PADDINGY/PADY/VP: 상하 PC 40px
 // PADDINGY_MOBILE/PADYM/VPM: 상하 모바일 24px. 여백 범위 0~300px
 // RADIUS/R: 박스 모서리 0px / IMAGE_RADIUS/IR: 컬럼 이미지 모서리 12px(0~200)
+// MARGINY/MY: CTA 바깥 위·아래 여백 px(0~300). 미지정=노션 원본(보통 위4px·아래4px)
+// MARGINY_TOP/MYT, MARGINY_BOTTOM/MYB: 위/아래만 따로 지정. 있으면 MARGINY보다 우선
+// FOOTER_JOIN/FJ: 0(기본), 1. 1이면 이 CTA가 페이지 마지막 블록(동기화 블록 안 포함)일 때
+//  본문 아래 패딩과 우피 푸터 컨테이너의 위·아래 여백을 0으로 해서 푸터에 붙인다.
+//  CTA 뒤에 높이가 있는 블록(빈 블록 포함)이 있으면 마지막으로 보지 않아 적용하지 않는다.
 // BACKGROUND_MODE/BM/BG: COLOR(기본),NONE / BACKGROUND_COLOR/BC/BGC: 원본유지
 // OVERLAY/OL: NONE(기본) 또는 <색> <A,T,B,L,R> <시작%> <끝%>
 //  예: OVERLAY rgba(0,0,0,0.55) A 0 65. 옛 BLACK 0.55 A 형식도 읽는다.
@@ -26,16 +33,18 @@
 // 정식 이름 > 별칭 > 옛 이름. POS,TC,GAP는 삭제되어 무시한다.
 //
 // [CSS]
-// 모든 설정은 :root의 공개 변수로 지정 가능하다. dashboard.schema()가 전체37개 목록을 준다.
+// 모든 설정은 :root의 공개 변수로 지정 가능하다. dashboard.schema()가 전체41개 목록을 준다.
 // --cta-min-height_Q2tq, --cta-min-height-mobile_Q2tq, --cta-width_Q2tq,
 // --cta-align-width_Q2tq, --cta-text-align_Q2tq,
 // --cta-padding-x_Q2tq, --cta-padding-y_Q2tq, --cta-padding-y-mobile_Q2tq,
 // --cta-radius_Q2tq, --cta-image-radius_Q2tq,
+// --cta-margin-y_Q2tq, --cta-margin-y-top_Q2tq, --cta-margin-y-bottom_Q2tq,
+// --cta-footer-join_Q2tq(0/1),
 // --cta-background-mode_Q2tq, --cta-background-color_Q2tq,
 // --cta-overlay_Q2tq(0/1), --cta-overlay-color_Q2tq, --cta-overlay-direction_Q2tq,
 // --cta-overlay-start_Q2tq, --cta-overlay-end_Q2tq,
 // --cta-h1-size_Q2tq / -size-mobile / -weight / -color (h2,h3,h4,bd도 동일)
-// 숫자 크기·여백은 숫자 또는 px, 굵기·백분율은 숫자. 색은 HEX/rgb/rgba/hsl/이름 등.
+// 숫자 크기·여백은 숫자 또는 px(최소 높이는 vh도 가능), 굵기·백분율은 숫자. 색은 HEX/rgb/rgba/hsl/이름 등.
 // 빈 CSS 변수=미지정, NONE=명시적 원본유지(지원되는 항목만).
 // 우선순위: 카드 임시 편집 > 카드 토큰 > 공통 임시 편집 > :root CSS > 엔진 기본값.
 // 토큰에서 원본유지 NONE을 명시하면 공통 CSS보다 우선한다.
@@ -50,7 +59,7 @@
 // 박스 좌우 기본 padding(PC48px/모바일24px)은 기존 동작 유지. PADX는 내용 좌우 여백.
 //
 // [대시보드 API 1.0.0] CallCtaEngine.dashboard
-// schema():37개 키의 key,alias,legacy,css,type,defaultValue,min,max,nullable,tokenKey 등
+// schema():41개 키의 key,alias,legacy,css,type,defaultValue,min,max,nullable,tokenKey 등
 // common.read/apply(patch)/restore(keys)/css({full})
 // scopes.list/read(id)/apply(id,patch)/restore(id,keys)/release(id,keys)
 // scopes.token(id,{names:'formal'|'alias',full}) / scopes.element(id)
@@ -73,7 +82,7 @@
 // =========================================================
 (function (W) {
 'use strict';
-const D=W.document, VERSION='1.1.0', SUFFIX='_Q2tq';
+const D=W.document, VERSION='1.2.0', SUFFIX='_Q2tq';
 if(W.CallCtaEngine){console.warn('[call-cta] 기존 엔진이 있습니다. 교체는 새로고침 후 적용하세요.');return;}
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k),copy=o=>JSON.parse(JSON.stringify(o));
 const F=[],byKey=Object.create(null),aliases=Object.create(null);
@@ -81,8 +90,8 @@ function field(key,alias,legacy,css,type,def,extra){
  const f=Object.assign({key,alias:alias||'',legacy:legacy||[],css:'--cta-'+css+SUFFIX,type,defaultValue:def,tokenKey:key,step:1},extra||{});
  F.push(f);byKey[key]=f;[key,alias].concat(f.legacy).filter(Boolean).forEach(k=>{aliases[k]=key;});return f;
 }
-field('MIN_HEIGHT','MH',['SZ'],'min-height','enum','MD',{options:['SM','MD','LG','FULL']});
-field('MIN_HEIGHT_MOBILE','MHM',['SZM'],'min-height-mobile','enum','AUTO',{options:['AUTO','SM','MD','LG','FULL']});
+field('MIN_HEIGHT','MH',['SZ'],'min-height','height','MD',{options:['SM','MD','LG','FULL','AUTO'],units:['px','vh','svh']});
+field('MIN_HEIGHT_MOBILE','MHM',['SZM'],'min-height-mobile','height','AUTO',{options:['AUTO','SM','MD','LG','FULL'],units:['px','vh','svh']});
 field('WIDTH','',[],'width','enum','FULL',{options:['FULL','BODY']});
 field('ALIGN_WIDTH','AW',[],'align-width','enum','CONTENT',{options:['CONTENT','BOX']});
 field('TEXT_ALIGN','TA',[],'text-align','enum','C',{options:['L','C','R']});
@@ -91,6 +100,10 @@ field('PADDINGY_MOBILE','PADYM',['VPM'],'padding-y-mobile','px','24',{min:0,max:
 field('PADDINGX','PADX',['HP','SP'],'padding-x','px','24',{min:0,max:300});
 field('RADIUS','R',[],'radius','px','0',{min:0,max:200});
 field('IMAGE_RADIUS','IR',[],'image-radius','px','12',{min:0,max:200});
+field('MARGINY','MY',[],'margin-y','px','NONE',{nullable:true,min:0,max:300});
+field('MARGINY_TOP','MYT',[],'margin-y-top','px','NONE',{nullable:true,min:0,max:300});
+field('MARGINY_BOTTOM','MYB',[],'margin-y-bottom','px','NONE',{nullable:true,min:0,max:300});
+field('FOOTER_JOIN','FJ',[],'footer-join','bool','0');
 field('BACKGROUND_MODE','BM',['BG'],'background-mode','enum','COLOR',{options:['COLOR','NONE']});
 field('BACKGROUND_COLOR','BC',['BGC'],'background-color','color','NONE',{nullable:true});
 field('OVERLAY','OL',[],'overlay','bool','0');
@@ -107,6 +120,7 @@ LEVELS.forEach(l=>{
 });
 const OLKEYS=['OVERLAY','OVERLAY_COLOR','OVERLAY_DIRECTION','OVERLAY_START','OVERLAY_END'];
 const PRESETS={SM:{pc:'240px',mobile:'200px'},MD:{pc:'360px',mobile:'280px'},LG:{pc:'480px',mobile:'360px'},FULL:{pc:'100vh',mobile:'100svh'}};
+const minH=(val,mob)=>val==='AUTO'?'0px':PRESETS[val]?PRESETS[val][mob?'mobile':'pc']:val;
 const tidy=s=>String(s).trim().replace(/\s*,\s*/g,',').replace(/\(\s+/g,'(').replace(/\s+\)/g,')');
 function validColor(s){return !!s&&!/^(inherit|initial|unset|revert|revert-layer|currentcolor)$/i.test(s)&&!/(?:var|env)\(/i.test(s)&&!/[;{}]/.test(s)&&W.CSS.supports('color',s);}
 function rgba(s){
@@ -124,6 +138,14 @@ function norm(f,input){
  if(['ORIG','ORIGINAL'].includes(u))u='NONE';
  if(f.nullable&&u==='NONE')return 'NONE';
  if(f.type==='enum'){if(!f.options.includes(u))throw Error(f.key+': 허용값 '+f.options.join(', '));return u;}
+ if(f.type==='height'){
+  if(f.options.includes(u))return u;
+  const h=/^([+-]?(?:\d+\.?\d*|\.\d+))(px|vh|svh)?$/i.exec(s);
+  if(!h)throw Error(f.key+': '+f.options.join(', ')+' 또는 숫자(px, vh)');
+  const n=Number(h[1]),unit=(h[2]||'px').toLowerCase();
+  if(!Number.isFinite(n)||n<0||n>(unit==='px'?3000:300))throw Error(f.key+': '+(unit==='px'?'0~3000px':'0~300'+unit)+' 범위');
+  return String(n)+unit;
+ }
  if(f.type==='bool'){if(['1','TRUE','ON'].includes(u))return '1';if(['0','FALSE','OFF','NONE'].includes(u))return '0';throw Error(f.key+': 0 또는 1');}
  if(f.type==='color'){if(!validColor(s))throw Error(f.key+': 올바르지 않은 색상');return tidy(s);}
  const m=/^([+-]?(?:\d+\.?\d*|\.\d+))(px)?$/i.exec(s);
@@ -180,6 +202,7 @@ function extractEntries(text){
  const entries=[],re=/\[%\s*call-cta(?:\s|::|\|)[\s\S]*?%\]/gi;let m,last=0;
  while((m=re.exec(text))){const lines=text.slice(last,m.index).trim().split(/\r?\n/),pre=lines.pop()||'',p=/^(\d+)\s*[.)]\s*(.*)$/.exec(pre);entries.push({token:m[0],num:p?+p[1]:null,title:p?p[2]:pre});last=re.lastIndex;}return entries;
 }
+
 
 // 공통값 읽기와 출처 추적. 공개 CSS와 내부 렌더링값은 분리한다.
 const commonEdit={},scopes=new Map(),byOuter=new WeakMap();let seq=0;
@@ -310,9 +333,13 @@ function renderScope(s,common){
  const r=resolve(s,common),v=r.effective,b=s.box;
  b.classList.toggle('call-cta-bleed'+SUFFIX,v.WIDTH==='FULL');b.classList.toggle('call-cta-body'+SUFFIX,v.WIDTH==='BODY');
  b.classList.toggle('call-cta-aw-content'+SUFFIX,v.ALIGN_WIDTH==='CONTENT');b.classList.toggle('call-cta-aw-box'+SUFFIX,v.ALIGN_WIDTH==='BOX');
- setVar(b,'minh-pc',PRESETS[v.MIN_HEIGHT].pc);setVar(b,'minh-mobile',PRESETS[v.MIN_HEIGHT_MOBILE].mobile);
+ setVar(b,'minh-pc',minH(v.MIN_HEIGHT,false));setVar(b,'minh-mobile',minH(v.MIN_HEIGHT_MOBILE,true));
  setVar(b,'pad-y',v.PADDINGY+'px');setVar(b,'pad-ym',v.PADDINGY_MOBILE+'px');setVar(b,'pad-x',v.PADDINGX+'px');
  setVar(b,'radius',v.RADIUS+'px');setVar(b,'image-radius',v.IMAGE_RADIUS+'px');setVar(b,'bg',v.BACKGROUND_COLOR==='NONE'?null:v.BACKGROUND_COLOR);
+ const mt=v.MARGINY_TOP!=='NONE'?v.MARGINY_TOP:v.MARGINY,mb=v.MARGINY_BOTTOM!=='NONE'?v.MARGINY_BOTTOM:v.MARGINY;
+ s.outer.toggleAttribute('data-cta-mt',mt!=='NONE');s.outer.toggleAttribute('data-cta-mb',mb!=='NONE');
+ setVar(s.outer,'mt',mt==='NONE'?null:mt+'px');setVar(s.outer,'mb',mb==='NONE'?null:mb+'px');
+ s.joinWanted=v.FOOTER_JOIN==='1';
  setVar(b,'text-align',{L:'left',C:'center',R:'right'}[v.TEXT_ALIGN]);setVar(b,'align',v.ALIGN_WIDTH==='CONTENT'?'center':{L:'flex-start',C:'center',R:'flex-end'}[v.TEXT_ALIGN]);
  LEVELS.forEach(l=>{
   const q=l.toLowerCase();[['SIZE','fs'],['SIZE_MOBILE','fsm'],['WEIGHT','fw'],['COLOR','fc']].forEach(([suffix,flag])=>{
@@ -321,8 +348,26 @@ function renderScope(s,common){
   });
  });
  imageMode(s,v);markText(s,v);b._callCtaLayoutMode=s.mode;b._callCtaConfig=copy(v);
+ if(!batch)applyFooterJoin();
 }
-function refresh(){clean();const c=readCommon();scopes.forEach(s=>renderScope(s,c));}
+let batch=false;
+// CTA 뒤에 높이가 있는 블록이 없으면(우피 푸터 컨테이너·높이 0 요소 제외) 페이지의 마지막 블록으로 본다.
+function isLastBlock(outer,pc){
+ for(let n=outer;n&&n!==pc;n=n.parentElement){
+  for(let sib=n.nextElementSibling;sib;sib=sib.nextElementSibling){
+   if(sib.matches('.oopy-footer')||sib.getBoundingClientRect().height<1)continue;
+   return false;
+  }
+ }
+ return true;
+}
+function applyFooterJoin(){
+ const want=new Set();
+ scopes.forEach(s=>{if(!s.joinWanted||!s.outer.isConnected)return;const pc=s.outer.closest('.notion-page-content');if(pc&&isLastBlock(s.outer,pc))want.add(pc);});
+ D.querySelectorAll('.notion-page-content[data-cta-footer-join]').forEach(pc=>{if(!want.has(pc))pc.removeAttribute('data-cta-footer-join');});
+ want.forEach(pc=>{if(!pc.hasAttribute('data-cta-footer-join'))pc.setAttribute('data-cta-footer-join','');});
+}
+function refresh(){clean();batch=true;try{const c=readCommon();scopes.forEach(s=>renderScope(s,c));}finally{batch=false;}applyFooterJoin();}
 function clean(){scopes.forEach((s,id)=>{if(!s.outer.isConnected){scopes.delete(id);byOuter.delete(s.outer);}});}
 function render(ctx){
  const outer=ctx.block&&ctx.block.closest('.notion-callout-block');if(!outer){console.warn('[call-cta] 콜아웃 안에 토큰을 넣으세요.');return;}
@@ -334,6 +379,7 @@ function render(ctx){
  box.setAttribute('data-call-cta-box','true');box.setAttribute('data-call-cta-block-id',id);box.classList.add('call-cta'+SUFFIX);
  renderScope(s);box._callCtaOuterContainer=outer;box._callCtaInitialConfig=copy(box._callCtaConfig);
 }
+
 
 // 기본 CSS 1회 삽입. 원본유지 텍스트에는 속성 적용 플래그를 붙이지 않는다.
 function installStyle(){
@@ -354,6 +400,10 @@ ${B} .call-cta-side-image${SUFFIX}{border-radius:${X('image-radius')}!important;
 ${B} .call-cta-side-image${SUFFIX} img{max-width:100%!important;height:auto!important;border-radius:inherit!important;display:block!important}
 ${B} .call-cta-source-hidden${SUFFIX},${B}>.call-cta-source-hidden${SUFFIX}{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
 @media(min-width:768px){${B}{min-height:${X('minh-pc')}!important;padding:${X('pad-y')} 48px!important}}
+.notion-callout-block[data-call-cta-applied="1"][data-cta-mt]{margin-top:${X('mt')}!important}
+.notion-callout-block[data-call-cta-applied="1"][data-cta-mb]{margin-bottom:${X('mb')}!important}
+.notion-page-content[data-cta-footer-join]{padding-bottom:0!important}
+.notion-page-content[data-cta-footer-join]>.oopy-footer{margin-top:0!important;margin-bottom:0!important}
 `;
  LEVELS.forEach(l=>{
   const q=l.toLowerCase(),sel='[data-cta-text-level="'+q+'"]:not(.ga-dynamic-btn):not(.ga-dynamic-btn *)';
