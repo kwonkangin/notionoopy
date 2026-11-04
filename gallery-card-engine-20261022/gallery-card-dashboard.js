@@ -503,3 +503,4 @@ W.__gaDash={destroy};
 refreshSlots();renderPresets();histInit();syncUI();
 console.info('[gallery dashboard] v1.3.0 시작. 임시 편집은 새로고침하면 사라집니다.');
 })();
+ 

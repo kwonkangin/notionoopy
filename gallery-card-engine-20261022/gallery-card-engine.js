@@ -170,7 +170,7 @@ function dbOuter(n){
 }
 function dbBlocks(){return Array.from(document.querySelectorAll(DBSEL)).filter(function(b){return !(b.parentElement&&b.parentElement.closest(DBSEL))&&!b.closest('.ga_overlay_u4b');});}
 function dbParts(b){
-  var tl=Array.from(b.querySelectorAll('[role="tablist"]')).filter(function(t){return !t.closest('.notion-scroller');})[0]||null;
+   var tl=Array.from(b.querySelectorAll('[role="tablist"]')).filter(function(t){var s=t.closest('.notion-scroller');return !(s&&b.contains(s));})[0]||null;
   var sc=b.querySelector('.notion-scroller'),te=null,s;
   if(sc){s=sc.previousElementSibling;while(s){if(s.querySelector('[data-root="true"]')){te=s;break;}s=s.previousElementSibling;}}
   var tabs=tl?Array.from(tl.querySelectorAll('[role="menuitem"]')).map(txt).filter(Boolean):[];
