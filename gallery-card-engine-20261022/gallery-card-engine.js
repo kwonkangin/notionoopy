@@ -1,13 +1,15 @@
 // =========================================================
-// gallery-engine.js  v2.2.0
+// gallery-engine.js  v2.3.0
 // Notion/Oopy 갤러리 렌더링 엔진 (클래스·CSS 비의존, 변경값만 출력 구조)
 // 설정: window.GA_USER = {"v":{"--변수":"값"},"tagMode":"select","tagIndex":0,"desc":"auto","rules":[],
 //        "dateFormat":"raw","dateCustom":"YYYY-MM-DD","dateTime":"1","timeFormat":"24","dateWeekday":"none","dateSep":" → ",
-//        "metaLayout":"auto","dateCompact":"1"}
+//        "metaLayout":"auto","dateCompact":"1",
+//        "hideDbTitle":"0","hideDbTabs":"0","dbRules":[{"match":"index:1","hideTitle":"1","hideTabs":"1"}]}
 //       (대시보드가 기본값과 다른 항목만 출력합니다. 이 엔진보다 먼저 선언하세요.)
-// 대시보드 API: GA.dashboard (defaults/read/apply/replace/restore/inspect/rescan)
+// 대시보드 API: GA.dashboard (defaults/read/apply/replace/restore/inspect/inspectDb/rescan)
 // v2.1.0: 날짜 표기, 세로 간격, 호버 on/off, 아이콘만 있는 관계형 처리
 // v2.2.0: 작성자·날짜 줄 자동 배치 (넘치면 날짜를 짧게 → 그래도 넘치면 두 줄, 날짜 왼쪽 정렬)
+// v2.3.0: DB별 제목·탭 줄 숨기기 (dbRules: index/id/title/tab 로 DB 지정). 규칙의 title:/tab: 판별을 DB 구조 기준으로 수정
 // =========================================================
 (function(){
 'use strict';
@@ -39,10 +41,11 @@ var D={
 '--ga-stack-date-align':'flex-start','--ga-stack-gap':'2px',
 '--ga-hover-on':'1','--ga-hover-bg':'1','--ga-hover-shadow':'1','--ga-hover-lift-on':'1','--ga-hover-lift':'-2px','--ga-hover-zoom-on':'1','--ga-hover-zoom':'3.5%','--ga-hover-title':'0','--ga-hover-title-color':'#ff6b35'
 };
-var DX={tagMode:'select',tagIndex:0,desc:'auto',rules:[],dateFormat:'raw',dateCustom:'YYYY-MM-DD',dateTime:'1',timeFormat:'24',dateWeekday:'none',dateSep:' → ',metaLayout:'auto',dateCompact:'1'};
+var DX={tagMode:'select',tagIndex:0,desc:'auto',rules:[],dateFormat:'raw',dateCustom:'YYYY-MM-DD',dateTime:'1',timeFormat:'24',dateWeekday:'none',dateSep:' → ',metaLayout:'auto',dateCompact:'1',hideDbTitle:'0',hideDbTabs:'0',dbRules:[]};
 var U=window.GA_USER||{},V={},reg=[],lastTab='',styleEl=null;
 var DATE=/\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월|\d+\s*(일|주|개월|년)\s*전/;
 var CSS=[
+'[data-ga-hide]{display:none!important}',
 '[data-ga-grid]{display:grid!important;grid-template-columns:repeat(var(--grid-cols-pc),minmax(0,1fr))!important;gap:var(--ga-grid-gap-row) var(--ga-grid-gap-col)!important;height:auto!important}',
 '@media(max-width:1024px){[data-ga-grid]{grid-template-columns:repeat(var(--grid-cols-tab),minmax(0,1fr))!important}}',
 '@media(max-width:560px){[data-ga-grid]{grid-template-columns:repeat(var(--grid-cols-mob),minmax(0,1fr))!important}}',
@@ -82,7 +85,7 @@ var CSS=[
 function cp(x){return JSON.parse(JSON.stringify(x));}
 function flat(u){var f={},k;u=u||{};for(k in (u.v||{}))f[k]=String(u.v[k]);Object.keys(DX).forEach(function(n){if(u[n]!=null)f[n]=u[n];});return f;}
 var BASE=flat(U),EDIT={};
-var STRUCT={tagMode:1,tagIndex:1,desc:1,rules:1,dateFormat:1,dateCustom:1,dateTime:1,timeFormat:1,dateWeekday:1,dateSep:1,metaLayout:1,dateCompact:1,'--ga-extra-grouping':1,'--ga-use-notion-color-tag':1,'--ga-use-notion-color-select':1};
+var STRUCT={tagMode:1,tagIndex:1,desc:1,rules:1,dateFormat:1,dateCustom:1,dateTime:1,timeFormat:1,dateWeekday:1,dateSep:1,metaLayout:1,dateCompact:1,hideDbTitle:1,hideDbTabs:1,dbRules:1,'--ga-extra-grouping':1,'--ga-use-notion-color-tag':1,'--ga-use-notion-color-select':1};
 function eff(){var o={},k;for(k in BASE)o[k]=BASE[k];for(k in EDIT)o[k]=EDIT[k];return o;}
 function known(k){return (k in D)||(k in DX);}
 function merge(){V={};var k;for(k in D)V[k]=D[k];var u=U.v||{};for(k in u)if(k in D)V[k]=String(u[k]);}
@@ -158,14 +161,54 @@ function parse(card){
   return o;
 }
 
+/* ---- DB 블록(제목·탭 줄) 구조 탐색 ---- */
+var DBSEL='.notion-collection_view-block';
+function dbOuter(n){
+  var b=n&&n.closest?n.closest(DBSEL):null;
+  while(b&&b.parentElement){var p=b.parentElement.closest(DBSEL);if(!p)break;b=p;}
+  return b;
+}
+function dbBlocks(){return Array.from(document.querySelectorAll(DBSEL)).filter(function(b){return !(b.parentElement&&b.parentElement.closest(DBSEL))&&!b.closest('.ga_overlay_u4b');});}
+function dbParts(b){
+  var tl=Array.from(b.querySelectorAll('[role="tablist"]')).filter(function(t){return !t.closest('.notion-scroller');})[0]||null;
+  var sc=b.querySelector('.notion-scroller'),te=null,s;
+  if(sc){s=sc.previousElementSibling;while(s){if(s.querySelector('[data-root="true"]')){te=s;break;}s=s.previousElementSibling;}}
+  var tabs=tl?Array.from(tl.querySelectorAll('[role="menuitem"]')).map(txt).filter(Boolean):[];
+  var act=tl&&tl.querySelector('[role="menuitem"][tabindex="0"]');
+  return {id:b.getAttribute('data-block-id')||'',bar:tl?tl.parentElement:null,titleEl:te,title:te?txt(te):'',tabs:tabs,active:act?txt(act):''};
+}
+function dbFlags(p,idx){
+  var ht=U.hideDbTitle==='1',hb=U.hideDbTabs==='1',rs=U.dbRules||[];
+  for(var i=0;i<rs.length;i++){
+    var r=rs[i]||{},m=r.match||'',ok=false,q;
+    if(m.indexOf('index:')===0)ok=Number(m.slice(6))===idx;
+    else if(m.indexOf('id:')===0){q=m.slice(3).replace(/-/g,'').toLowerCase();ok=!!q&&p.id.replace(/-/g,'').toLowerCase().indexOf(q)===0;}
+    else if(m.indexOf('title:')===0)ok=!!p.title&&norm(p.title)===norm(m.slice(6));
+    else if(m.indexOf('tab:')===0){q=norm(m.slice(4));ok=p.tabs.some(function(x){return norm(x)===q;});}
+    if(ok){
+      if(r.hideTitle==='1'||r.hideTitle==='0')ht=r.hideTitle==='1';
+      if(r.hideTabs==='1'||r.hideTabs==='0')hb=r.hideTabs==='1';
+      break;
+    }
+  }
+  return {t:ht,b:hb};
+}
+function applyDb(){
+  dbBlocks().forEach(function(b,i){
+    var p=dbParts(b),f=dbFlags(p,i+1);
+    if(p.titleEl){if(f.t)p.titleEl.setAttribute('data-ga-hide','');else p.titleEl.removeAttribute('data-ga-hide');}
+    if(p.bar){if(f.b)p.bar.setAttribute('data-ga-hide','');else p.bar.removeAttribute('data-ga-hide');}
+  });
+}
+
 function activeTab(){
   if(lastTab)return lastTab;
   var s=document.querySelector('[role="tab"][aria-selected="true"]');return s?txt(s):'';
 }
 function ruleFor(card){
   var rs=U.rules||[];if(!rs.length)return {};
-  var root=card.closest('.notion-collection_view-block');
-  var ti=root?txt(root.querySelector('.notion-collection-view-title,h1,h2,h3')):'',tab=activeTab();
+  var root=dbOuter(card),p=root?dbParts(root):null;
+  var ti=p&&p.title?p.title:(root?txt(root.querySelector('.notion-collection-view-title,h1,h2,h3')):''),tab=(p&&p.active)||activeTab();
   for(var i=0;i<rs.length;i++){
     var m=rs[i].match||'';
     if(m.indexOf('title:')===0&&norm(ti)===norm(m.slice(6)))return rs[i];
@@ -325,6 +368,7 @@ function release(){
   if(hit&&window.GA_forceSync)window.GA_forceSync();
 }
 function run(){try{release();}catch(e){}
+  try{applyDb();}catch(e){}
   try{
     cards().forEach(function(card){
       var tile=getTile(card);if(!tile)return;
@@ -356,6 +400,10 @@ function cardInfo(card,i){
   o.metaMode=m?(m.classList.contains('ga-stack')?'두 줄':m.classList.contains('ga-inline')?'한 줄(말줄임)':'한 줄'):'';
   o.ok=o.built&&!!d.title;return o;
 }
+function dbInfo(b,i){
+  var p=dbParts(b),f=dbFlags(p,i+1),vv=b.querySelector('.notion-gallery-view,.notion-table-view,.notion-board-view,.notion-list-view,.notion-calendar-view,.notion-timeline-view'),vm=vv&&vv.className.match(/notion-(\w+)-view/);
+  return {block:b,index:i+1,id:p.id,title:p.title,tabs:p.tabs,active:p.active,hasTitle:!!p.titleEl,hasTabs:!!p.bar,hideTitle:f.t,hideTabs:f.b,view:vm?vm[1]:'기타',cards:b.querySelectorAll('.notion-collection-item').length};
+}
 var API={
   defaults:function(){return Object.assign({},D,cp(DX));},
   read:function(){return {base:cp(BASE),edit:cp(EDIT),values:Object.assign({},D,cp(DX),cp(eff()))};},
@@ -373,6 +421,7 @@ var API={
   replace:function(e){EDIT={};Object.keys(e||{}).forEach(function(k){if(known(k))EDIT[k]=cp(e[k]);});push(true);},
   restore:function(keys){if(keys&&keys.length)keys.forEach(function(k){delete EDIT[k];});else EDIT={};push(true);},
   inspect:function(){return Array.from(cards()).map(cardInfo);},
+  inspectDb:function(){return dbBlocks().map(dbInfo);},
   rescan:rebuild
 };
 
@@ -381,5 +430,5 @@ function sched(){clearTimeout(tm);tm=setTimeout(run,120);}
 merge();apply();installTabs();
 setTimeout(run,100);setTimeout(run,500);setTimeout(run,1200);
 try{new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});}catch(e){}
-window.GA={_init:1,version:'2.2.0',D:D,dashboard:API,rebuild:rebuild};
+window.GA={_init:1,version:'2.3.0',D:D,dashboard:API,rebuild:rebuild};
 })();

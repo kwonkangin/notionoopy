@@ -9,22 +9,23 @@
 
 
 // =========================================================
-// gallery-dashboard.js  v1.2.0
-// 설명: gallery-engine v2.2 의 설정을 팝업(690x980)에서 실시간으로 미리 보고,
+// gallery-dashboard.js  v1.3.0
+// 설명: gallery-engine v2.3 의 설정을 팝업(690x980)에서 실시간으로 미리 보고,
 //       "기본값과 다른 항목만" 담은 window.GA_USER 코드를 출력하는 콘솔용 대시보드
-// 의존성: gallery-engine.js v2.2.0 (GA.dashboard API)
+// 의존성: gallery-engine.js v2.3.0 (GA.dashboard API)
 // [사용법] 갤러리가 있는 페이지에서 콘솔에 이 파일 전체를 붙여 넣고 실행 (PC, 팝업 허용)
 // - 변경은 현재 화면에만 임시 반영. 노션/GitHub에는 아무것도 쓰지 않음. 새로고침하면 시작 상태.
 // - 우선순위: 대시보드 임시 편집 > 페이지의 window.GA_USER > 엔진 기본값
 // - 출력: 기본값과 다른 항목만 출력 (전체 설정 출력 스위치로 모두 출력 가능)
 // v1.1.0: 그림자 빌더, 호버 효과 부분별 on/off, 날짜 표기, 세로 간격 그룹
 // v1.2.0: 작성자·날짜 줄 배치(자동/항상 두 줄/항상 한 줄), 카드 점검에 배치 상태 표시
+// v1.3.0: 페이지 DB 목록(DB별 제목·탭 줄 숨기기 토글), DB별 규칙 편집(dbRules)
 // - 저장소: gallery-dashboard-v1-preferences / -slots / -presets
 // =========================================================
 (function galleryDashboardV1(){
 'use strict';
 const W=window,D=document,A=W.GA&&W.GA.dashboard;
-if(!A||typeof A.inspect!=='function'||typeof A.replace!=='function'||!/^2\.([2-9]|\d\d)/.test(W.GA.version||'')){console.error('[gallery dashboard] gallery-engine v2.2.0 이상이 필요합니다.');return;}
+if(!A||typeof A.inspect!=='function'||typeof A.inspectDb!=='function'||typeof A.replace!=='function'||!/^2\.([3-9]|\d\d)/.test(W.GA.version||'')){console.error('[gallery dashboard] gallery-engine v2.3.0 이상이 필요합니다.');return;}
 if(W.__gaDash&&W.__gaDash.destroy)W.__gaDash.destroy();
 const P=W.open('','GalleryDashboard','width=690,height=980,resizable=yes,scrollbars=yes');
 if(!P){console.error('[gallery dashboard] 팝업을 허용하고 다시 실행하세요.');return;}
@@ -38,7 +39,7 @@ const readLS=(k,fb)=>{try{const v=W.localStorage.getItem(k);return v?JSON.parse(
 const writeLS=(k,v)=>{try{W.localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 let prefs=Object.assign({light:false,pick:true,full:false},readLS(STORE+'-preferences',{}));
 let slots=readLS(STORE+'-slots',[]),presets=readLS(STORE+'-presets',[]);if(!Array.isArray(slots))slots=[];if(!Array.isArray(presets))presets=[];
-let closed=false,peeking=false,peekSaved=null,auditing=false,sel=-1,infos=[],hist=[],hi=0,histTimer=null,toastTimer=null,hoverEl=null,selEl=null;
+let closed=false,peeking=false,peekSaved=null,auditing=false,sel=-1,infos=[],dbs=[],dbSel=-1,dbEl=null,hist=[],hi=0,histTimer=null,toastTimer=null,hoverEl=null,selEl=null;
 const savePrefs=()=>writeLS(STORE+'-preferences',prefs);
 const Q=(s,r=R)=>[...r.querySelectorAll(s)];
 
@@ -66,6 +67,10 @@ const GROUPS=[
  N('--grid-cols-mob','모바일 열 개수',1,4,'','560px 이하'),
  {type:'quad',keys:['--ga-grid-gap-row','--ga-grid-gap-col'],labels:['세로','가로'],label:'카드 사이 간격',min:0,max:100,tip:'통합 슬라이더 또는 개별 입력'},
  {type:'align',keys:['--ga-align-box','--ga-align-text'],label:'상자·텍스트 정렬',tip:'좌측/중앙/우측을 한 번에 지정'}]],
+['DB 제목·탭 표시',[
+ S('hideDbTitle','DB 제목 숨기기 (기본)',[['0','표시'],['1','숨김']],'페이지의 모든 DB에 적용되는 기본값입니다. DB별 예외는 아래 규칙이나 위쪽 "페이지 DB 목록"에서 지정하세요'),
+ S('hideDbTabs','DB 탭 줄 숨기기 (기본)',[['0','표시'],['1','숨김']],'탭 줄 전체(탭 + 검색 영역)를 숨깁니다'),
+ {type:'dbrules',keys:['dbRules'],label:'DB별 제목·탭 규칙'}]],
 ['카드',[
  C('--ga-card-bg','카드 배경색'),C('--ga-card-border-color','테두리 색'),
  N('--ga-card-border-width','테두리 두께',0,10,'px'),
@@ -147,12 +152,13 @@ style.textContent=`:host{display:block;width:100%;height:100%;overflow:hidden}*{
 .field{min-width:0;padding:10px 0;border-bottom:1px dashed var(--bd)}.field:last-child{border-bottom:0}.label{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;font-weight:650;margin-bottom:6px}.var{font:10px monospace;color:var(--mu);margin-bottom:5px;overflow-wrap:anywhere}.controls{width:100%;min-width:0;flex-wrap:wrap}.txt,.num,select,textarea{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:7px 8px;outline:none;min-width:0}.txt{width:100%}.num{width:78px;flex:none}select{max-width:100%}.controls input[type=range]{flex:1;min-width:80px;accent-color:var(--ac)}.controls .txt{flex:1}.colorchip{width:38px;height:34px;padding:0;border:1px solid var(--bd);border-radius:5px;background:none}
 .switch{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:400;cursor:pointer}.switch input{position:absolute;opacity:0;width:1px;height:1px}.track{position:relative;width:34px;height:19px;border-radius:20px;background:var(--bd);flex:none}.track:before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;border-radius:50%;background:#fff}.switch input:checked+.track{background:var(--ac)}.switch input:checked+.track:before{transform:translateX(15px)}.switch input:disabled+.track{opacity:.4}.switch input:focus-visible+.track{outline:2px solid var(--ac);outline-offset:2px}
 .list{max-height:180px;overflow:auto;border:1px solid var(--bd);border-radius:6px;margin-top:8px}.item{display:flex;gap:8px;padding:7px 9px;border-bottom:1px solid var(--bd);cursor:pointer}.item.active{border-left:3px solid var(--ac);background:#ff6b3515}.item:hover{background:#ff6b3510}.item .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.no{color:var(--mu);min-width:22px}.item.warn{color:#d89827}
-textarea{width:100%;height:110px;resize:vertical;font:12px/1.45 monospace;color:#10b981}.warnings{font-size:11px;color:#d89827;white-space:pre-wrap;margin:7px 0}.preset{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--bd)}.preset span{flex:1}.rule{display:flex;gap:5px;align-items:center;margin-bottom:6px}.rule .txt{flex:2}.rule select{flex:1}
+.dbi{padding:9px;border-bottom:1px solid var(--bd);cursor:pointer}.dbi.active{border-left:3px solid var(--ac);background:#ff6b3515}.dbi .t{font-weight:650}.dbi .m{color:var(--mu);font-size:11px;margin:2px 0 6px;overflow-wrap:anywhere}
+textarea{width:100%;height:110px;resize:vertical;font:12px/1.45 monospace;color:#10b981}.warnings{font-size:11px;color:#d89827;white-space:pre-wrap;margin:7px 0}.preset{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--bd)}.preset span{flex:1}.rule{display:flex;gap:5px;align-items:center;margin-bottom:6px;flex-wrap:wrap}.rule .txt{flex:2;min-width:120px}.rule select{flex:1}
 .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);max-width:95%;background:var(--ac);color:#fff;padding:9px 15px;border-radius:20px;z-index:99}.minibtn{position:fixed;bottom:15px;right:15px;width:46px;height:46px;border-radius:50%;background:#ff6b35;color:#fff;font-size:22px}.eye{touch-action:none}.peek .body{pointer-events:none;opacity:.6}
 .seg{display:flex;gap:5px;flex-wrap:wrap}.seg button{min-width:46px}.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.sub{display:flex;flex-direction:column;gap:6px;width:100%;margin-top:6px}.sub .r{display:flex;align-items:center;gap:8px}.sub .r>span:first-child{width:48px;font-size:12px}.shprev{height:54px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center}.shprev i{display:block;width:90px;height:34px;border-radius:8px;background:#fff}`;
 
 const app=elem('div',null,R,{class:'app'+(prefs.light?' light':'')});
-const hd=elem('div',null,app,{class:'hd'}),top=elem('div',null,hd,{class:'top'});elem('div','Gallery Dashboard v1.2',top,{class:'ttl'});const tb=elem('div',null,top,{class:'row'});
+const hd=elem('div',null,app,{class:'hd'}),top=elem('div',null,hd,{class:'top'});elem('div','Gallery Dashboard v1.3',top,{class:'ttl'});const tb=elem('div',null,top,{class:'row'});
 switcher(tb,'다크 / 라이트',prefs.light,v=>{prefs.light=v;app.classList.toggle('light',v);savePrefs();});
 const mini=elem('button','⚙',R,{type:'button',class:'minibtn hidden','aria-label':'대시보드 열기'});mini.onclick=()=>{mini.classList.add('hidden');app.classList.remove('hidden');};
 button('−',tb,()=>{app.classList.add('hidden');mini.classList.remove('hidden');},'최소화').className='ib';button('×',tb,()=>destroy(),'닫기').className='ib';
@@ -162,7 +168,7 @@ const eye=elem('button',null,bar,{type:'button',class:'ib eye',title:'누르는 
 eye.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
 button('무효화',bar,()=>invalidate(),'임시 편집 전체를 시작 상태로 되돌립니다');const dirty=elem('span','수정됨',bar,{class:'badge hidden'});
 const saveBar=elem('div',null,hd,{class:'toolbar'});button('임시저장',saveBar,()=>saveSlot());const slotsSelect=elem('select',null,saveBar,{'aria-label':'저장 슬롯'});button('불러오기',saveBar,()=>loadSlot());button('삭제',saveBar,()=>deleteSlot());const saveStatus=elem('span','저장 슬롯 없음',saveBar,{class:'hint'});
-const search=elem('input',null,hd,{class:'txt',type:'search',placeholder:'설정 검색: 열, 간격, 태그, 그림자, 호버, 날짜, 배치…','aria-label':'설정 검색'});search.style.marginTop='8px';search.oninput=()=>filterSettings();
+const search=elem('input',null,hd,{class:'txt',type:'search',placeholder:'설정 검색: 열, 간격, 태그, 그림자, 호버, 날짜, 배치, DB 제목, 탭…','aria-label':'설정 검색'});search.style.marginTop='8px';search.oninput=()=>filterSettings();
 const pv=elem('div',null,app,{class:'pv'}),pvtop=elem('div',null,pv,{class:'pvtop'});elem('b','선택 카드',pvtop);const live=elem('span','',pvtop,{class:'hint'});const selectedInfo=elem('div','선택된 카드 없음',pv,{class:'hint'});selectedInfo.style.whiteSpace='pre-wrap';
 const body=elem('div',null,app,{class:'body'});
 function section(title,parent=body,group){const s=elem('section',null,parent,{class:'sec'});s.dataset.title=title;if(group)s.dataset.group='1';elem('h2',title,s);return s;}
@@ -172,6 +178,10 @@ const selSec=section('1. 카드 점검 · 대상 선택');
 switcher(selSec,'페이지 클릭 선택 · 켜면 카드를 클릭해 점검하고 링크 이동을 막음',prefs.pick,v=>{prefs.pick=v;clearHover();savePrefs();});
 const nav=elem('div',null,selSec,{class:'toolbar'});button('↻',nav,()=>{A.rescan();syncUI();},'다시 스캔');button('선택 해제',nav,()=>choose(-1));const count=elem('span','',nav,{class:'hint'});
 elem('div','갤러리 카드 (엔진이 구조로 읽은 결과)',selSec,{class:'label'});const cardList=elem('div',null,selSec,{class:'list'});
+
+const dbSec=section('2. 페이지 DB 목록 · 제목/탭 줄 숨기기');
+elem('div','페이지에 있는 DB를 구조로 찾은 결과입니다. DB를 누르면 페이지에서 표시되고, 버튼으로 그 DB의 제목과 탭 줄을 켜고 끌 수 있습니다. 버튼을 누르면 DB 블록 ID 기준 규칙(id:)이 만들어집니다.',dbSec,{class:'hint'});
+const dbList=elem('div',null,dbSec,{class:'list'});dbList.style.maxHeight='320px';
 const settingsWrap=elem('div',null,body);
 const entries=[];
 
@@ -288,7 +298,21 @@ function rulesCtl(row,f,submit){
  const add=elem('button','＋ 규칙 추가',wrap,{type:'button'});add.onclick=guarded(()=>{if(peeking)return;cur.push({match:'tab:새 탭',tagMode:'select',tagIndex:0});emit();draw();});
  return {set(v){const nv=Array.isArray(v.rules)?v.rules:[];if(!jeq(nv,cur)&&!list.contains(R.activeElement)){cur=copy(nv);draw();}},disable(x){add.disabled=x;}};
 }
-const CTL={num:numCtl,sel:selCtl,txt:txtCtl,color:colorCtl,align:alignCtl,tagpos:tagposCtl,ratio:ratioCtl,quad:quadCtl,shadow:shadowCtl,rules:rulesCtl};
+function dbrulesCtl(row,f,submit){
+ const wrap=elem('div',null,row,{class:'sub'});
+ elem('div','match: index:N(페이지에서 N번째 DB) · id:블록ID 앞부분 · title:DB 제목 · tab:탭 이름. 위에서부터 처음 맞는 규칙 하나만 적용됩니다. "기본 따름"은 위 기본값을 씁니다.',wrap,{class:'hint'});
+ const list=elem('div',null,wrap);let cur=[];
+ const emit=()=>submit({dbRules:cur.length?cur.map(r=>Object.assign({},r)):null});
+ const OPT=[['','기본 따름'],['1','숨김'],['0','표시']];
+ const draw=()=>{list.textContent='';cur.forEach((r,i)=>{const d=elem('div',null,list,{class:'rule'});
+  const m=elem('input',null,d,{class:'txt',type:'text',placeholder:'index:1 / id:40e02e5d / title:제목 / tab:이름'});m.value=r.match||'';m.oninput=guarded(()=>{r.match=m.value;emit();});
+  elem('span','제목',d,{class:'hint'});const a=elem('select',null,d);OPT.forEach(([v,t])=>elem('option',t,a,{value:v}));a.value=r.hideTitle||'';a.onchange=guarded(()=>{if(a.value)r.hideTitle=a.value;else delete r.hideTitle;emit();});
+  elem('span','탭 줄',d,{class:'hint'});const b=elem('select',null,d);OPT.forEach(([v,t])=>elem('option',t,b,{value:v}));b.value=r.hideTabs||'';b.onchange=guarded(()=>{if(b.value)r.hideTabs=b.value;else delete r.hideTabs;emit();});
+  const x=elem('button','🗑',d,{type:'button',title:'삭제'});x.onclick=guarded(()=>{cur.splice(i,1);emit();draw();});});};
+ const add=elem('button','＋ DB 규칙 추가',wrap,{type:'button'});add.onclick=guarded(()=>{if(peeking)return;cur.push({match:'index:1',hideTitle:'1',hideTabs:'1'});emit();draw();});
+ return {set(v){const nv=Array.isArray(v.dbRules)?v.dbRules:[];if(!jeq(nv,cur)&&!list.contains(R.activeElement)){cur=copy(nv);draw();}},disable(x){add.disabled=x;}};
+}
+const CTL={num:numCtl,sel:selCtl,txt:txtCtl,color:colorCtl,align:alignCtl,tagpos:tagposCtl,ratio:ratioCtl,quad:quadCtl,shadow:shadowCtl,rules:rulesCtl,dbrules:dbrulesCtl};
 
 function buildField(f,parent){
  const box=elem('div',null,parent,{class:'field'});box.dataset.search=(f.label+' '+f.keys.join(' ')+' '+(f.tip||'')).toLowerCase();
@@ -352,7 +376,7 @@ function genCode(minify){
  const v=A.read().values,u={v:{}};let n=0;
  Object.keys(v).forEach(k=>{
   if(jeq(v[k],DEF[k])&&!prefs.full)return;
-  if(k==='rules'&&!(v[k]||[]).length&&!prefs.full)return;
+  if((k==='rules'||k==='dbRules')&&!(v[k]||[]).length&&!prefs.full)return;
   n++;if(k.indexOf('--')===0)u.v[k]=v[k];else u[k]=v[k];
  });
  if(!Object.keys(u.v).length)delete u.v;
@@ -394,7 +418,7 @@ function runAudit(){
  if(peeking)return;auditing=true;auditOut.textContent='';const saved=A.read().edit,rows=[];
  try{
   ALLKEYS.forEach(k=>{
-   if(k==='rules')return;
+   if(k==='rules'||k==='dbRules')return;
    const cur=A.read().values[k],tv=testValue(k,cur);if(tv===undefined)return;
    A.apply({[k]:tv});
    const got=k.indexOf('--')===0?W.getComputedStyle(D.documentElement).getPropertyValue(k).trim().replace(/\s+/g,''):String(A.read().values[k]);
@@ -404,6 +428,8 @@ function runAudit(){
  }finally{A.replace(saved);auditing=false;}
  const cardsInfo=A.inspect(),bad=cardsInfo.filter(c=>!c.ok).length;
  rows.push(['카드 매핑 '+cardsInfo.length+'개 (제목/렌더 확인)',bad===0]);
+ const dbInfo=A.inspectDb();
+ rows.push(['DB 블록 '+dbInfo.length+'개 (제목 '+dbInfo.filter(d=>d.hasTitle).length+' / 탭 줄 '+dbInfo.filter(d=>d.hasTabs).length+' 인식)',dbInfo.length>0]);
  rows.forEach(([k,ok])=>{const r=elem('div',null,auditOut,{class:'item'});const s=elem('span',ok?'적용':'실패',r,{class:'no'});s.style.color=ok?'#16ad7b':'#ef4444';elem('span',k,r,{class:'name'});});
  const okN=rows.filter(r=>r[1]).length;message('점검 완료: '+okN+'/'+rows.length+' 통과',okN!==rows.length);syncUI();
 }
@@ -416,6 +442,35 @@ function renderCards(){
   selectedInfo.textContent=['제목: '+(c.title||'없음'),'커버 이미지: '+(c.cover?'있음':'없음'),'태그: '+(c.tag||'없음'),'선택 값(나머지): '+(c.pills&&c.pills.length?c.pills.join(', '):'없음'),'설명: '+(c.desc||'없음'),'날짜(원본): '+(c.date||'없음'),'작성자/관계형: '+(c.people&&c.people.length?c.people.join(', '):'없음'),'작성자·날짜 줄 배치: '+(c.metaMode||'해당 없음'),'텍스트: '+(c.texts&&c.texts.length?c.texts.join(' / '):'없음'),'기타 아이콘 속성: '+(c.rels&&c.rels.length?c.rels.join(', '):'없음'),'렌더: '+(c.built?'완료':'미완료')+(c.ok?'':'  ⚠ 확인 필요')].join('\n');live.textContent=c.ok?'정상':'확인 필요';
  }else{selectedInfo.textContent='선택된 카드 없음';live.textContent='';}
 }
+
+/* ---------- 페이지 DB 목록 ---------- */
+const dbShort=id=>String(id||'').replace(/-/g,'').slice(0,8);
+function setDbFlag(d,key,hide){
+ const rules=copy(A.read().values.dbRules||[]),m='id:'+dbShort(d.id);
+ let r=rules.find(x=>x.match===m);
+ if(!r){r={match:m};rules.unshift(r);}
+ r[key]=hide?'1':'0';
+ submit({dbRules:rules});
+}
+function chooseDb(i){dbSel=i;if(dbEl){dbEl.removeAttribute('data-ga-selected');dbEl=null;}renderDbs();if(dbs[dbSel]){dbEl=dbs[dbSel].block;dbEl.setAttribute('data-ga-selected','1');try{dbEl.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}}}
+function renderDbs(){
+ dbs=A.inspectDb();dbList.textContent='';
+ if(!dbs.length){elem('div','DB를 찾지 못했습니다. (.notion-collection_view-block 없음)',dbList,{class:'hint'}).style.padding='9px';return;}
+ dbs.forEach((d,i)=>{
+  const it=elem('div',null,dbList,{class:'dbi'+(i===dbSel?' active':'')});
+  elem('div',(d.index)+'. '+(d.title||'(제목 없음 또는 노션에서 숨김)'),it,{class:'t'});
+  elem('div','종류 '+d.view+' · 카드 '+d.cards+'개 · id:'+dbShort(d.id)+' · 탭: '+(d.tabs.length?d.tabs.join(' / ')+(d.active?' (현재: '+d.active+')':''):'없음'),it,{class:'m'});
+  const row=elem('div',null,it,{class:'toolbar'});row.style.marginTop='0';
+  const bt=elem('button',!d.hasTitle?'제목 없음':(d.hideTitle?'제목: 숨김 → 표시':'제목: 표시 → 숨김'),row,{type:'button'});
+  bt.disabled=!d.hasTitle||peeking;if(d.hasTitle&&d.hideTitle)bt.className='on';
+  bt.onclick=guarded(e=>{e.stopPropagation();if(!peeking)setDbFlag(d,'hideTitle',!d.hideTitle);});
+  const bb=elem('button',!d.hasTabs?'탭 줄 없음':(d.hideTabs?'탭 줄: 숨김 → 표시':'탭 줄: 표시 → 숨김'),row,{type:'button'});
+  bb.disabled=!d.hasTabs||peeking;if(d.hasTabs&&d.hideTabs)bb.className='on';
+  bb.onclick=guarded(e=>{e.stopPropagation();if(!peeking)setDbFlag(d,'hideTabs',!d.hideTabs);});
+  it.onclick=()=>chooseDb(i);
+ });
+}
+
 const highStyle=D.createElement('style');highStyle.textContent='[data-ga-selected]{outline:3px dashed #ff6b35!important;outline-offset:3px!important}[data-ga-hover]{outline:2px solid #ff6b35aa!important;outline-offset:2px!important}';D.head.appendChild(highStyle);
 function clearHover(){if(hoverEl){hoverEl.removeAttribute('data-ga-hover');hoverEl=null;}}
 const cardOf=t=>t&&t.closest?t.closest('.notion-gallery-view .notion-collection-item'):null;
@@ -439,12 +494,12 @@ function syncUI(){
   e.source.className='source'+(own?' own':page?' page':'');
  });
  dirty.classList.toggle('hidden',!Object.keys(r.edit).length);
- updateHistButtons();renderCards();renderOutputs();
+ updateHistButtons();renderCards();renderDbs();renderOutputs();
 }
-function cleanupAll(){D.removeEventListener('click',onClick,true);D.removeEventListener('mouseover',onOver,true);clearHover();if(selEl)selEl.removeAttribute('data-ga-selected');highStyle.remove();delete W.__gaDash;}
+function cleanupAll(){D.removeEventListener('click',onClick,true);D.removeEventListener('mouseover',onOver,true);clearHover();if(selEl)selEl.removeAttribute('data-ga-selected');if(dbEl)dbEl.removeAttribute('data-ga-selected');highStyle.remove();delete W.__gaDash;}
 function destroy(){if(closed)return;closed=true;clearTimeout(histTimer);cleanupAll();try{P.close();}catch(e){}}
 P.addEventListener('beforeunload',()=>{if(!closed){closed=true;cleanupAll();}});
 W.__gaDash={destroy};
 refreshSlots();renderPresets();histInit();syncUI();
-console.info('[gallery dashboard] v1.2.0 시작. 임시 편집은 새로고침하면 사라집니다.');
+console.info('[gallery dashboard] v1.3.0 시작. 임시 편집은 새로고침하면 사라집니다.');
 })();
