@@ -1123,7 +1123,7 @@ var gap = Number.isFinite(parsedGap) ? Math.max(0, parsedGap) : 20;
   function applyFrame(box, level, cfg) {
     var s = box.style;
     if (box.getAttribute('data-cc-orig-bg') === null) {
-      box.setAttribute('data-cc-orig-bg', s.background || s.backgroundColor || '');
+      box.setAttribute('data-cc-orig-bg', ((s.background || s.backgroundColor || '').indexOf('--calloutBg_R8w') !== -1 ? '' : (s.background || s.backgroundColor)) || '');
     }
     var flat = (level === 'BORDER' || level === 'ALL');
     if (flat) {
