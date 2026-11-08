@@ -208,7 +208,9 @@
     if (previous) previous.style.setProperty('margin-bottom', '0px');
 
     inst.panel.querySelectorAll('.notion-callout-block').forEach(callout => {
-  if (callout.querySelector('[data-card-engine-box="true"]')) return;
+  const isCard = !!callout.querySelector('[data-card-engine-box="true"]')
+    || callout.dataset.ceOwner === 'card'
+    || /call-card/i.test(callout.textContent);
 
   setStyle(callout, {
     display: css('calloutDisplay', 'block'),
@@ -216,15 +218,17 @@
     'margin-bottom': '0px'
   });
 
-  const content = callout.querySelector('[class*="CalloutBlock-module"][class*="content"]') || callout.firstElementChild?.firstElementChild || callout;
-  setStyle(content, {
-    background: css('calloutBg', 'transparent'),
-    border: css('calloutBorder', 'none'),
-    'border-radius': css('calloutRadius', '20px'),
-    'box-shadow': css('calloutShadow', 'none'),
-    padding: css('calloutPad', '22px'),
-    'box-sizing': 'border-box'
-  });
+  if (!isCard) {
+    const content = callout.querySelector('[class*="CalloutBlock-module"][class*="content"]') || callout.firstElementChild?.firstElementChild || callout;
+    setStyle(content, {
+      background: css('calloutBg', 'transparent'),
+      border: css('calloutBorder', 'none'),
+      'border-radius': css('calloutRadius', '20px'),
+      'box-shadow': css('calloutShadow', 'none'),
+      padding: css('calloutPad', '22px'),
+      'box-sizing': 'border-box'
+    });
+  }
 
   callout.querySelectorAll('.notion-sub_sub_header-block, .notion-sub_sub_header-block h4').forEach(title => {
     setStyle(title, {
